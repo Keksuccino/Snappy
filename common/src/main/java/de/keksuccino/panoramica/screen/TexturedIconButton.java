@@ -13,7 +13,7 @@ public class TexturedIconButton extends Button {
 
     public static final int DEFAULT_BUTTON_SIZE = 20;
     public static final int DEFAULT_ICON_SIZE = 15;
-    public static final int DEFAULT_TEXTURE_SIZE = 32;
+    public static final int DEFAULT_TEXTURE_SIZE = 15;
 
     private final Identifier iconTexture;
     private final int iconSize;

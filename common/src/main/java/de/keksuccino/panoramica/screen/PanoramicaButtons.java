@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class PanoramicaButtons {
 
-    private static final Identifier SCREENSHOT_BROWSER_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/screenshot_browser_icon_32x32.png");
+    private static final Identifier SCREENSHOT_BROWSER_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/screenshot_browser_icon_15x15.png");
 
     private PanoramicaButtons() {
     }

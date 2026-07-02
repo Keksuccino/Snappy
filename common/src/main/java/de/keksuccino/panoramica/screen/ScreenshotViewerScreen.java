@@ -53,10 +53,10 @@ public class ScreenshotViewerScreen extends Screen {
     private static final float PANORAMA_ROTATION_FULL_TURN_DEGREES = 360.0F;
     private static final float PANORAMA_VERTICAL_ANGLE_MIN_DEGREES = -90.0F;
     private static final float PANORAMA_VERTICAL_ANGLE_MAX_DEGREES = 90.0F;
-    private static final Identifier BACK_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/detail_back_icon_32x32.png");
-    private static final Identifier METADATA_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/metadata_icon_32x32.png");
-    private static final Identifier SHOW_OUTSIDE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/show_outside_icon_32x32.png");
-    private static final Identifier DELETE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/delete_icon_32x32.png");
+    private static final Identifier BACK_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/detail_back_icon_15x15.png");
+    private static final Identifier METADATA_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/metadata_icon_15x15.png");
+    private static final Identifier SHOW_OUTSIDE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/show_outside_icon_15x15.png");
+    private static final Identifier DELETE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/delete_icon_15x15.png");
     private static int textureSequence;
 
     private final Screen parent;
