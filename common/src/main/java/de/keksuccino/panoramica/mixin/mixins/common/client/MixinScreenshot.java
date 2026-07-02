@@ -5,6 +5,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.NativeImage;
 import de.keksuccino.panoramica.Panoramica;
+import de.keksuccino.panoramica.capture.NormalScreenshotCaptureManager;
 import de.keksuccino.panoramica.preview.ScreenshotPreviewManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
@@ -28,12 +29,17 @@ public class MixinScreenshot {
             Minecraft minecraft,
             boolean debugPanoramaRequested
     ) {
-        if (Panoramica.getOptions().areScreenshotChatMessagesEnabled()) {
-            original.call(workDir, target, callback);
+        Consumer<Component> effectiveCallback = callback;
+        if (!Panoramica.getOptions().areScreenshotChatMessagesEnabled()) {
+            effectiveCallback = (Consumer<Component>) message -> minecraft.execute(() -> ScreenshotPreviewManager.acceptDebugChatMessage(message));
+        }
+
+        if (Panoramica.getOptions().shouldHideHudInNormalScreenshots()) {
+            NormalScreenshotCaptureManager.requestHiddenHudScreenshot(minecraft, workDir, target, effectiveCallback);
             return;
         }
 
-        original.call(workDir, target, (Consumer<Component>) message -> minecraft.execute(() -> ScreenshotPreviewManager.acceptDebugChatMessage(message)));
+        original.call(workDir, target, effectiveCallback);
     }
 
     @WrapOperation(method = "grab(Lnet/minecraft/client/Minecraft;Z)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;showDebugChat(Lnet/minecraft/network/chat/Component;)V"))

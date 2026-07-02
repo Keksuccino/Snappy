@@ -74,6 +74,9 @@ public class OptionsScreen extends Screen {
         this.addButtonRow(currentY, this.buildStorageLocationButton());
         currentY += spacing;
 
+        this.addButtonRow(currentY, this.buildHideHudInNormalScreenshotsButton());
+        currentY += spacing;
+
         this.addButtonRow(currentY, this.buildPreviewModeButton());
         currentY += spacing;
 
@@ -150,6 +153,16 @@ public class OptionsScreen extends Screen {
     }
 
     @NotNull
+    protected Button buildHideHudInNormalScreenshotsButton() {
+        return Button.builder(this.hideHudInNormalScreenshotsMessage(), button -> {
+                    Options options = Panoramica.getOptions();
+                    options.setHideHudInNormalScreenshots(!options.shouldHideHudInNormalScreenshots());
+                    button.setMessage(this.hideHudInNormalScreenshotsMessage());
+                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.translatable("panoramica.options.hide_hud_normal_screenshots.desc"))).build();
+    }
+
+    @NotNull
     protected Button buildPreviewModeButton() {
         return Button.builder(this.previewModeMessage(), button -> {
                     Options options = Panoramica.getOptions();
@@ -221,6 +234,11 @@ public class OptionsScreen extends Screen {
     @NotNull
     protected Component storageLocationMessage() {
         return this.optionMessage("panoramica.options.storage", this.genericCycleValue(Component.translatable(Panoramica.getOptions().getStorageLocation().labelKey())));
+    }
+
+    @NotNull
+    protected Component hideHudInNormalScreenshotsMessage() {
+        return this.optionMessage("panoramica.options.hide_hud_normal_screenshots", this.booleanCycleValue(Panoramica.getOptions().shouldHideHudInNormalScreenshots()));
     }
 
     @NotNull

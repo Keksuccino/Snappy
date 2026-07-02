@@ -35,6 +35,8 @@
   "panoramica.options.storage.desc": "Chooses the parent folder for new panorama screenshots. Each capture is still saved in its own timestamped subfolder.",
   "panoramica.options.storage.dedicated_folder": "Dedicated Folder (\"panorama_screenshots\")",
   "panoramica.options.storage.screenshots_folder": "Normal Screenshots Folder",
+  "panoramica.options.hide_hud_normal_screenshots": "Hide HUD In Normal Screenshots: %s",
+  "panoramica.options.hide_hud_normal_screenshots.desc": "Hides the in-game HUD before saving normal Minecraft screenshots. This only affects normal screenshots; panorama screenshots always hide the HUD. Menus and other open screens are not hidden.",
   "panoramica.options.preview_mode": "Screenshot Preview: %s",
   "panoramica.options.preview_mode.desc": "Chooses which screenshot types show a small preview in the top-left corner for 10 seconds after capture.",
   "panoramica.options.preview_mode.both": "Show For Panorama & Normal Screenshots",

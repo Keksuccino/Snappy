@@ -1,5 +1,6 @@
 package de.keksuccino.panoramica.mixin.mixins.common.client;
 
+import de.keksuccino.panoramica.capture.NormalScreenshotCaptureManager;
 import de.keksuccino.panoramica.capture.PanoramaCaptureManager;
 import de.keksuccino.panoramica.preview.ScreenshotPreviewManager;
 import net.minecraft.client.Minecraft;
@@ -20,6 +21,7 @@ public class MixinMinecraft {
 
     @Inject(method = "close", at = @At("HEAD"))
     private void before_close_Panoramica(CallbackInfo info) {
+        NormalScreenshotCaptureManager.close();
         ScreenshotPreviewManager.close();
     }
 
