@@ -34,6 +34,7 @@ public final class PreviewCubeMapRenderer implements AutoCloseable {
     private static final float PROJECTION_Z_FAR = 10.0F;
     private static final float PROJECTION_FOV = 85.0F;
     private static final Vector4f CLEAR_COLOR = new Vector4f(0.0F, 0.0F, 0.0F, 1.0F);
+    public static final float DEFAULT_ROT_X_IN_DEGREES = 10.0F;
 
     private final int width;
     private final int height;
@@ -51,6 +52,10 @@ public final class PreviewCubeMapRenderer implements AutoCloseable {
     }
 
     public void render(@NotNull PreviewCubeMapTexture texture, float rotYInDegrees) {
+        this.render(texture, DEFAULT_ROT_X_IN_DEGREES, rotYInDegrees);
+    }
+
+    public void render(@NotNull PreviewCubeMapTexture texture, float rotXInDegrees, float rotYInDegrees) {
         RenderTarget renderTarget = this.getOrCreateTarget();
         this.projection.setupPerspective(PROJECTION_Z_NEAR, PROJECTION_Z_FAR, PROJECTION_FOV, renderTarget.width, renderTarget.height);
 
@@ -65,7 +70,7 @@ public final class PreviewCubeMapRenderer implements AutoCloseable {
             GpuBufferSlice dynamicTransforms;
             try {
                 modelViewStack.rotationX((float) Math.PI);
-                modelViewStack.rotateX(10.0F * (float) (Math.PI / 180.0));
+                modelViewStack.rotateX(rotXInDegrees * (float) (Math.PI / 180.0));
                 modelViewStack.rotateY(rotYInDegrees * (float) (Math.PI / 180.0));
                 dynamicTransforms = RenderSystem.getDynamicUniforms().writeTransform(new Matrix4f(modelViewStack));
             } finally {

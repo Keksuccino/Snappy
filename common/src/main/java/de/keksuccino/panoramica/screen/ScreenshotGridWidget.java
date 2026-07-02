@@ -308,12 +308,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private void renderCheckbox(@NotNull GuiGraphicsExtractor graphics, int x, int y, boolean selected) {
         graphics.fill(x - 1, y - 1, x + CHECKBOX_SIZE + 1, y + CHECKBOX_SIZE + 1, 0xCC000000);
         graphics.fill(x, y, x + CHECKBOX_SIZE, y + CHECKBOX_SIZE, selected ? 0xFF4CAF50 : 0xFF202020);
-        graphics.outline(x, y, CHECKBOX_SIZE, CHECKBOX_SIZE, 0xFFFFFFFF);
-        if (selected) {
-            graphics.fill(x + 3, y + 5, x + 5, y + 8, 0xFFFFFFFF);
-            graphics.fill(x + 5, y + 7, x + 9, y + 9, 0xFFFFFFFF);
-            graphics.fill(x + 8, y + 3, x + 10, y + 9, 0xFFFFFFFF);
-        }
+        graphics.outline(x, y, CHECKBOX_SIZE, CHECKBOX_SIZE, selected ? 0xFF4CAF50 : 0xFFFFFFFF);
     }
 
     @Override

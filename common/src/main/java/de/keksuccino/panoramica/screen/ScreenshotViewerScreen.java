@@ -42,11 +42,17 @@ public class ScreenshotViewerScreen extends Screen {
     private static final int PANORAMA_PROGRESS_MIN_WIDTH = 120;
     private static final int PANORAMA_PROGRESS_HORIZONTAL_MARGIN = 80;
     private static final int PANORAMA_PROGRESS_BOTTOM_MARGIN = 28;
-    private static final int PANORAMA_PROGRESS_TRACK_HEIGHT = 4;
+    private static final int PANORAMA_PROGRESS_TRACK_THICKNESS = 4;
     private static final int PANORAMA_PROGRESS_DOT_SIZE = 8;
     private static final int PANORAMA_PROGRESS_HIT_PADDING = 8;
+    private static final int PANORAMA_VERTICAL_PROGRESS_MAX_HEIGHT = 300;
+    private static final int PANORAMA_VERTICAL_PROGRESS_MIN_HEIGHT = 100;
+    private static final int PANORAMA_VERTICAL_PROGRESS_VERTICAL_MARGIN = 120;
+    private static final int PANORAMA_VERTICAL_PROGRESS_RIGHT_MARGIN = 28;
     private static final float PANORAMA_ROTATION_DEGREES_PER_MILLI = 0.01F;
     private static final float PANORAMA_ROTATION_FULL_TURN_DEGREES = 360.0F;
+    private static final float PANORAMA_VERTICAL_ANGLE_MIN_DEGREES = -90.0F;
+    private static final float PANORAMA_VERTICAL_ANGLE_MAX_DEGREES = 90.0F;
     private static int textureSequence;
 
     private final Screen parent;
@@ -64,8 +70,10 @@ public class ScreenshotViewerScreen extends Screen {
     private int sourceWidth;
     private int sourceHeight;
     private float panoramaRotationDegrees;
+    private float panoramaVerticalAngleDegrees;
     private long panoramaRotationLastMillis;
     private boolean panoramaProgressDragging;
+    private boolean panoramaVerticalProgressDragging;
     private Component statusMessage = Component.translatable("panoramica.browser.loading");
     @Nullable
     private Button previousButton;
@@ -120,11 +128,19 @@ public class ScreenshotViewerScreen extends Screen {
 
     @Override
     public boolean mouseClicked(@NotNull MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0 && this.isPanoramaProgressGrabberHit(event.x(), event.y())) {
-            this.panoramaProgressDragging = true;
-            this.setDragging(true);
-            this.setPanoramaRotationFromMouse(event.x());
-            return true;
+        if (event.button() == 0) {
+            if (this.isPanoramaProgressGrabberHit(event.x(), event.y())) {
+                this.panoramaProgressDragging = true;
+                this.setDragging(true);
+                this.setPanoramaRotationFromMouse(event.x());
+                return true;
+            }
+            if (this.isPanoramaVerticalProgressGrabberHit(event.x(), event.y())) {
+                this.panoramaVerticalProgressDragging = true;
+                this.setDragging(true);
+                this.setPanoramaVerticalAngleFromMouse(event.y());
+                return true;
+            }
         }
         return super.mouseClicked(event, doubleClick);
     }
@@ -133,6 +149,10 @@ public class ScreenshotViewerScreen extends Screen {
     public boolean mouseDragged(@NotNull MouseButtonEvent event, double dx, double dy) {
         if (this.panoramaProgressDragging && event.button() == 0) {
             this.setPanoramaRotationFromMouse(event.x());
+            return true;
+        }
+        if (this.panoramaVerticalProgressDragging && event.button() == 0) {
+            this.setPanoramaVerticalAngleFromMouse(event.y());
             return true;
         }
         return super.mouseDragged(event, dx, dy);
@@ -144,6 +164,12 @@ public class ScreenshotViewerScreen extends Screen {
             this.setPanoramaRotationFromMouse(event.x());
             this.panoramaProgressDragging = false;
             this.panoramaRotationLastMillis = Util.getMillis();
+            this.setDragging(false);
+            return true;
+        }
+        if (this.panoramaVerticalProgressDragging && event.button() == 0) {
+            this.setPanoramaVerticalAngleFromMouse(event.y());
+            this.panoramaVerticalProgressDragging = false;
             this.setDragging(false);
             return true;
         }
@@ -441,6 +467,7 @@ public class ScreenshotViewerScreen extends Screen {
         if (entry != null && entry.isPanorama()) {
             this.renderPanorama(graphics, bounds[0], bounds[1], bounds[2], bounds[3]);
             this.renderPanoramaProgressBar(graphics, mouseX, mouseY);
+            this.renderPanoramaVerticalProgressBar(graphics, mouseX, mouseY);
         } else {
             this.renderNormalImage(graphics, bounds[0], bounds[1], bounds[2], bounds[3]);
         }
@@ -465,7 +492,7 @@ public class ScreenshotViewerScreen extends Screen {
         }
 
         float spin = this.currentPanoramaRotationDegrees();
-        this.panoramaRenderer.render(texture, -spin);
+        this.panoramaRenderer.render(texture, PreviewCubeMapRenderer.DEFAULT_ROT_X_IN_DEGREES + this.panoramaVerticalAngleDegrees, -spin);
         graphics.blit(
                 this.panoramaRenderer.getColorTextureView(),
                 RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR),
@@ -496,11 +523,11 @@ public class ScreenshotViewerScreen extends Screen {
                 trackX - PANORAMA_PROGRESS_HIT_PADDING,
                 trackY - PANORAMA_PROGRESS_HIT_PADDING,
                 trackX + trackWidth + PANORAMA_PROGRESS_HIT_PADDING,
-                trackY + PANORAMA_PROGRESS_TRACK_HEIGHT + PANORAMA_PROGRESS_HIT_PADDING,
+                trackY + PANORAMA_PROGRESS_TRACK_THICKNESS + PANORAMA_PROGRESS_HIT_PADDING,
                 0x99000000
         );
-        graphics.fill(trackX, trackY, trackX + trackWidth, trackY + PANORAMA_PROGRESS_TRACK_HEIGHT, 0xAA404040);
-        graphics.outline(trackX, trackY, trackWidth, PANORAMA_PROGRESS_TRACK_HEIGHT, 0xCCFFFFFF);
+        graphics.fill(trackX, trackY, trackX + trackWidth, trackY + PANORAMA_PROGRESS_TRACK_THICKNESS, 0xAA404040);
+        graphics.outline(trackX, trackY, trackWidth, PANORAMA_PROGRESS_TRACK_THICKNESS, 0xCCFFFFFF);
         graphics.fill(
                 dotCenterX - dotSize / 2,
                 trackCenterY - dotSize / 2,
@@ -517,6 +544,47 @@ public class ScreenshotViewerScreen extends Screen {
         );
 
         if (this.panoramaProgressDragging || this.isPanoramaProgressGrabberHit(mouseX, mouseY)) {
+            graphics.requestCursor(CursorTypes.POINTING_HAND);
+        }
+    }
+
+    private void renderPanoramaVerticalProgressBar(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        if (!this.isPanoramaProgressVisible()) {
+            return;
+        }
+
+        int trackX = this.panoramaVerticalProgressX();
+        int trackY = this.panoramaVerticalProgressY();
+        int trackHeight = this.panoramaVerticalProgressHeight();
+        int dotSize = PANORAMA_PROGRESS_DOT_SIZE + (this.panoramaVerticalProgressDragging ? 2 : 0);
+        int trackCenterX = this.panoramaVerticalProgressCenterX();
+        int dotCenterY = this.panoramaVerticalProgressDotCenterY();
+
+        graphics.fill(
+                trackX - PANORAMA_PROGRESS_HIT_PADDING,
+                trackY - PANORAMA_PROGRESS_HIT_PADDING,
+                trackX + PANORAMA_PROGRESS_TRACK_THICKNESS + PANORAMA_PROGRESS_HIT_PADDING,
+                trackY + trackHeight + PANORAMA_PROGRESS_HIT_PADDING,
+                0x99000000
+        );
+        graphics.fill(trackX, trackY, trackX + PANORAMA_PROGRESS_TRACK_THICKNESS, trackY + trackHeight, 0xAA404040);
+        graphics.outline(trackX, trackY, PANORAMA_PROGRESS_TRACK_THICKNESS, trackHeight, 0xCCFFFFFF);
+        graphics.fill(
+                trackCenterX - dotSize / 2,
+                dotCenterY - dotSize / 2,
+                trackCenterX + (dotSize + 1) / 2,
+                dotCenterY + (dotSize + 1) / 2,
+                0xFFFFFFFF
+        );
+        graphics.outline(
+                trackCenterX - dotSize / 2,
+                dotCenterY - dotSize / 2,
+                dotSize,
+                dotSize,
+                0xFF000000
+        );
+
+        if (this.panoramaVerticalProgressDragging || this.isPanoramaVerticalProgressGrabberHit(mouseX, mouseY)) {
             graphics.requestCursor(CursorTypes.POINTING_HAND);
         }
     }
@@ -546,11 +614,25 @@ public class ScreenshotViewerScreen extends Screen {
         this.panoramaRotationLastMillis = Util.getMillis();
     }
 
+    private float panoramaVerticalAngleProgress() {
+        return (this.panoramaVerticalAngleDegrees - PANORAMA_VERTICAL_ANGLE_MIN_DEGREES)
+                / (PANORAMA_VERTICAL_ANGLE_MAX_DEGREES - PANORAMA_VERTICAL_ANGLE_MIN_DEGREES);
+    }
+
+    private void setPanoramaVerticalAngleFromMouse(double mouseY) {
+        int trackY = this.panoramaVerticalProgressY();
+        int trackHeight = this.panoramaVerticalProgressHeight();
+        double progress = Mth.clamp((mouseY - trackY) / (double) trackHeight, 0.0D, 1.0D);
+        this.panoramaVerticalAngleDegrees = (float) (PANORAMA_VERTICAL_ANGLE_MIN_DEGREES
+                + progress * (PANORAMA_VERTICAL_ANGLE_MAX_DEGREES - PANORAMA_VERTICAL_ANGLE_MIN_DEGREES));
+    }
+
     private void resetPanoramaPlayback() {
-        boolean wasProgressDragging = this.panoramaProgressDragging;
+        boolean wasProgressDragging = this.panoramaProgressDragging || this.panoramaVerticalProgressDragging;
         this.panoramaRotationDegrees = 0.0F;
         this.panoramaRotationLastMillis = Util.getMillis();
         this.panoramaProgressDragging = false;
+        this.panoramaVerticalProgressDragging = false;
         if (wasProgressDragging) {
             this.setDragging(false);
         }
@@ -575,6 +657,20 @@ public class ScreenshotViewerScreen extends Screen {
                 && mouseY <= dotCenterY + hitRadius;
     }
 
+    private boolean isPanoramaVerticalProgressGrabberHit(double mouseX, double mouseY) {
+        if (!this.isPanoramaProgressVisible()) {
+            return false;
+        }
+        int dotSize = PANORAMA_PROGRESS_DOT_SIZE + (this.panoramaVerticalProgressDragging ? 2 : 0);
+        int hitRadius = dotSize / 2 + PANORAMA_PROGRESS_HIT_PADDING;
+        int dotCenterX = this.panoramaVerticalProgressCenterX();
+        int dotCenterY = this.panoramaVerticalProgressDotCenterY();
+        return mouseX >= dotCenterX - hitRadius
+                && mouseX <= dotCenterX + hitRadius
+                && mouseY >= dotCenterY - hitRadius
+                && mouseY <= dotCenterY + hitRadius;
+    }
+
     private int panoramaProgressX() {
         return this.width / 2 - this.panoramaProgressWidth() / 2;
     }
@@ -584,7 +680,7 @@ public class ScreenshotViewerScreen extends Screen {
     }
 
     private int panoramaProgressCenterY() {
-        return this.panoramaProgressY() + PANORAMA_PROGRESS_TRACK_HEIGHT / 2;
+        return this.panoramaProgressY() + PANORAMA_PROGRESS_TRACK_THICKNESS / 2;
     }
 
     private int panoramaProgressWidth() {
@@ -595,6 +691,30 @@ public class ScreenshotViewerScreen extends Screen {
         int trackWidth = this.panoramaProgressWidth();
         int progressWidth = Mth.clamp(Math.round(trackWidth * this.panoramaRotationProgress()), 0, trackWidth);
         return this.panoramaProgressX() + progressWidth;
+    }
+
+    private int panoramaVerticalProgressX() {
+        return this.imageAreaX() + this.imageAreaWidth() - PANORAMA_VERTICAL_PROGRESS_RIGHT_MARGIN - PANORAMA_PROGRESS_TRACK_THICKNESS;
+    }
+
+    private int panoramaVerticalProgressY() {
+        return this.imageAreaY() + this.imageAreaHeight() / 2 - this.panoramaVerticalProgressHeight() / 2;
+    }
+
+    private int panoramaVerticalProgressCenterX() {
+        return this.panoramaVerticalProgressX() + PANORAMA_PROGRESS_TRACK_THICKNESS / 2;
+    }
+
+    private int panoramaVerticalProgressHeight() {
+        int maxHeight = Math.max(1, Math.min(PANORAMA_VERTICAL_PROGRESS_MAX_HEIGHT, this.imageAreaHeight() - PANORAMA_PROGRESS_HIT_PADDING * 2));
+        int minHeight = Math.min(PANORAMA_VERTICAL_PROGRESS_MIN_HEIGHT, maxHeight);
+        return Mth.clamp(this.imageAreaHeight() - PANORAMA_VERTICAL_PROGRESS_VERTICAL_MARGIN, minHeight, maxHeight);
+    }
+
+    private int panoramaVerticalProgressDotCenterY() {
+        int trackHeight = this.panoramaVerticalProgressHeight();
+        int progressHeight = Mth.clamp(Math.round(trackHeight * this.panoramaVerticalAngleProgress()), 0, trackHeight);
+        return this.panoramaVerticalProgressY() + progressHeight;
     }
 
     private static float wrapPanoramaRotation(float rotationDegrees) {

@@ -15,6 +15,7 @@ public class Panoramica {
     public static final String LOADER = Services.PLATFORM.getPlatformName().toUpperCase();
     public static final String MOD_ID = "panoramica";
     public static final File MOD_DIR = createDirectory(new File(GameDirectoryUtils.getGameDirectory(), "/config/panoramica"));
+    public static final File INSTANCE_DATA_DIR = createDirectory(new File(GameDirectoryUtils.getGameDirectory(), "/panoramica_instance_data"));
 
     private static Options options;
 
