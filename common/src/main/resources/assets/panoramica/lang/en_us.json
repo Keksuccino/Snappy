@@ -81,6 +81,8 @@
   "panoramica.browser.delete_result.partial": "Deleted %s screenshots. %s could not be deleted.",
   "panoramica.viewer.title": "Screenshot",
   "panoramica.viewer.position": "%s of %s - %s",
+  "panoramica.viewer.previous": "Previous Screenshot",
+  "panoramica.viewer.next": "Next Screenshot",
   "panoramica.viewer.metadata": "Image Metadata",
   "panoramica.viewer.show_outside": "Show Outside Minecraft",
   "panoramica.viewer.dimensions": "%sx%s pixels",

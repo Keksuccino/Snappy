@@ -35,7 +35,7 @@ public class ScreenshotViewerScreen extends Screen {
     private static final String TEXTURE_PATH = "dynamic/screenshot_browser/viewer/";
     private static final int BUTTON_HEIGHT = 20;
     private static final int BUTTON_GAP = 6;
-    private static final int SIDE_BUTTON_WIDTH = 28;
+    private static final int SIDE_BUTTON_MARGIN = 14;
     private static final int PANORAMA_RENDER_WIDTH = 960;
     private static final int PANORAMA_RENDER_HEIGHT = 540;
     private static final int PANORAMA_PROGRESS_MAX_WIDTH = 360;
@@ -57,6 +57,8 @@ public class ScreenshotViewerScreen extends Screen {
     private static final Identifier METADATA_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/metadata_icon_15x15.png");
     private static final Identifier SHOW_OUTSIDE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/show_outside_icon_15x15.png");
     private static final Identifier DELETE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/delete_icon_15x15.png");
+    private static final Identifier PREVIOUS_IMAGE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/previous_image_icon_15x15.png");
+    private static final Identifier NEXT_IMAGE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/next_image_icon_15x15.png");
     private static int textureSequence;
 
     private final Screen parent;
@@ -122,8 +124,10 @@ public class ScreenshotViewerScreen extends Screen {
         this.deleteButton.setPosition(x, bottomY);
 
         int sideY = this.imageAreaY() + this.imageAreaHeight() / 2 - BUTTON_HEIGHT / 2;
-        this.previousButton = this.addRenderableWidget(Button.builder(Component.literal("<"), button -> this.previous()).bounds(14, sideY, SIDE_BUTTON_WIDTH, BUTTON_HEIGHT).build());
-        this.nextButton = this.addRenderableWidget(Button.builder(Component.literal(">"), button -> this.next()).bounds(this.width - 14 - SIDE_BUTTON_WIDTH, sideY, SIDE_BUTTON_WIDTH, BUTTON_HEIGHT).build());
+        this.previousButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("panoramica.viewer.previous"), button -> this.previous(), PREVIOUS_IMAGE_ICON));
+        this.previousButton.setPosition(SIDE_BUTTON_MARGIN, sideY);
+        this.nextButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("panoramica.viewer.next"), button -> this.next(), NEXT_IMAGE_ICON));
+        this.nextButton.setPosition(this.width - SIDE_BUTTON_MARGIN - TexturedIconButton.DEFAULT_BUTTON_SIZE, sideY);
         this.updateButtons();
     }
 
