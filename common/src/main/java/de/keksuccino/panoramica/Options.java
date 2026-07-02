@@ -17,6 +17,7 @@ public class Options extends AbstractOptions {
     public final Option<Boolean> hideHudInNormalScreenshots = new Option<>(config, "hide_hud_in_normal_screenshots", false, "capture");
     public final Option<String> screenshotPreviewMode = new Option<>(config, "screenshot_preview_mode", ScreenshotPreviewMode.BOTH.id, "preview");
     public final Option<Boolean> screenshotChatMessages = new Option<>(config, "screenshot_chat_messages", true, "notifications");
+    public final Option<String> browserSortMode = new Option<>(config, "browser_sort_mode", BrowserSortMode.NEWEST_FIRST.id, "browser");
 
     public Options() {
         this.config.syncConfig();
@@ -82,6 +83,15 @@ public class Options extends AbstractOptions {
 
     public void setScreenshotChatMessagesEnabled(boolean enabled) {
         this.screenshotChatMessages.setValue(enabled);
+    }
+
+    @NotNull
+    public BrowserSortMode getBrowserSortMode() {
+        return BrowserSortMode.byId(this.browserSortMode.getValue(), this.browserSortMode);
+    }
+
+    public void setBrowserSortMode(@NotNull BrowserSortMode mode) {
+        this.browserSortMode.setValue(mode.id);
     }
 
     public enum ResolutionPreset {
@@ -264,6 +274,38 @@ public class Options extends AbstractOptions {
             }
             option.setValue(BOTH.id);
             return BOTH;
+        }
+    }
+
+    public enum BrowserSortMode {
+        NEWEST_FIRST("newest_first"),
+        OLDEST_FIRST("oldest_first"),
+        BY_TYPE("by_type");
+
+        public final String id;
+
+        BrowserSortMode(@NotNull String id) {
+            this.id = id;
+        }
+
+        @NotNull
+        public BrowserSortMode next() {
+            BrowserSortMode[] values = values();
+            return values[(this.ordinal() + 1) % values.length];
+        }
+
+        @NotNull
+        public String labelKey() {
+            return "panoramica.browser.sort." + this.id;
+        }
+
+        @NotNull
+        private static BrowserSortMode byId(@NotNull String id, @NotNull Option<String> option) {
+            for (BrowserSortMode mode : values()) {
+                if (mode.id.equals(normalize(id))) return mode;
+            }
+            option.setValue(NEWEST_FIRST.id);
+            return NEWEST_FIRST;
         }
     }
 

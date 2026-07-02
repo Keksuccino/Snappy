@@ -1,5 +1,7 @@
 package de.keksuccino.panoramica.screen;
 
+import de.keksuccino.panoramica.Options;
+import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.menu.PanoramaMenuManager;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.DeletionResult;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
@@ -18,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -28,6 +31,9 @@ public class ScreenshotBrowserScreen extends Screen {
     private static final int BUTTON_HEIGHT = 20;
     private static final int SIDE_MARGIN = 20;
     private static final int BUTTON_GAP = 6;
+    private static final int HEADER_CONTROL_Y = 42;
+    private static final int SORT_BUTTON_WIDTH = 126;
+    private static final int SEARCH_WIDTH = 210;
     private static final int STATUS_MESSAGE_MARGIN = 20;
     private static final long STATUS_MESSAGE_VISIBLE_MILLIS = 10_000L;
     private static final int STATUS_SUCCESS_COLOR = 0xFF78E878;
@@ -40,11 +46,14 @@ public class ScreenshotBrowserScreen extends Screen {
     @Nullable
     private ScreenshotGridWidget grid;
     @Nullable
+    private Button sortButton;
+    @Nullable
     private EditBox searchBox;
     @Nullable
     private Button deleteSelectedButton;
     @Nullable
     private Button clearSelectionButton;
+    private Options.BrowserSortMode sortMode = Options.BrowserSortMode.NEWEST_FIRST;
     private String searchQuery = "";
     private Component statusMessage = Component.empty();
     private int statusMessageColor = 0xFFFFFFFF;
@@ -66,9 +75,21 @@ public class ScreenshotBrowserScreen extends Screen {
         StringWidget titleWidget = this.addRenderableWidget(new StringWidget(this.title, this.font));
         titleWidget.setX(centerX - titleWidget.getWidth() / 2);
         titleWidget.setY(12);
+        this.sortMode = Panoramica.getOptions().getBrowserSortMode();
 
-        int searchWidth = Math.min(260, Math.max(120, this.width - SIDE_MARGIN * 2));
-        this.searchBox = this.addRenderableWidget(new EditBox(this.font, this.width - SIDE_MARGIN - searchWidth, 42, searchWidth, BUTTON_HEIGHT, Component.translatable("panoramica.browser.search")));
+        int headerControlWidth = Math.max(120, this.width - SIDE_MARGIN * 2);
+        int searchWidth = Math.min(SEARCH_WIDTH, Math.max(80, headerControlWidth - SORT_BUTTON_WIDTH - BUTTON_GAP));
+        int sortButtonWidth = Math.min(SORT_BUTTON_WIDTH, Math.max(70, headerControlWidth - searchWidth - BUTTON_GAP));
+        int searchX = this.width - SIDE_MARGIN - searchWidth;
+        int sortButtonX = searchX - BUTTON_GAP - sortButtonWidth;
+        this.sortButton = this.addRenderableWidget(Button.builder(this.sortModeMessage(), button -> {
+            this.sortMode = this.sortMode.next();
+            Panoramica.getOptions().setBrowserSortMode(this.sortMode);
+            this.updateSortButton();
+            this.applyFilter();
+        }).bounds(sortButtonX, HEADER_CONTROL_Y, sortButtonWidth, BUTTON_HEIGHT).build());
+
+        this.searchBox = this.addRenderableWidget(new EditBox(this.font, searchX, HEADER_CONTROL_Y, searchWidth, BUTTON_HEIGHT, Component.translatable("panoramica.browser.search")));
         this.searchBox.setMaxLength(128);
         this.searchBox.setHint(Component.translatable("panoramica.browser.search_hint"));
         this.searchBox.setValue(this.searchQuery);
@@ -128,9 +149,10 @@ public class ScreenshotBrowserScreen extends Screen {
     public void extractRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
         super.extractRenderState(graphics, mouseX, mouseY, a);
 
-        int countY = this.searchBox == null ? 42 : this.searchBox.getY() + (this.searchBox.getHeight() - this.font.lineHeight) / 2;
+        int countY = this.searchBox == null ? HEADER_CONTROL_Y : this.searchBox.getY() + (this.searchBox.getHeight() - this.font.lineHeight) / 2;
         Component countText = Component.translatable("panoramica.browser.count", this.filteredEntries.size(), this.allEntries.size());
-        graphics.text(this.font, countText, SIDE_MARGIN, countY, 0xFFFFFFFF);
+        int countMaxWidth = this.sortButton == null ? this.width - SIDE_MARGIN * 2 : Math.max(20, this.sortButton.getX() - SIDE_MARGIN - BUTTON_GAP);
+        graphics.text(this.font, this.ellipsize(countText.getString(), countMaxWidth), SIDE_MARGIN, countY, 0xFFFFFFFF);
         this.renderStatusMessage(graphics);
     }
 
@@ -181,10 +203,10 @@ public class ScreenshotBrowserScreen extends Screen {
 
     private void applyFilter() {
         String query = this.searchQuery.trim().toLowerCase(Locale.ROOT);
+        List<ScreenshotEntry> result = new ArrayList<>();
         if (query.isEmpty()) {
-            this.filteredEntries = this.allEntries;
+            result.addAll(this.allEntries);
         } else {
-            List<ScreenshotEntry> result = new ArrayList<>();
             for (ScreenshotEntry entry : this.allEntries) {
                 String type = entry.isPanorama() ? "panorama" : "normal screenshot";
                 if (entry.lowerCaseDisplayName().contains(query)
@@ -193,13 +215,25 @@ public class ScreenshotBrowserScreen extends Screen {
                     result.add(entry);
                 }
             }
-            this.filteredEntries = List.copyOf(result);
         }
+        result.sort(this.comparator(this.sortMode));
+        this.filteredEntries = List.copyOf(result);
 
         ScreenshotGridWidget currentGrid = this.grid;
         if (currentGrid != null) {
             currentGrid.setEntries(this.filteredEntries);
         }
+    }
+
+    private void updateSortButton() {
+        if (this.sortButton != null) {
+            this.sortButton.setMessage(this.sortModeMessage());
+        }
+    }
+
+    @NotNull
+    private Component sortModeMessage() {
+        return Component.translatable("panoramica.browser.sort", Component.translatable(this.sortMode.labelKey()));
     }
 
     private void openEntry(@NotNull ScreenshotEntry entry) {
@@ -283,6 +317,26 @@ public class ScreenshotBrowserScreen extends Screen {
         if (this.clearSelectionButton != null) {
             this.clearSelectionButton.active = selected > 0;
         }
+    }
+
+    @NotNull
+    private Comparator<ScreenshotEntry> comparator(@NotNull Options.BrowserSortMode mode) {
+        return switch (mode) {
+            case NEWEST_FIRST -> this.newestFirstComparator();
+            case OLDEST_FIRST -> this.oldestFirstComparator();
+            case BY_TYPE -> Comparator.comparingInt((ScreenshotEntry entry) -> entry.isPanorama() ? 1 : 0)
+                    .thenComparing(this.newestFirstComparator());
+        };
+    }
+
+    @NotNull
+    private Comparator<ScreenshotEntry> newestFirstComparator() {
+        return Comparator.comparingLong(ScreenshotEntry::modifiedMillis).reversed().thenComparing(entry -> entry.path().toString());
+    }
+
+    @NotNull
+    private Comparator<ScreenshotEntry> oldestFirstComparator() {
+        return Comparator.comparingLong(ScreenshotEntry::modifiedMillis).thenComparing(entry -> entry.path().toString());
     }
 
 }
