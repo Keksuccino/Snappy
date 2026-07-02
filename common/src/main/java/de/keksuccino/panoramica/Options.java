@@ -10,7 +10,7 @@ public class Options extends AbstractOptions {
 
     protected final Config config = new Config(Panoramica.MOD_DIR.getAbsolutePath().replace("\\", "/") + "/config.txt");
 
-    public final Option<String> screenshotResolution = new Option<>(config, "screenshot_resolution", ResolutionPreset.VANILLA_256.id, "capture");
+    public final Option<String> screenshotResolution = new Option<>(config, "screenshot_resolution", ResolutionPreset.DEFAULT_1024.id, "capture");
     public final Option<String> menuPanoramaMode = new Option<>(config, "menu_panorama_mode", MenuPanoramaMode.SHOW_LATEST.id, "menu");
     public final Option<String> cycleInterval = new Option<>(config, "cycle_interval", CycleInterval.SECONDS_30.id, "menu");
     public final Option<String> storageLocation = new Option<>(config, "storage_location", StorageLocation.DEDICATED_FOLDER.id, "capture");
@@ -57,9 +57,9 @@ public class Options extends AbstractOptions {
     }
 
     public enum ResolutionPreset {
-        VANILLA_256("vanilla_256", 256),
+        LOW_256("low_256", 256),
         BALANCED_512("balanced_512", 512),
-        HIGH_1024("high_1024", 1024),
+        DEFAULT_1024("default_1024", 1024),
         VERY_HIGH_1536("very_high_1536", 1536),
         ULTRA_2048("ultra_2048", 2048);
 
@@ -89,11 +89,15 @@ public class Options extends AbstractOptions {
 
         @NotNull
         private static ResolutionPreset byId(@NotNull String id, @NotNull Option<String> option) {
+            if ("vanilla_256".equals(normalize(id))) {
+                option.setValue(LOW_256.id);
+                return LOW_256;
+            }
             for (ResolutionPreset preset : values()) {
                 if (preset.id.equals(normalize(id))) return preset;
             }
-            option.setValue(VANILLA_256.id);
-            return VANILLA_256;
+            option.setValue(DEFAULT_1024.id);
+            return DEFAULT_1024;
         }
     }
 
