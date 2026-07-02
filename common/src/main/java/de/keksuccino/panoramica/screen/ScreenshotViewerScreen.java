@@ -53,7 +53,10 @@ public class ScreenshotViewerScreen extends Screen {
     private static final float PANORAMA_ROTATION_FULL_TURN_DEGREES = 360.0F;
     private static final float PANORAMA_VERTICAL_ANGLE_MIN_DEGREES = -90.0F;
     private static final float PANORAMA_VERTICAL_ANGLE_MAX_DEGREES = 90.0F;
-    private static final Identifier METADATA_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/info_icon_100x100.png");
+    private static final Identifier BACK_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/detail_back_icon_32x32.png");
+    private static final Identifier METADATA_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/metadata_icon_32x32.png");
+    private static final Identifier SHOW_OUTSIDE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/show_outside_icon_32x32.png");
+    private static final Identifier DELETE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/delete_icon_32x32.png");
     private static int textureSequence;
 
     private final Screen parent;
@@ -102,21 +105,21 @@ public class ScreenshotViewerScreen extends Screen {
         int bottomY = this.height - 30;
         int centerX = this.width / 2;
 
-        int backWidth = 72;
-        int metadataWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE;
-        int outsideWidth = 154;
-        int deleteWidth = 70;
-        int totalWidth = backWidth + metadataWidth + outsideWidth + deleteWidth + BUTTON_GAP * 3;
+        int iconButtonWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE;
+        int totalWidth = iconButtonWidth * 4 + BUTTON_GAP * 3;
         int x = centerX - totalWidth / 2;
 
-        this.addRenderableWidget(Button.builder(CommonComponents.GUI_BACK, button -> this.onClose()).bounds(x, bottomY, backWidth, BUTTON_HEIGHT).build());
-        x += backWidth + BUTTON_GAP;
+        Button backButton = this.addRenderableWidget(new TexturedIconButton(CommonComponents.GUI_BACK, button -> this.onClose(), BACK_ICON));
+        backButton.setPosition(x, bottomY);
+        x += iconButtonWidth + BUTTON_GAP;
         this.metadataButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("panoramica.viewer.metadata"), button -> this.openMetadata(), METADATA_ICON));
         this.metadataButton.setPosition(x, bottomY);
-        x += metadataWidth + BUTTON_GAP;
-        this.outsideButton = this.addRenderableWidget(Button.builder(Component.translatable("panoramica.viewer.show_outside"), button -> this.showOutsideMinecraft()).bounds(x, bottomY, outsideWidth, BUTTON_HEIGHT).build());
-        x += outsideWidth + BUTTON_GAP;
-        this.deleteButton = this.addRenderableWidget(Button.builder(this.deleteMessage(), button -> this.confirmDeleteCurrent()).bounds(x, bottomY, deleteWidth, BUTTON_HEIGHT).build());
+        x += iconButtonWidth + BUTTON_GAP;
+        this.outsideButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("panoramica.viewer.show_outside"), button -> this.showOutsideMinecraft(), SHOW_OUTSIDE_ICON));
+        this.outsideButton.setPosition(x, bottomY);
+        x += iconButtonWidth + BUTTON_GAP;
+        this.deleteButton = this.addRenderableWidget(new TexturedIconButton(this.deleteMessage(), button -> this.confirmDeleteCurrent(), DELETE_ICON));
+        this.deleteButton.setPosition(x, bottomY);
 
         int sideY = this.imageAreaY() + this.imageAreaHeight() / 2 - BUTTON_HEIGHT / 2;
         this.previousButton = this.addRenderableWidget(Button.builder(Component.literal("<"), button -> this.previous()).bounds(14, sideY, SIDE_BUTTON_WIDTH, BUTTON_HEIGHT).build());
@@ -439,7 +442,6 @@ public class ScreenshotViewerScreen extends Screen {
         }
         if (this.deleteButton != null) {
             this.deleteButton.active = hasEntry;
-            this.deleteButton.setMessage(hasEntry ? this.deleteMessage() : Component.translatable("panoramica.browser.delete"));
         }
     }
 
