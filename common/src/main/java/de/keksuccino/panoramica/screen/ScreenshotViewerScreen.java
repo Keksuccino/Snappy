@@ -1,5 +1,6 @@
 package de.keksuccino.panoramica.screen;
 
+import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import de.keksuccino.panoramica.Panoramica;
@@ -16,6 +17,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -36,6 +38,15 @@ public class ScreenshotViewerScreen extends Screen {
     private static final int SIDE_BUTTON_WIDTH = 28;
     private static final int PANORAMA_RENDER_WIDTH = 960;
     private static final int PANORAMA_RENDER_HEIGHT = 540;
+    private static final int PANORAMA_PROGRESS_MAX_WIDTH = 360;
+    private static final int PANORAMA_PROGRESS_MIN_WIDTH = 120;
+    private static final int PANORAMA_PROGRESS_HORIZONTAL_MARGIN = 80;
+    private static final int PANORAMA_PROGRESS_BOTTOM_MARGIN = 18;
+    private static final int PANORAMA_PROGRESS_TRACK_HEIGHT = 4;
+    private static final int PANORAMA_PROGRESS_DOT_SIZE = 8;
+    private static final int PANORAMA_PROGRESS_HIT_PADDING = 8;
+    private static final float PANORAMA_ROTATION_DEGREES_PER_MILLI = 0.01F;
+    private static final float PANORAMA_ROTATION_FULL_TURN_DEGREES = 360.0F;
     private static int textureSequence;
 
     private final Screen parent;
@@ -52,6 +63,9 @@ public class ScreenshotViewerScreen extends Screen {
     private int imageHeight = 9;
     private int sourceWidth;
     private int sourceHeight;
+    private float panoramaRotationDegrees;
+    private long panoramaRotationLastMillis;
+    private boolean panoramaProgressDragging;
     private Component statusMessage = Component.translatable("panoramica.browser.loading");
     @Nullable
     private Button previousButton;
@@ -100,8 +114,40 @@ public class ScreenshotViewerScreen extends Screen {
     @Override
     public void extractRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
         this.renderHeader(graphics);
-        this.renderImage(graphics);
+        this.renderImage(graphics, mouseX, mouseY);
         super.extractRenderState(graphics, mouseX, mouseY, a);
+    }
+
+    @Override
+    public boolean mouseClicked(@NotNull MouseButtonEvent event, boolean doubleClick) {
+        if (event.button() == 0 && this.isPanoramaProgressHit(event.x(), event.y())) {
+            this.panoramaProgressDragging = true;
+            this.setDragging(true);
+            this.setPanoramaRotationFromMouse(event.x());
+            return true;
+        }
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    public boolean mouseDragged(@NotNull MouseButtonEvent event, double dx, double dy) {
+        if (this.panoramaProgressDragging && event.button() == 0) {
+            this.setPanoramaRotationFromMouse(event.x());
+            return true;
+        }
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(@NotNull MouseButtonEvent event) {
+        if (this.panoramaProgressDragging && event.button() == 0) {
+            this.setPanoramaRotationFromMouse(event.x());
+            this.panoramaProgressDragging = false;
+            this.panoramaRotationLastMillis = Util.getMillis();
+            this.setDragging(false);
+            return true;
+        }
+        return super.mouseReleased(event);
     }
 
     @Override
@@ -206,6 +252,7 @@ public class ScreenshotViewerScreen extends Screen {
     private void loadCurrentEntry() {
         ScreenshotEntry entry = this.currentEntry();
         this.releaseCurrentImage();
+        this.resetPanoramaPlayback();
         this.loadStatus = LoadStatus.LOADING;
         this.statusMessage = Component.translatable("panoramica.browser.loading");
         this.sourceWidth = 0;
@@ -311,6 +358,7 @@ public class ScreenshotViewerScreen extends Screen {
             this.sourceHeight = ScreenshotImageLoader.VIEWER_PANORAMA_FACE_MAX_SIZE;
             this.loadStatus = LoadStatus.READY;
             this.statusMessage = Component.empty();
+            this.resetPanoramaPlayback();
         } catch (Throwable ex) {
             this.failLoad(entry, ex);
         }
@@ -375,7 +423,7 @@ public class ScreenshotViewerScreen extends Screen {
         }
     }
 
-    private void renderImage(@NotNull GuiGraphicsExtractor graphics) {
+    private void renderImage(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         int areaX = this.imageAreaX();
         int areaY = this.imageAreaY();
         int areaWidth = this.imageAreaWidth();
@@ -392,6 +440,7 @@ public class ScreenshotViewerScreen extends Screen {
         ScreenshotEntry entry = this.currentEntry();
         if (entry != null && entry.isPanorama()) {
             this.renderPanorama(graphics, bounds[0], bounds[1], bounds[2], bounds[3]);
+            this.renderPanoramaProgressBar(graphics, mouseX, mouseY);
         } else {
             this.renderNormalImage(graphics, bounds[0], bounds[1], bounds[2], bounds[3]);
         }
@@ -415,7 +464,7 @@ public class ScreenshotViewerScreen extends Screen {
             return;
         }
 
-        float spin = (Util.getMillis() % 36000L) * 0.01F;
+        float spin = this.currentPanoramaRotationDegrees();
         this.panoramaRenderer.render(texture, -spin);
         graphics.blit(
                 this.panoramaRenderer.getColorTextureView(),
@@ -429,6 +478,120 @@ public class ScreenshotViewerScreen extends Screen {
                 1.0F,
                 0.0F
         );
+    }
+
+    private void renderPanoramaProgressBar(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        if (!this.isPanoramaProgressVisible()) {
+            return;
+        }
+
+        int trackX = this.panoramaProgressX();
+        int trackY = this.panoramaProgressY();
+        int trackWidth = this.panoramaProgressWidth();
+        int trackCenterY = trackY + PANORAMA_PROGRESS_TRACK_HEIGHT / 2;
+        int dotSize = PANORAMA_PROGRESS_DOT_SIZE + (this.panoramaProgressDragging ? 2 : 0);
+        float progress = this.panoramaRotationProgress();
+        int fillWidth = Mth.clamp(Math.round(trackWidth * progress), 0, trackWidth);
+        int dotCenterX = trackX + fillWidth;
+
+        graphics.fill(
+                trackX - PANORAMA_PROGRESS_HIT_PADDING,
+                trackY - PANORAMA_PROGRESS_HIT_PADDING,
+                trackX + trackWidth + PANORAMA_PROGRESS_HIT_PADDING,
+                trackY + PANORAMA_PROGRESS_TRACK_HEIGHT + PANORAMA_PROGRESS_HIT_PADDING,
+                0x99000000
+        );
+        graphics.fill(trackX, trackY, trackX + trackWidth, trackY + PANORAMA_PROGRESS_TRACK_HEIGHT, 0xAA404040);
+        graphics.fill(trackX, trackY, trackX + fillWidth, trackY + PANORAMA_PROGRESS_TRACK_HEIGHT, 0xFFFFFFFF);
+        graphics.outline(trackX, trackY, trackWidth, PANORAMA_PROGRESS_TRACK_HEIGHT, 0xCCFFFFFF);
+        graphics.fill(
+                dotCenterX - dotSize / 2,
+                trackCenterY - dotSize / 2,
+                dotCenterX + (dotSize + 1) / 2,
+                trackCenterY + (dotSize + 1) / 2,
+                0xFFFFFFFF
+        );
+        graphics.outline(
+                dotCenterX - dotSize / 2,
+                trackCenterY - dotSize / 2,
+                dotSize,
+                dotSize,
+                0xFF000000
+        );
+
+        if (this.panoramaProgressDragging || this.isPanoramaProgressHit(mouseX, mouseY)) {
+            graphics.requestCursor(this.panoramaProgressDragging ? CursorTypes.RESIZE_EW : CursorTypes.POINTING_HAND);
+        }
+    }
+
+    private float currentPanoramaRotationDegrees() {
+        long now = Util.getMillis();
+        if (!this.panoramaProgressDragging) {
+            if (this.panoramaRotationLastMillis == 0L) {
+                this.panoramaRotationLastMillis = now;
+            }
+            long elapsedMillis = Math.max(0L, now - this.panoramaRotationLastMillis);
+            this.panoramaRotationDegrees = wrapPanoramaRotation(this.panoramaRotationDegrees + elapsedMillis * PANORAMA_ROTATION_DEGREES_PER_MILLI);
+            this.panoramaRotationLastMillis = now;
+        }
+        return this.panoramaRotationDegrees;
+    }
+
+    private float panoramaRotationProgress() {
+        return wrapPanoramaRotation(this.panoramaRotationDegrees) / PANORAMA_ROTATION_FULL_TURN_DEGREES;
+    }
+
+    private void setPanoramaRotationFromMouse(double mouseX) {
+        int trackX = this.panoramaProgressX();
+        int trackWidth = this.panoramaProgressWidth();
+        double progress = Mth.clamp((mouseX - trackX) / (double) trackWidth, 0.0D, 1.0D);
+        this.panoramaRotationDegrees = (float) Math.min(progress * PANORAMA_ROTATION_FULL_TURN_DEGREES, PANORAMA_ROTATION_FULL_TURN_DEGREES - 0.001F);
+        this.panoramaRotationLastMillis = Util.getMillis();
+    }
+
+    private void resetPanoramaPlayback() {
+        boolean wasProgressDragging = this.panoramaProgressDragging;
+        this.panoramaRotationDegrees = 0.0F;
+        this.panoramaRotationLastMillis = Util.getMillis();
+        this.panoramaProgressDragging = false;
+        if (wasProgressDragging) {
+            this.setDragging(false);
+        }
+    }
+
+    private boolean isPanoramaProgressVisible() {
+        ScreenshotEntry entry = this.currentEntry();
+        return entry != null && entry.isPanorama() && this.loadStatus == LoadStatus.READY && this.panoramaTexture != null;
+    }
+
+    private boolean isPanoramaProgressHit(double mouseX, double mouseY) {
+        if (!this.isPanoramaProgressVisible()) {
+            return false;
+        }
+        int trackX = this.panoramaProgressX();
+        int trackY = this.panoramaProgressY();
+        int trackWidth = this.panoramaProgressWidth();
+        return mouseX >= trackX - PANORAMA_PROGRESS_HIT_PADDING
+                && mouseX <= trackX + trackWidth + PANORAMA_PROGRESS_HIT_PADDING
+                && mouseY >= trackY - PANORAMA_PROGRESS_HIT_PADDING
+                && mouseY <= trackY + PANORAMA_PROGRESS_TRACK_HEIGHT + PANORAMA_PROGRESS_HIT_PADDING;
+    }
+
+    private int panoramaProgressX() {
+        return this.width / 2 - this.panoramaProgressWidth() / 2;
+    }
+
+    private int panoramaProgressY() {
+        return this.imageAreaY() + this.imageAreaHeight() - PANORAMA_PROGRESS_BOTTOM_MARGIN;
+    }
+
+    private int panoramaProgressWidth() {
+        return Mth.clamp(this.imageAreaWidth() - PANORAMA_PROGRESS_HORIZONTAL_MARGIN, PANORAMA_PROGRESS_MIN_WIDTH, PANORAMA_PROGRESS_MAX_WIDTH);
+    }
+
+    private static float wrapPanoramaRotation(float rotationDegrees) {
+        float wrapped = rotationDegrees % PANORAMA_ROTATION_FULL_TURN_DEGREES;
+        return wrapped < 0.0F ? wrapped + PANORAMA_ROTATION_FULL_TURN_DEGREES : wrapped;
     }
 
     private int[] fitBounds(int areaX, int areaY, int areaWidth, int areaHeight, int imageWidth, int imageHeight) {
