@@ -11,6 +11,7 @@
     "client.MixinKeyMapping_Category",
     "client.MixinMinecraft",
     "client.MixinMouseHandler",
+    "client.MixinPauseScreen",
     "client.MixinScreenshot",
     "client.AccessorMixinGameRenderer"
   ],
