@@ -89,7 +89,7 @@ public class ScreenshotViewerScreen extends Screen {
         x += backWidth + BUTTON_GAP;
         this.outsideButton = this.addRenderableWidget(Button.builder(Component.translatable("panoramica.viewer.show_outside"), button -> this.showOutsideMinecraft()).bounds(x, bottomY, outsideWidth, BUTTON_HEIGHT).build());
         x += outsideWidth + BUTTON_GAP;
-        this.deleteButton = this.addRenderableWidget(Button.builder(Component.translatable("panoramica.browser.delete"), button -> this.confirmDeleteCurrent()).bounds(x, bottomY, deleteWidth, BUTTON_HEIGHT).build());
+        this.deleteButton = this.addRenderableWidget(Button.builder(this.deleteMessage(), button -> this.confirmDeleteCurrent()).bounds(x, bottomY, deleteWidth, BUTTON_HEIGHT).build());
 
         int sideY = this.imageAreaY() + this.imageAreaHeight() / 2 - BUTTON_HEIGHT / 2;
         this.previousButton = this.addRenderableWidget(Button.builder(Component.literal("<"), button -> this.previous()).bounds(14, sideY, SIDE_BUTTON_WIDTH, BUTTON_HEIGHT).build());
@@ -356,7 +356,13 @@ public class ScreenshotViewerScreen extends Screen {
         }
         if (this.deleteButton != null) {
             this.deleteButton.active = hasEntry;
+            this.deleteButton.setMessage(hasEntry ? this.deleteMessage() : Component.translatable("panoramica.browser.delete"));
         }
+    }
+
+    @NotNull
+    private Component deleteMessage() {
+        return Component.translatable("panoramica.browser.delete").withStyle(ChatFormatting.RED);
     }
 
     private void renderHeader(@NotNull GuiGraphicsExtractor graphics) {

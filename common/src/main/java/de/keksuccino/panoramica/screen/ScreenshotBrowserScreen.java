@@ -5,6 +5,7 @@ import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.menu.PanoramaMenuManager;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.DeletionResult;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -136,7 +137,7 @@ public class ScreenshotBrowserScreen extends Screen {
         }).bounds(leftX, firstRowY, rowButtonWidth, BUTTON_HEIGHT).build());
 
         int deleteWidth = Math.min(210, Math.max(150, this.width - SIDE_MARGIN * 2));
-        this.deleteSelectedButton = this.addRenderableWidget(Button.builder(Component.translatable("panoramica.browser.delete_selected", 0), button -> {
+        this.deleteSelectedButton = this.addRenderableWidget(Button.builder(this.deleteSelectedMessage(0), button -> {
             ScreenshotGridWidget currentGrid = this.grid;
             if (currentGrid != null && currentGrid.hasSelection()) {
                 this.confirmDelete(currentGrid.selectedEntries());
@@ -312,11 +313,17 @@ public class ScreenshotBrowserScreen extends Screen {
         int selected = currentGrid == null ? 0 : currentGrid.selectionCount();
         if (this.deleteSelectedButton != null) {
             this.deleteSelectedButton.active = selected > 0;
-            this.deleteSelectedButton.setMessage(Component.translatable("panoramica.browser.delete_selected", selected));
+            this.deleteSelectedButton.setMessage(this.deleteSelectedMessage(selected));
         }
         if (this.clearSelectionButton != null) {
             this.clearSelectionButton.active = selected > 0;
         }
+    }
+
+    @NotNull
+    private Component deleteSelectedMessage(int selected) {
+        Component message = Component.translatable("panoramica.browser.delete_selected", selected);
+        return selected > 0 ? message.copy().withStyle(ChatFormatting.RED) : message;
     }
 
     @NotNull
