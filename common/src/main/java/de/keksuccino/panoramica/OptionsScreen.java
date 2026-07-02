@@ -1,11 +1,9 @@
 package de.keksuccino.panoramica;
 
-import de.keksuccino.panoramica.util.AbstractOptions;
-import de.keksuccino.konkrete.math.MathUtils;
+import de.keksuccino.panoramica.menu.PanoramaMenuManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
@@ -18,11 +16,12 @@ import org.jetbrains.annotations.Nullable;
 public class OptionsScreen extends Screen {
 
     protected static final int BUTTON_HEIGHT = 20;
-    protected static final int BUTTON_ROW_GAP = 10;
-    protected static final int BUTTON_ROW_MAX_WIDTH = 410;
+    protected static final int BUTTON_ROW_MAX_WIDTH = 360;
 
     @Nullable
     protected Screen parent;
+    @Nullable
+    private Button cycleIntervalButton;
 
     public OptionsScreen(@Nullable Screen parent) {
         super(Component.translatable("panoramica.options"));
@@ -34,7 +33,7 @@ public class OptionsScreen extends Screen {
 
         int centerX = this.width / 2;
         int topY = 50;
-        int spacing = 25;
+        int spacing = 26;
 
         StringWidget titleWidget = this.addRenderableWidget(new StringWidget(this.getTitle(), this.font));
         titleWidget.setX(centerX - (titleWidget.getWidth() / 2));
@@ -42,88 +41,122 @@ public class OptionsScreen extends Screen {
 
         int currentY = topY;
 
-        this.addFloatInput(Panoramica.getOptions().baseZoomFactor, currentY, "panoramica.options.base_zoom_modifier");
+        this.addButtonRow(currentY, this.buildResolutionButton());
         currentY += spacing;
 
-        this.addFloatInput(Panoramica.getOptions().zoomInPerScroll, currentY, "panoramica.options.zoom_in_change_modifier_per_scroll");
+        this.addButtonRow(currentY, this.buildMenuModeButton());
         currentY += spacing;
 
-        this.addFloatInput(Panoramica.getOptions().zoomOutPerScroll, currentY, "panoramica.options.zoom_out_change_modifier_per_scroll");
+        this.cycleIntervalButton = this.buildCycleIntervalButton();
+        this.addButtonRow(currentY, this.cycleIntervalButton);
+        this.updateCycleIntervalButton();
         currentY += spacing;
 
-        this.addButtonRow(currentY,
-                this.buildToggleButton(Panoramica.getOptions().smoothZoomInOut, "panoramica.options.smooth_zoom_in_out"),
-                this.buildToggleButton(Panoramica.getOptions().smoothCameraOnZoom, "panoramica.options.smooth_camera_movement_on_zoom"));
-        currentY += spacing;
-
-        this.addButtonRow(currentY,
-                this.buildToggleButton(Panoramica.getOptions().normalizeMouseSensitivityOnZoom, "panoramica.options.normalize_mouse_sensitivity_on_zoom"),
-                this.buildToggleButton(Panoramica.getOptions().allowZoomInMirroredView, "panoramica.options.allow_zoom_in_mirrored_view"));
-        currentY += spacing;
-
-        this.addButtonRow(currentY,
-                this.buildToggleButton(Panoramica.getOptions().hideArmsWhenZooming, "panoramica.options.hide_arms_when_zooming"),
-                this.buildToggleButton(Panoramica.getOptions().resetZoomFactorOnStopZooming, "panoramica.options.reset_zoom_factor_when_stop_zooming"));
-        currentY += spacing;
+        this.addButtonRow(currentY, this.buildStorageLocationButton());
 
         this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose()).bounds(centerX - 75, this.height - 40, 150, BUTTON_HEIGHT).build());
 
     }
 
-    protected Button buildToggleButton(@NotNull AbstractOptions.Option<Boolean> option, @NotNull String labelBaseKey) {
-
-        Component enabled = Component.translatable(labelBaseKey, Component.translatable("panoramica.options.toggle.enabled").withStyle(Style.EMPTY.withColor(ChatFormatting.GREEN)));
-        Component disabled = Component.translatable(labelBaseKey, Component.translatable("panoramica.options.toggle.disabled").withStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
-
-        return Button.builder(option.getValue() ? enabled : disabled, button -> {
-                    option.setValue(!option.getValue());
-                    button.setMessage(option.getValue() ? enabled : disabled);
+    @NotNull
+    protected Button buildResolutionButton() {
+        return Button.builder(this.resolutionMessage(), button -> {
+                    Options options = Panoramica.getOptions();
+                    options.setScreenshotResolution(options.getScreenshotResolution().next());
+                    button.setMessage(this.resolutionMessage());
+                    button.setTooltip(this.resolutionTooltip());
                 }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable(labelBaseKey + ".desc"))).build();
-
+                .tooltip(this.resolutionTooltip()).build();
     }
 
-    protected void addButtonRow(int y, @NotNull Button leftButton, @Nullable Button rightButton) {
-        int buttonWidth = this.getButtonWidth();
-        int leftX = this.getLeftButtonX(buttonWidth);
-        leftButton.setPosition(rightButton == null ? (this.width / 2) - (buttonWidth / 2) : leftX, y);
-        this.addRenderableWidget(leftButton);
+    @NotNull
+    protected Button buildMenuModeButton() {
+        return Button.builder(this.menuModeMessage(), button -> {
+                    Options options = Panoramica.getOptions();
+                    options.setMenuPanoramaMode(options.getMenuPanoramaMode().next());
+                    button.setMessage(this.menuModeMessage());
+                    this.updateCycleIntervalButton();
+                    PanoramaMenuManager.invalidate();
+                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.translatable("panoramica.options.menu_mode.desc"))).build();
+    }
 
-        if (rightButton != null) {
-            rightButton.setPosition(leftX + buttonWidth + BUTTON_ROW_GAP, y);
-            this.addRenderableWidget(rightButton);
+    @NotNull
+    protected Button buildCycleIntervalButton() {
+        return Button.builder(this.cycleIntervalMessage(), button -> {
+                    Options options = Panoramica.getOptions();
+                    options.setCycleInterval(options.getCycleInterval().next());
+                    button.setMessage(this.cycleIntervalMessage());
+                    PanoramaMenuManager.invalidate();
+                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.translatable("panoramica.options.cycle_interval.desc"))).build();
+    }
+
+    @NotNull
+    protected Button buildStorageLocationButton() {
+        return Button.builder(this.storageLocationMessage(), button -> {
+                    Options options = Panoramica.getOptions();
+                    options.setStorageLocation(options.getStorageLocation().next());
+                    button.setMessage(this.storageLocationMessage());
+                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.translatable("panoramica.options.storage.desc"))).build();
+    }
+
+    protected void updateCycleIntervalButton() {
+        if (this.cycleIntervalButton != null) {
+            boolean active = Panoramica.getOptions().getMenuPanoramaMode() == Options.MenuPanoramaMode.CYCLE_ALL;
+            this.cycleIntervalButton.active = active;
+            this.cycleIntervalButton.setMessage(this.cycleIntervalMessage());
+            this.cycleIntervalButton.setTooltip(Tooltip.create(Component.translatable(active
+                    ? "panoramica.options.cycle_interval.desc"
+                    : "panoramica.options.cycle_interval.inactive_desc")));
         }
     }
 
+    @NotNull
+    protected Component resolutionMessage() {
+        Options.ResolutionPreset preset = Panoramica.getOptions().getScreenshotResolution();
+        return this.optionMessage("panoramica.options.resolution", Component.translatable(preset.labelKey()));
+    }
+
+    @NotNull
+    protected Tooltip resolutionTooltip() {
+        Options.ResolutionPreset preset = Panoramica.getOptions().getScreenshotResolution();
+        return Tooltip.create(Component.translatable(preset.tooltipKey()));
+    }
+
+    @NotNull
+    protected Component menuModeMessage() {
+        return this.optionMessage("panoramica.options.menu_mode", Component.translatable(Panoramica.getOptions().getMenuPanoramaMode().labelKey()));
+    }
+
+    @NotNull
+    protected Component cycleIntervalMessage() {
+        Component value = Component.translatable(Panoramica.getOptions().getCycleInterval().labelKey());
+        if (Panoramica.getOptions().getMenuPanoramaMode() != Options.MenuPanoramaMode.CYCLE_ALL) {
+            value = value.copy().withStyle(Style.EMPTY.withColor(ChatFormatting.GRAY));
+        }
+        return this.optionMessage("panoramica.options.cycle_interval", value);
+    }
+
+    @NotNull
+    protected Component storageLocationMessage() {
+        return this.optionMessage("panoramica.options.storage", Component.translatable(Panoramica.getOptions().getStorageLocation().labelKey()));
+    }
+
+    @NotNull
+    protected Component optionMessage(@NotNull String labelKey, @NotNull Component value) {
+        return Component.translatable(labelKey, value);
+    }
+
+    protected void addButtonRow(int y, @NotNull Button button) {
+        int buttonWidth = this.getButtonWidth();
+        button.setPosition((this.width / 2) - (buttonWidth / 2), y);
+        this.addRenderableWidget(button);
+    }
+
     protected int getButtonWidth() {
-        return (this.getButtonRowWidth() - BUTTON_ROW_GAP) / 2;
-    }
-
-    protected int getButtonRowWidth() {
         return Math.min(BUTTON_ROW_MAX_WIDTH, this.width - 40);
-    }
-
-    protected int getLeftButtonX(int buttonWidth) {
-        return (this.width / 2) - buttonWidth - (BUTTON_ROW_GAP / 2);
-    }
-
-    protected void addFloatInput(@NotNull AbstractOptions.Option<Float> option, int y, @NotNull String labelBaseKey) {
-
-        int centerX = this.width / 2;
-
-        StringWidget zoomOutPerScrollText = this.addRenderableWidget(new StringWidget(Component.translatable(labelBaseKey), this.font));
-        zoomOutPerScrollText.setX(centerX - 5 - zoomOutPerScrollText.getWidth());
-        zoomOutPerScrollText.setY(y + 10 - (this.font.lineHeight / 2));
-        zoomOutPerScrollText.setTooltip(Tooltip.create(Component.translatable(labelBaseKey + ".desc")));
-        EditBox zoomOutPerScroll = this.addRenderableWidget(new EditBox(this.font, centerX + 5, y, 150, 20, Component.translatable(labelBaseKey)));
-        zoomOutPerScroll.setValue("" + option.getValue());
-        zoomOutPerScroll.setResponder(s -> {
-            if (MathUtils.isFloat(s)) {
-                option.setValue(Float.parseFloat(s));
-            }
-        });
-        zoomOutPerScroll.setTooltip(Tooltip.create(Component.translatable(labelBaseKey + ".desc")));
-
     }
 
     @Override

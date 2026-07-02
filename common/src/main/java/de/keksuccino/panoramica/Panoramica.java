@@ -1,7 +1,7 @@
 package de.keksuccino.panoramica;
 
 import de.keksuccino.panoramica.platform.Services;
-import de.keksuccino.panoramica.util.GameDirectoryUtils;
+import de.keksuccino.panoramica.util.file.GameDirectoryUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -30,6 +30,10 @@ public class Panoramica {
 
         }
 
+    }
+
+    public static Logger getLogger() {
+        return LOGGER;
     }
 
     public static void updateOptions() {

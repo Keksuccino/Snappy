@@ -3,13 +3,12 @@
   "package": "de.keksuccino.panoramica.mixin.mixins.common",
   "compatibilityLevel": "JAVA_17",
   "client": [
-    "client.MixinAbstractClientPlayer",
     "client.MixinCamera",
-    "client.MixinCameraType",
+    "client.MixinCubeMap",
     "client.MixinGameRenderer",
     "client.MixinKeyMapping_Category",
-    "client.MixinMouseHandler",
-    "client.MixinPauseScreen"
+    "client.MixinMinecraft",
+    "client.AccessorMixinGameRenderer"
   ],
   "mixins": [
   ],

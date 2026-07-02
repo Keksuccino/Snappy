@@ -13,7 +13,7 @@ public class PanoramicaFabric implements ModInitializer {
 
         if (Services.PLATFORM.isOnClient()) {
 
-            KeyMappingHelper.registerKeyMapping(KeyMappings.KEY_TOGGLE_ZOOM);
+            KeyMappingHelper.registerKeyMapping(KeyMappings.KEY_TAKE_PANORAMA);
 
         }
 
