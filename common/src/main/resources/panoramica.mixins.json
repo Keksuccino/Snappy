@@ -9,6 +9,7 @@
     "client.MixinGui",
     "client.MixinKeyMapping_Category",
     "client.MixinMinecraft",
+    "client.MixinMouseHandler",
     "client.MixinScreenshot",
     "client.AccessorMixinGameRenderer"
   ],

@@ -15,6 +15,7 @@ public class Options extends AbstractOptions {
     public final Option<String> cycleInterval = new Option<>(config, "cycle_interval", CycleInterval.SECONDS_30.id, "menu");
     public final Option<String> storageLocation = new Option<>(config, "storage_location", StorageLocation.DEDICATED_FOLDER.id, "capture");
     public final Option<String> screenshotPreviewMode = new Option<>(config, "screenshot_preview_mode", ScreenshotPreviewMode.BOTH.id, "preview");
+    public final Option<Boolean> screenshotChatMessages = new Option<>(config, "screenshot_chat_messages", true, "notifications");
 
     public Options() {
         this.config.syncConfig();
@@ -64,6 +65,14 @@ public class Options extends AbstractOptions {
 
     public void setScreenshotPreviewMode(@NotNull ScreenshotPreviewMode mode) {
         this.screenshotPreviewMode.setValue(mode.id);
+    }
+
+    public boolean areScreenshotChatMessagesEnabled() {
+        return this.screenshotChatMessages.getValue();
+    }
+
+    public void setScreenshotChatMessagesEnabled(boolean enabled) {
+        this.screenshotChatMessages.setValue(enabled);
     }
 
     public enum ResolutionPreset {

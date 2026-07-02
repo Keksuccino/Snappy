@@ -75,6 +75,9 @@ public class OptionsScreen extends Screen {
         currentY += spacing;
 
         this.addButtonRow(currentY, this.buildPreviewModeButton());
+        currentY += spacing;
+
+        this.addButtonRow(currentY, this.buildScreenshotChatMessagesButton());
 
         this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose()).bounds(centerX - 75, this.height - 40, 150, BUTTON_HEIGHT).build());
 
@@ -156,6 +159,16 @@ public class OptionsScreen extends Screen {
                 .tooltip(Tooltip.create(Component.translatable("panoramica.options.preview_mode.desc"))).build();
     }
 
+    @NotNull
+    protected Button buildScreenshotChatMessagesButton() {
+        return Button.builder(this.screenshotChatMessagesMessage(), button -> {
+                    Options options = Panoramica.getOptions();
+                    options.setScreenshotChatMessagesEnabled(!options.areScreenshotChatMessagesEnabled());
+                    button.setMessage(this.screenshotChatMessagesMessage());
+                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.translatable("panoramica.options.screenshot_chat_messages.desc"))).build();
+    }
+
     protected void updateCycleIntervalButton() {
         if (this.cycleIntervalButton != null) {
             boolean active = Panoramica.getOptions().getMenuPanoramaMode() == Options.MenuPanoramaMode.CYCLE_ALL;
@@ -213,6 +226,11 @@ public class OptionsScreen extends Screen {
     @NotNull
     protected Component previewModeMessage() {
         return this.optionMessage("panoramica.options.preview_mode", this.genericCycleValue(Component.translatable(Panoramica.getOptions().getScreenshotPreviewMode().labelKey())));
+    }
+
+    @NotNull
+    protected Component screenshotChatMessagesMessage() {
+        return this.optionMessage("panoramica.options.screenshot_chat_messages", this.booleanCycleValue(Panoramica.getOptions().areScreenshotChatMessagesEnabled()));
     }
 
     @NotNull

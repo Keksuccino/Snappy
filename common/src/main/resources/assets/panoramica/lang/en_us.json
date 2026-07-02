@@ -41,6 +41,8 @@
   "panoramica.options.preview_mode.panoramas_only": "Show Only For Panoramas",
   "panoramica.options.preview_mode.normal_only": "Show Only For Normal Screenshots",
   "panoramica.options.preview_mode.disabled": "Don't Show Preview",
+  "panoramica.options.screenshot_chat_messages": "Screenshot Chat Messages: %s",
+  "panoramica.options.screenshot_chat_messages.desc": "Shows or hides chat messages from normal and panorama screenshots. Screenshots are still saved either way.",
   "panoramica.options.toggle.enabled": "Enabled",
   "panoramica.options.toggle.disabled": "Disabled",
   "panoramica.capture.started": "Taking a panorama screenshot. Each image will be %s pixels...",

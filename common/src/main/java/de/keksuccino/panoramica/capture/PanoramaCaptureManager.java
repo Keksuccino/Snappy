@@ -58,11 +58,11 @@ public final class PanoramaCaptureManager {
 
     public static void requestCapture(@NotNull Minecraft minecraft) {
         if (captureInProgress) {
-            minecraft.showDebugChat(Component.translatable("panoramica.capture.in_progress"));
+            showScreenshotMessage(minecraft, Component.translatable("panoramica.capture.in_progress"));
             return;
         }
         if (minecraft.level == null || minecraft.player == null) {
-            minecraft.showDebugChat(Component.translatable("panoramica.capture.unavailable"));
+            showScreenshotMessage(minecraft, Component.translatable("panoramica.capture.unavailable"));
             return;
         }
 
@@ -74,11 +74,11 @@ public final class PanoramaCaptureManager {
         } catch (IOException ex) {
             captureInProgress = false;
             Panoramica.getLogger().warn("[PANORAMICA] Could not create panorama screenshot folder.", ex);
-            minecraft.showDebugChat(Component.translatable("panoramica.capture.failure", ex.getMessage()));
+            showScreenshotMessage(minecraft, Component.translatable("panoramica.capture.failure", ex.getMessage()));
             return;
         }
 
-        minecraft.showDebugChat(Component.translatable("panoramica.capture.started", preset.sideSize + "x" + preset.sideSize));
+        showScreenshotMessage(minecraft, Component.translatable("panoramica.capture.started", preset.sideSize + "x" + preset.sideSize));
 
         try {
             ScreenshotPreviewManager.beginPanoramaCapture();
@@ -87,7 +87,7 @@ public final class PanoramaCaptureManager {
             captureInProgress = false;
             ScreenshotPreviewManager.finishPanoramaCapture();
             Panoramica.getLogger().error("[PANORAMICA] Could not capture panorama.", ex);
-            minecraft.showDebugChat(Component.translatable("panoramica.capture.failure", ex.getMessage()));
+            showScreenshotMessage(minecraft, Component.translatable("panoramica.capture.failure", ex.getMessage()));
         }
     }
 
@@ -222,9 +222,17 @@ public final class PanoramaCaptureManager {
             captureInProgress = false;
             ScreenshotPreviewManager.finishPanoramaCapture();
             PanoramaMenuManager.invalidate();
-            minecraft.execute(() -> minecraft.showDebugChat(failed.get()
+            minecraft.execute(() -> showScreenshotMessage(minecraft, failed.get()
                     ? Component.translatable("panoramica.capture.partial_failure", outputDirectory.toString())
                     : Component.translatable("panoramica.capture.success", folderComponent(outputDirectory))));
+        }
+    }
+
+    private static void showScreenshotMessage(@NotNull Minecraft minecraft, @NotNull Component message) {
+        if (Panoramica.getOptions().areScreenshotChatMessagesEnabled()) {
+            minecraft.showDebugChat(message);
+        } else {
+            ScreenshotPreviewManager.acceptDebugChatMessage(message);
         }
     }
 
