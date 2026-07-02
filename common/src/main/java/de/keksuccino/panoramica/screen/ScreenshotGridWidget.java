@@ -409,6 +409,9 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
             }
             return false;
         }
+        if ((event.isUp() && this.focusedIndexInTopRow()) || (event.isDown() && this.focusedIndexInBottomRow())) {
+            return false;
+        }
         if (event.isLeft() || event.isRight() || event.isUp() || event.isDown()) {
             this.moveFocus(this.navigationDelta(event), event.hasShiftDown());
             return true;
@@ -436,6 +439,18 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
             return -this.columns();
         }
         return this.columns();
+    }
+
+    private boolean focusedIndexInTopRow() {
+        return this.focusedIndex >= 0 && this.focusedIndex < this.columns();
+    }
+
+    private boolean focusedIndexInBottomRow() {
+        if (this.focusedIndex < 0) {
+            return false;
+        }
+        int columns = this.columns();
+        return this.focusedIndex / columns == (this.entries.size() - 1) / columns;
     }
 
     private void moveFocus(int delta, boolean selecting) {
