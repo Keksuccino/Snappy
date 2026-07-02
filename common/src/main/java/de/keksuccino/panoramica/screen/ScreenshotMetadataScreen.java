@@ -34,6 +34,8 @@ public class ScreenshotMetadataScreen extends Screen {
     private static final int SECTION_PADDING = 10;
     private static final int SECTION_TITLE_HEIGHT = 13;
     private static final int ROW_HEIGHT = 13;
+    private static final int SECTION_BACKGROUND_COLOR = 0x66000000;
+    private static final int SECTION_BORDER_COLOR = 0xFF707070;
     private static final int SCROLL_STEP = 24;
     private static final int BUTTON_HEIGHT = 20;
     private static final int BACK_BUTTON_WIDTH = 72;
@@ -128,8 +130,8 @@ public class ScreenshotMetadataScreen extends Screen {
             @NotNull List<MetadataRow> rows
     ) {
         int sectionHeight = SECTION_PADDING * 2 + SECTION_TITLE_HEIGHT + rows.size() * ROW_HEIGHT;
-        graphics.fill(x, y, x + width, y + sectionHeight, 0x66000000);
-        graphics.outline(x, y, width, sectionHeight, 0x66707070);
+        graphics.fill(x, y, x + width, y + sectionHeight, SECTION_BORDER_COLOR);
+        graphics.fill(x + 1, y + 1, x + width - 1, y + sectionHeight - 1, SECTION_BACKGROUND_COLOR);
         graphics.text(this.font, title, x + SECTION_PADDING, y + SECTION_PADDING, 0xFFFFD166);
 
         int labelWidth = Math.min(132, Math.max(84, width / 3));
@@ -189,8 +191,8 @@ public class ScreenshotMetadataScreen extends Screen {
     @NotNull
     private List<MetadataRow> playerRows(@NotNull PlayerInfo player) {
         List<MetadataRow> rows = new ArrayList<>();
-        rows.add(row("panoramica.metadata.position", String.format(Locale.ROOT, "%.2f, %.2f, %.2f", player.x(), player.y(), player.z())));
-        rows.add(row("panoramica.metadata.block_position", player.blockX() + ", " + player.blockY() + ", " + player.blockZ()));
+        rows.add(row("panoramica.metadata.position", this.formatPosition(player.x(), player.y(), player.z())));
+        rows.add(row("panoramica.metadata.block_position", this.formatBlockPosition(player.blockX(), player.blockY(), player.blockZ())));
         rows.add(row("panoramica.metadata.game_mode", this.formatIdentifier(player.gameMode())));
         rows.add(row("panoramica.metadata.facing", String.format(Locale.ROOT, "%.1f / %.1f", player.yaw(), player.pitch())));
         return rows;
@@ -220,6 +222,16 @@ public class ScreenshotMetadataScreen extends Screen {
             return DATE_FORMAT.format(Instant.ofEpochMilli(epochMillis));
         }
         return this.orUnknown(fallbackIso);
+    }
+
+    @NotNull
+    private String formatPosition(double x, double y, double z) {
+        return String.format(Locale.ROOT, "X: %.2f, Y: %.2f, Z: %.2f", x, y, z);
+    }
+
+    @NotNull
+    private String formatBlockPosition(int x, int y, int z) {
+        return String.format(Locale.ROOT, "X: %d, Y: %d, Z: %d", x, y, z);
     }
 
     @NotNull

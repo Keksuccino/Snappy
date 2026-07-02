@@ -35,10 +35,17 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private static final int IMAGE_WIDTH = 120;
     private static final int IMAGE_HEIGHT = 68;
     private static final int CHECKBOX_SIZE = 11;
+    private static final int SCROLLBAR_EDGE_INSET = 2;
+    private static final int SCROLLBAR_TRACK_WIDTH = 2;
+    private static final int SCROLLBAR_THUMB_WIDTH = 4;
+    private static final int SCROLLBAR_MIN_THUMB_HEIGHT = 18;
+    private static final int SCROLL_AREA_BACKGROUND_COLOR = 0xD8000000;
     private static final int CARD_COLOR = 0x66000000;
     private static final int CARD_HOVER_COLOR = 0x80373737;
     private static final int CARD_SELECTED_COLOR = 0x80406090;
     private static final int SCROLL_AREA_BORDER_COLOR = 0xFF707070;
+    private static final int SCROLLBAR_TRACK_COLOR = 0x66404040;
+    private static final int SCROLLBAR_THUMB_COLOR = 0xCCFFFFFF;
     private static final int BORDER_COLOR = 0xFF707070;
     private static final int BORDER_HOVER_COLOR = 0xFFFFFFFF;
     private static final int BORDER_SELECTED_COLOR = 0xFF75A7FF;
@@ -174,7 +181,14 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
 
     @Override
     protected void extractWidgetRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
-        graphics.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), 0x66000000);
+        graphics.fill(
+                this.getX() - SCROLL_AREA_BORDER_SIZE,
+                this.getY() - SCROLL_AREA_BORDER_SIZE,
+                this.getRight() + SCROLL_AREA_BORDER_SIZE,
+                this.getBottom() + SCROLL_AREA_BORDER_SIZE,
+                SCROLL_AREA_BORDER_COLOR
+        );
+        graphics.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), SCROLL_AREA_BACKGROUND_COLOR);
         this.enableGridScissor(graphics);
         try {
             if (this.entries.isEmpty()) {
@@ -189,13 +203,45 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
             graphics.disableScissor();
         }
         this.extractScrollbar(graphics, mouseX, mouseY);
-        graphics.outline(
-                this.getX() - SCROLL_AREA_BORDER_SIZE,
-                this.getY() - SCROLL_AREA_BORDER_SIZE,
-                this.getWidth() + SCROLL_AREA_BORDER_SIZE * 2,
-                this.getHeight() + SCROLL_AREA_BORDER_SIZE * 2,
-                SCROLL_AREA_BORDER_COLOR
-        );
+    }
+
+    @Override
+    protected int scrollerHeight() {
+        int trackHeight = this.scrollbarTrackHeight();
+        return Mth.clamp(this.getHeight() * this.getHeight() / Math.max(this.getHeight(), this.contentHeight()), SCROLLBAR_MIN_THUMB_HEIGHT, trackHeight);
+    }
+
+    @Override
+    public int scrollBarY() {
+        int maxScroll = this.maxScrollAmount();
+        if (maxScroll <= 0) {
+            return this.getY() + SCROLLBAR_EDGE_INSET;
+        }
+
+        int thumbTravel = Math.max(1, this.scrollbarTrackHeight() - this.scrollerHeight());
+        return this.getY() + SCROLLBAR_EDGE_INSET + Math.round(thumbTravel * (float) (this.scrollAmount() / maxScroll));
+    }
+
+    @Override
+    protected void extractScrollbar(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        if (!this.scrollable()) {
+            return;
+        }
+
+        int trackX = this.getRight() - 5;
+        int trackY = this.getY() + SCROLLBAR_EDGE_INSET;
+        int thumbY = this.scrollBarY();
+        int thumbHeight = this.scrollerHeight();
+
+        graphics.fill(trackX, trackY, trackX + SCROLLBAR_TRACK_WIDTH, this.getBottom() - SCROLLBAR_EDGE_INSET, SCROLLBAR_TRACK_COLOR);
+        graphics.fill(trackX - 1, thumbY, trackX - 1 + SCROLLBAR_THUMB_WIDTH, thumbY + thumbHeight, SCROLLBAR_THUMB_COLOR);
+        if (this.isOverScrollbar(mouseX, mouseY)) {
+            graphics.requestCursor(CursorTypes.POINTING_HAND);
+        }
+    }
+
+    private int scrollbarTrackHeight() {
+        return Math.max(1, this.getHeight() - SCROLLBAR_EDGE_INSET * 2);
     }
 
     private void renderTiles(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
@@ -308,7 +354,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private void renderCheckbox(@NotNull GuiGraphicsExtractor graphics, int x, int y, boolean selected) {
         graphics.fill(x - 1, y - 1, x + CHECKBOX_SIZE + 1, y + CHECKBOX_SIZE + 1, 0xCC000000);
         graphics.fill(x, y, x + CHECKBOX_SIZE, y + CHECKBOX_SIZE, selected ? 0xFF4CAF50 : 0xFF202020);
-        graphics.outline(x, y, CHECKBOX_SIZE, CHECKBOX_SIZE, selected ? 0xFF4CAF50 : 0xFFFFFFFF);
+        graphics.outline(x, y, CHECKBOX_SIZE, CHECKBOX_SIZE, 0xFFFFFFFF);
     }
 
     @Override
