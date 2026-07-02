@@ -14,6 +14,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,6 +43,10 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private static final int TEXT_COLOR = 0xFFFFFFFF;
     private static final int SECONDARY_TEXT_COLOR = 0xFFB0B0B0;
     private static final int EMPTY_TEXT_COLOR = 0xFFA0A0A0;
+    private static final double AUTO_SCROLL_EDGE_DISTANCE = 18.0;
+    private static final double AUTO_SCROLL_MIN_SPEED = 70.0;
+    private static final double AUTO_SCROLL_SPEED_PER_PIXEL = 4.0;
+    private static final double AUTO_SCROLL_MAX_SPEED = 520.0;
 
     private final Font font;
     private final ScreenshotThumbnailCache thumbnailCache;
@@ -52,6 +57,13 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private final Set<ScreenshotEntry> selectedEntries = new HashSet<>();
     private int focusedIndex = -1;
     private int anchorIndex = -1;
+    private boolean checkboxDragActive;
+    private boolean checkboxDragRangeApplied;
+    private int checkboxDragAnchorIndex = -1;
+    private int checkboxDragCurrentIndex = -1;
+    private double checkboxDragMouseX;
+    private double checkboxDragMouseY;
+    private long checkboxDragLastUpdateMillis;
 
     public ScreenshotGridWidget(
             @NotNull Minecraft minecraft,
@@ -88,6 +100,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
 
         this.focusedIndex = this.entries.isEmpty() ? -1 : Mth.clamp(this.focusedIndex, 0, this.entries.size() - 1);
         this.anchorIndex = this.focusedIndex;
+        this.endCheckboxDrag();
         this.refreshScrollAmount();
         this.updateThumbnailWindow();
         this.selectionChangedCallback.run();
@@ -118,6 +131,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     }
 
     public void selectAll() {
+        this.endCheckboxDrag();
         this.selectedEntries.clear();
         this.selectedEntries.addAll(this.entries);
         if (!this.entries.isEmpty()) {
@@ -128,6 +142,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     }
 
     public void clearSelection() {
+        this.endCheckboxDrag();
         if (!this.selectedEntries.isEmpty()) {
             this.selectedEntries.clear();
             this.selectionChangedCallback.run();
@@ -300,6 +315,9 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
         if (this.isOverCheckbox(index, event.x(), event.y()) || event.hasControlDownWithQuirk()) {
             this.toggleSelection(entry);
             this.anchorIndex = index;
+            if (this.isOverCheckbox(index, event.x(), event.y())) {
+                this.beginCheckboxDrag(index, event.x(), event.y());
+            }
             return true;
         }
         if (event.hasShiftDown()) {
@@ -310,6 +328,31 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
         this.anchorIndex = index;
         this.openCallback.accept(entry);
         return true;
+    }
+
+    @Override
+    public boolean mouseDragged(@NotNull MouseButtonEvent event, double dx, double dy) {
+        if (this.checkboxDragActive && event.button() == 0) {
+            this.checkboxDragMouseX = event.x();
+            this.checkboxDragMouseY = event.y();
+            this.updateCheckboxDragSelection();
+            this.updateCheckboxDragAutoScroll();
+            return true;
+        }
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(@NotNull MouseButtonEvent event) {
+        boolean handled = this.checkboxDragActive;
+        this.endCheckboxDrag();
+        return super.mouseReleased(event) || handled;
+    }
+
+    public void tickDragSelection() {
+        if (this.checkboxDragActive) {
+            this.updateCheckboxDragAutoScroll();
+        }
     }
 
     @Override
@@ -400,6 +443,10 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     }
 
     private void selectRange(int index) {
+        this.selectRange(index, true);
+    }
+
+    private void selectRange(int index, boolean scrollToTarget) {
         if (this.anchorIndex < 0) {
             this.anchorIndex = this.focusedIndex >= 0 ? this.focusedIndex : index;
         }
@@ -410,8 +457,87 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
             this.selectedEntries.add(this.entries.get(i));
         }
         this.focusedIndex = index;
-        this.scrollToIndex(index);
+        if (scrollToTarget) {
+            this.scrollToIndex(index);
+        }
         this.selectionChangedCallback.run();
+    }
+
+    private void beginCheckboxDrag(int index, double mouseX, double mouseY) {
+        this.checkboxDragActive = true;
+        this.checkboxDragRangeApplied = false;
+        this.checkboxDragAnchorIndex = index;
+        this.checkboxDragCurrentIndex = index;
+        this.checkboxDragMouseX = mouseX;
+        this.checkboxDragMouseY = mouseY;
+        this.checkboxDragLastUpdateMillis = Util.getMillis();
+    }
+
+    private void endCheckboxDrag() {
+        this.checkboxDragActive = false;
+        this.checkboxDragRangeApplied = false;
+        this.checkboxDragAnchorIndex = -1;
+        this.checkboxDragCurrentIndex = -1;
+        this.checkboxDragLastUpdateMillis = 0L;
+    }
+
+    private void updateCheckboxDragSelection() {
+        int targetIndex = this.dragTargetIndexAt(this.checkboxDragMouseX, this.checkboxDragMouseY);
+        if (targetIndex < 0 || targetIndex >= this.entries.size()) {
+            return;
+        }
+        if (!this.checkboxDragRangeApplied && targetIndex == this.checkboxDragAnchorIndex) {
+            return;
+        }
+        if (this.checkboxDragRangeApplied && targetIndex == this.checkboxDragCurrentIndex) {
+            return;
+        }
+
+        this.checkboxDragRangeApplied = true;
+        this.checkboxDragCurrentIndex = targetIndex;
+        this.anchorIndex = this.checkboxDragAnchorIndex;
+        this.selectRange(targetIndex, false);
+    }
+
+    private void updateCheckboxDragAutoScroll() {
+        if (!this.checkboxDragActive || !this.scrollable()) {
+            this.checkboxDragLastUpdateMillis = Util.getMillis();
+            return;
+        }
+
+        long now = Util.getMillis();
+        long elapsedMillis = this.checkboxDragLastUpdateMillis <= 0L ? 0L : Math.min(100L, now - this.checkboxDragLastUpdateMillis);
+        this.checkboxDragLastUpdateMillis = now;
+        if (elapsedMillis <= 0L) {
+            return;
+        }
+
+        double velocity = this.checkboxDragAutoScrollVelocity();
+        if (velocity == 0.0) {
+            return;
+        }
+
+        double previousScroll = this.scrollAmount();
+        this.setScrollAmount(previousScroll + velocity * elapsedMillis / 1000.0);
+        if (this.scrollAmount() != previousScroll) {
+            this.updateCheckboxDragSelection();
+        }
+    }
+
+    private double checkboxDragAutoScrollVelocity() {
+        double topThreshold = this.getY() + AUTO_SCROLL_EDGE_DISTANCE;
+        double bottomThreshold = this.getBottom() - AUTO_SCROLL_EDGE_DISTANCE;
+        if (this.checkboxDragMouseY < topThreshold) {
+            return -this.checkboxDragAutoScrollSpeed(topThreshold - this.checkboxDragMouseY);
+        }
+        if (this.checkboxDragMouseY > bottomThreshold) {
+            return this.checkboxDragAutoScrollSpeed(this.checkboxDragMouseY - bottomThreshold);
+        }
+        return 0.0;
+    }
+
+    private double checkboxDragAutoScrollSpeed(double distanceFromEdge) {
+        return Mth.clamp(AUTO_SCROLL_MIN_SPEED + distanceFromEdge * AUTO_SCROLL_SPEED_PER_PIXEL, AUTO_SCROLL_MIN_SPEED, AUTO_SCROLL_MAX_SPEED);
     }
 
     private void scrollToIndex(int index) {
@@ -452,6 +578,40 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
 
         int index = row * columns + column;
         return index >= 0 && index < this.entries.size() ? index : -1;
+    }
+
+    private int dragTargetIndexAt(double mouseX, double mouseY) {
+        int preciseIndex = this.indexAt(mouseX, mouseY);
+        if (preciseIndex >= 0) {
+            return preciseIndex;
+        }
+        if (this.entries.isEmpty()
+                || mouseY >= this.getY() && mouseY < this.getBottom()
+                || mouseX < this.getX()
+                || mouseX >= this.scrollBarX()) {
+            return -1;
+        }
+
+        int columns = this.columns();
+        int gridLeft = this.gridLeft(columns);
+        int gridRight = gridLeft + columns * TILE_WIDTH + Math.max(0, columns - 1) * TILE_GAP;
+        int clampedX = Mth.clamp((int) mouseX, gridLeft, gridRight - 1);
+        int localX = clampedX - gridLeft;
+        int column = Mth.clamp(localX / (TILE_WIDTH + TILE_GAP), 0, columns - 1);
+        int columnRemainder = localX % (TILE_WIDTH + TILE_GAP);
+        if (columnRemainder >= TILE_WIDTH) {
+            column = Mth.clamp(column + (columnRemainder - TILE_WIDTH >= TILE_GAP / 2 ? 1 : 0), 0, columns - 1);
+        }
+
+        int clampedY = mouseY < this.getY() ? this.getY() : this.getBottom() - 1;
+        int localY = clampedY - this.getY() - PADDING + (int) this.scrollAmount();
+        int row = Math.max(0, localY / (TILE_HEIGHT + TILE_GAP));
+        int rowRemainder = localY % (TILE_HEIGHT + TILE_GAP);
+        if (rowRemainder >= TILE_HEIGHT) {
+            row += rowRemainder - TILE_HEIGHT >= TILE_GAP / 2 ? 1 : 0;
+        }
+
+        return Mth.clamp(row * columns + column, 0, this.entries.size() - 1);
     }
 
     private boolean isOverCheckbox(int index, double mouseX, double mouseY) {

@@ -3,7 +3,6 @@ package de.keksuccino.panoramica.screen;
 import de.keksuccino.panoramica.menu.PanoramaMenuManager;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.DeletionResult;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -14,6 +13,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,6 +28,10 @@ public class ScreenshotBrowserScreen extends Screen {
     private static final int BUTTON_HEIGHT = 20;
     private static final int SIDE_MARGIN = 20;
     private static final int BUTTON_GAP = 6;
+    private static final int STATUS_MESSAGE_MARGIN = 20;
+    private static final long STATUS_MESSAGE_VISIBLE_MILLIS = 10_000L;
+    private static final int STATUS_SUCCESS_COLOR = 0xFF78E878;
+    private static final int STATUS_WARNING_COLOR = 0xFFFFD166;
 
     @Nullable
     private final Screen parent;
@@ -43,6 +47,8 @@ public class ScreenshotBrowserScreen extends Screen {
     private Button clearSelectionButton;
     private String searchQuery = "";
     private Component statusMessage = Component.empty();
+    private int statusMessageColor = 0xFFFFFFFF;
+    private long statusMessageExpiresAtMillis;
 
     public ScreenshotBrowserScreen(@Nullable Screen parent) {
         super(Component.translatable("panoramica.browser.title"));
@@ -122,12 +128,10 @@ public class ScreenshotBrowserScreen extends Screen {
     public void extractRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
         super.extractRenderState(graphics, mouseX, mouseY, a);
 
-        int countY = 31;
+        int countY = this.searchBox == null ? 42 : this.searchBox.getY() + (this.searchBox.getHeight() - this.font.lineHeight) / 2;
         Component countText = Component.translatable("panoramica.browser.count", this.filteredEntries.size(), this.allEntries.size());
         graphics.text(this.font, countText, SIDE_MARGIN, countY, 0xFFFFFFFF);
-        if (!this.statusMessage.getString().isEmpty()) {
-            graphics.text(this.font, this.statusMessage, SIDE_MARGIN, this.height - 75, 0xFFB0B0B0);
-        }
+        this.renderStatusMessage(graphics);
     }
 
     @Override
@@ -151,6 +155,14 @@ public class ScreenshotBrowserScreen extends Screen {
         if (currentGrid != null) {
             currentGrid.close();
             this.grid = null;
+        }
+    }
+
+    @Override
+    public void tick() {
+        ScreenshotGridWidget currentGrid = this.grid;
+        if (currentGrid != null) {
+            currentGrid.tickDragSelection();
         }
     }
 
@@ -220,12 +232,45 @@ public class ScreenshotBrowserScreen extends Screen {
         this.refreshEntries();
 
         if (result.failed() > 0) {
-            this.statusMessage = Component.translatable("panoramica.browser.delete_result.partial", result.deleted(), result.failed()).withStyle(ChatFormatting.YELLOW);
+            this.showStatusMessage(Component.translatable("panoramica.browser.delete_result.partial", result.deleted(), result.failed()), STATUS_WARNING_COLOR);
         } else {
-            this.statusMessage = (result.deleted() == 1
+            this.showStatusMessage(result.deleted() == 1
                     ? Component.translatable("panoramica.browser.delete_result.single")
-                    : Component.translatable("panoramica.browser.delete_result.multiple", result.deleted())).withStyle(ChatFormatting.GREEN);
+                    : Component.translatable("panoramica.browser.delete_result.multiple", result.deleted()), STATUS_SUCCESS_COLOR);
         }
+    }
+
+    private void showStatusMessage(@NotNull Component message, int color) {
+        this.statusMessage = message;
+        this.statusMessageColor = color;
+        this.statusMessageExpiresAtMillis = Util.getMillis() + STATUS_MESSAGE_VISIBLE_MILLIS;
+    }
+
+    private void renderStatusMessage(@NotNull GuiGraphicsExtractor graphics) {
+        if (this.statusMessage.getString().isEmpty()) {
+            return;
+        }
+        if (Util.getMillis() >= this.statusMessageExpiresAtMillis) {
+            this.statusMessage = Component.empty();
+            this.statusMessageExpiresAtMillis = 0L;
+            return;
+        }
+
+        int maxWidth = Math.max(40, this.width - STATUS_MESSAGE_MARGIN * 2);
+        String message = this.ellipsize(this.statusMessage.getString(), maxWidth);
+        int textWidth = this.font.width(message);
+        int x = Math.max(STATUS_MESSAGE_MARGIN, this.width - STATUS_MESSAGE_MARGIN - textWidth);
+        graphics.text(this.font, message, x, STATUS_MESSAGE_MARGIN, this.statusMessageColor);
+    }
+
+    @NotNull
+    private String ellipsize(@NotNull String text, int maxWidth) {
+        if (this.font.width(text) <= maxWidth) {
+            return text;
+        }
+        String ellipsis = "...";
+        int ellipsisWidth = this.font.width(ellipsis);
+        return this.font.plainSubstrByWidth(text, Math.max(0, maxWidth - ellipsisWidth)) + ellipsis;
     }
 
     private void updateSelectionButtons() {
