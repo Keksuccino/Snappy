@@ -1,4 +1,4 @@
-package de.keksuccino.panoramica.util.gui;
+package de.keksuccino.panoramica.util.rendering.gui;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;

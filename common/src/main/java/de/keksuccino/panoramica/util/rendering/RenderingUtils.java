@@ -1,4 +1,4 @@
-package de.keksuccino.panoramica.util;
+package de.keksuccino.panoramica.util.rendering;
 
 import de.keksuccino.konkrete.rendering.RenderUtils;
 
