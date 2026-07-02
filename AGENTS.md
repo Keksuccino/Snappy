@@ -1,0 +1,45 @@
+# Repository Guidelines
+
+## Project Structure & Module Organization
+- Panoramica is a Minecraft Java 26.2 mod (the version number is not a typo) that uses the MultiLoader layout with shared logic under `common` and loader-specific wrappers under `fabric` and `neoforge`.
+- Place shared Java sources in `common/src/main/java` and assets such as menu JSON, translations, or textures in `common/src/main/resources` so they ship with every loader build.
+- Loader-only hooks belong inside each module's `src/main/java` tree; keep local run directories like `run_client` and `run_server` for iterative testing but never depend on them for assets.
+
+## Environment
+- You are operating on macOS 27 Beta.
+
+## Coding Style & Naming Conventions
+- Target Java 25 with 4-space indentation and UTF-8 encoding (WITHOUT BOM), matching the Gradle toolchain configuration.
+- Follow existing packages under `de.keksuccino.panoramica`, mirroring existing sub-packages to keep cross-loader boundaries clear.
+- Name resources with the `panoramica` prefix (e.g., `panoramica.mixins.json`, `panoramica.accesswidener`) so Gradle and the loaders resolve them consistently.
+- Prefer explicit nullability annotations from `jsr305`.
+- Keep Mixin classes lightweight.
+
+## Mixin Structurization
+- Place shared mixins under `common/src/main/java/de/keksuccino/panoramica/mixin/mixins/common/<side>` and mirror the existing folder depth when adding new targets.
+- Declare `@Mixin` classes (and accessor interfaces) with imports grouped at the top, list `@Unique` members before any `@Shadow` declarations, and extend or implement the vanilla type when necessary; supply a suppressed dummy constructor when subclasses require it.
+- Suffix every unique field or helper with `_Panoramica`. Static finals use all caps with `_PANORAMICA`, and injected method names follow the `before/after/on/wrap/cancel_<VanillaMethod>_Panoramica` pattern. Accessor/invoker methods also end in `_Panoramica`.
+- Cluster related injections together (for example, all `setScreen` hooks in `MixinGui`) and keep helper wrappers private unless a wider contract is required.
+- Use short `//` comments for quick reminders and `/** @reason ... */` blocks ahead of injections that change vanilla behavior, matching the authoring tone in existing files.
+- Panoramica has access to Mixin Extras.
+- Prefer using features from Mixin Extras instead of using normal Mixin redirects or overrides.
+- When leveraging Mixin Extras (`WrapOperation`, `WrapWithCondition`, etc.), name helpers after the intent (`wrap_..._Panoramica`, `cancel_..._Panoramica`) and call the provided `Operation` when returning to vanilla flow.
+- When crating normal mixin classes, call them `Mixin<OriginalClassName>`, so for the `Minecraft` class that would be `MixinMinecraft`.
+- When creating Mixin accessor interfaces, name them `AccessorMixin<OriginalClassName>`, so for the `Minecraft` class that would be `AccessorMixinMinecraft`.
+
+## Minecraft Sources
+- You have access to the full Minecraft 26.2 sources in `/Volumes/STUFF/CODING/WORKSPACES/Java/Minecraft Mods/.MINECRAFT_SOURCES/26.2/minecraft/fabric/` and `/Volumes/STUFF/CODING/WORKSPACES/Java/Minecraft Mods/.MINECRAFT_SOURCES/26.2/minecraft/neoforge/`.
+- Sources for some libraries used by Minecraft 26.2 are in `/Volumes/STUFF/CODING/WORKSPACES/Java/Minecraft Mods/.MINECRAFT_SOURCES/26.2/libraries/`.
+- Use the Minecraft sources for research when working with Minecraft-related code.
+- Always prefer the sources provided in the `/<mc_version>/libraries/` folder instead of trying to unpack source JARs yourself. Only do that when the provided sources don't contain what you need.
+
+## Autonomous Testing
+- After making changes, always compile/build the project to identify and fix compile errors.
+- Only use the `fabric` and `neoforge` modules for compile checks. Never use the `common` module.
+- Make sure to use Java 25 for compile/run stuff, like this for example: `JAVA_HOME=$(/usr/libexec/java_home -v 25) sh gradlew :fabric:compileJava :forge:compileJava --stacktrace`
+
+## Visual Testing
+- When the user tells you to also do visual testing, run the `fabric` and `neoforge` modules via IntelliJ IDE.
+- Only use "Computer Use" for running the modules! You will click the "Run" button in the top-right of IntelliJ to run the modules (and also select the correct run config before, obviously).
+- After the Minecraft client started, use "Computer Use" to navigate in the game and visually check your changes. Check if everything looks good and works as intended.
+- IntelliJ IDE is already open with the project active.

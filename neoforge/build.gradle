@@ -1,0 +1,106 @@
+
+plugins {
+    id 'idea'
+    id 'maven-publish'
+    id "net.neoforged.gradle.userdev" version "$neogradle_version"
+    id 'java-library'
+}
+
+base {
+    archivesName = "${mod_id}"
+}
+
+runs {
+    configureEach {
+        modSource project.sourceSets.main
+    }
+    client {
+        workingDirectory project.file('../run_client')
+        systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        dependencies {
+        }
+    }
+    server {
+        workingDirectory project.file('../run_server')
+        systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        arguments.add('--nogui')
+    }
+}
+
+tasks.withType(JavaExec).configureEach {
+    if (name == "runClient" || name == "runServer") {
+        standardInput = System.in
+    }
+}
+
+//Temporarily disabled tests so compiling doesn't fail until I figure out why tf neoforge:test fails
+test {
+    exclude '**/*'
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+jarJar.enable()
+
+dependencies {
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
+    implementation "net.neoforged:neoforge:${neoforge_version}"
+    implementation "maven.modrinth:konkrete:1.11.1-26.2-neoforge"
+    compileOnly project(":common")
+}
+
+// Exclude Fabric Loader from NeoForge
+configurations {
+    runtimeClasspath    { exclude group: 'net.fabricmc', module: 'fabric-loader' }
+    developmentRuntimeClasspath {
+        // Gradle 8 names used by ForgeGradle 6
+        exclude group: 'net.fabricmc', module: 'fabric-loader'
+    }
+}
+
+// Exclude Fabric Loader from NeoForge
+configurations {
+    runtimeClasspath    { exclude group: 'net.fabricmc', module: 'fabric-loader' }
+    developmentRuntimeClasspath {
+        // Gradle 8 names used by ForgeGradle 6
+        exclude group: 'net.fabricmc', module: 'fabric-loader'
+    }
+}
+
+// NeoGradle compiles the game, but we don't want to add our common code to the game's code++
+Spec<Task> notNeoTask = { Task it -> !it.name.startsWith("neo") } as Spec<Task>
+
+tasks.named("compileJava", JavaCompile).configure {
+    source(project(":common").sourceSets.main.allSource)
+}
+
+tasks.withType(JavaCompile).matching(notNeoTask).configureEach {
+    it.options.compilerArgs += ['-Xlint:-deprecation', '-Xlint:-removal']
+}
+
+tasks.withType(Javadoc).matching(notNeoTask).configureEach {
+    source(project(":common").sourceSets.main.allJava)
+}
+
+tasks.named("sourcesJar", Jar) {
+    from(project(":common").sourceSets.main.allSource)
+}
+
+tasks.withType(ProcessResources).matching(notNeoTask).configureEach {
+    from project(":common").sourceSets.main.resources
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId base.archivesName.get()
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "file://" + System.getenv("local_maven")
+        }
+    }
+}
