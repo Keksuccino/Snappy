@@ -13,6 +13,7 @@
     "client.MixinMouseHandler",
     "client.MixinPauseScreen",
     "client.MixinScreenshot",
+    "client.MixinTitleScreen",
     "client.AccessorMixinGameRenderer"
   ],
   "mixins": [

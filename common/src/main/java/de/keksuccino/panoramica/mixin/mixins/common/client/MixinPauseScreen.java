@@ -2,7 +2,7 @@ package de.keksuccino.panoramica.mixin.mixins.common.client;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import de.keksuccino.panoramica.screen.PauseScreenshotBrowserButton;
+import de.keksuccino.panoramica.screen.PanoramicaButtons;
 import net.minecraft.client.gui.layouts.GridLayout;
 import net.minecraft.client.gui.layouts.LayoutElement;
 import net.minecraft.client.gui.layouts.LayoutSettings;
@@ -25,7 +25,7 @@ public class MixinPauseScreen {
             Operation<LayoutElement> original
     ) {
         if (widget instanceof LinearLayout iconButtonRow) {
-            iconButtonRow.addChild(new PauseScreenshotBrowserButton((Screen) (Object) this));
+            iconButtonRow.addChild(PanoramicaButtons.screenshotBrowser((Screen) (Object) this));
         }
         return original.call(instance, widget, columnWidth, layoutSettings);
     }

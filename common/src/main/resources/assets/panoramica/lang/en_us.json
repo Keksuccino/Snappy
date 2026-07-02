@@ -53,7 +53,7 @@
   "panoramica.capture.success": "Saved panorama screenshot to %s.",
   "panoramica.capture.partial_failure": "Panorama screenshot finished, but at least one face could not be saved. Folder: %s",
   "panoramica.capture.failure": "Could not take panorama screenshot: %s",
-  "panoramica.pause.screenshot_browser": "Open Screenshot Browser",
+  "panoramica.screenshot_browser.open": "Open Screenshot Browser",
   "panoramica.browser.title": "Screenshot Browser",
   "panoramica.browser.grid": "Screenshots",
   "panoramica.browser.search": "Search Screenshots",
