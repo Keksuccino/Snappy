@@ -26,6 +26,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 
 public final class ScreenshotPreviewManager {
@@ -43,9 +46,10 @@ public final class ScreenshotPreviewManager {
     private static final long DISPLAY_MILLIS = 10_000L;
     private static final long SLIDE_MILLIS = 350L;
     private static final long HOVER_ANIMATION_MILLIS = 120L;
+    private static final long PREVIEW_TEXTURE_RETIRE_MILLIS = 1_000L;
     private static final float HOVER_GROWTH = 0.05F;
     private static final Object PANORAMA_LOCK = new Object();
-    private static final Identifier FLAT_PREVIEW_TEXTURE_ID = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "dynamic/screenshot_preview");
+    private static final String FLAT_PREVIEW_TEXTURE_PATH = "dynamic/screenshot_preview/";
 
     @Nullable
     private static Preview currentPreview;
@@ -53,7 +57,9 @@ public final class ScreenshotPreviewManager {
     private static File currentOpenFileTarget;
     @Nullable
     private static NativeImage[] pendingPanoramaFaces;
+    private static final List<RetiredPreview> retiredPreviews = new ArrayList<>();
     private static int pendingPanoramaFaceCount;
+    private static int flatPreviewTextureSequence;
     private static float panoramaSpin;
     private static float hoverProgress;
     private static long lastHoverUpdateMillis;
@@ -69,6 +75,10 @@ public final class ScreenshotPreviewManager {
 
     public static boolean shouldShowPanoramaScreenshots() {
         return Panoramica.getOptions().getScreenshotPreviewMode().showPanoramaScreenshots;
+    }
+
+    public static void clientTick() {
+        closeExpiredRetiredPreviews_Panoramica();
     }
 
     public static void showNormalScreenshot(@NotNull NativeImage sourceImage) {
@@ -148,6 +158,8 @@ public final class ScreenshotPreviewManager {
     }
 
     public static void extractRenderState(@NotNull GuiGraphicsExtractor graphics, boolean shouldRenderLevel) {
+        closeExpiredRetiredPreviews_Panoramica();
+
         Minecraft minecraft = Minecraft.getInstance();
         Preview preview = currentPreview;
         if (preview == null) {
@@ -242,7 +254,8 @@ public final class ScreenshotPreviewManager {
         synchronized (PANORAMA_LOCK) {
             closePendingPanoramaFaces_Panoramica();
         }
-        closeCurrentPreview_Panoramica();
+        closeCurrentPreviewNow_Panoramica();
+        closeRetiredPreviewsNow_Panoramica();
         PANORAMA_RENDERER.close();
     }
 
@@ -253,15 +266,20 @@ public final class ScreenshotPreviewManager {
         }
 
         DynamicTexture texture = null;
+        Identifier textureId = nextFlatPreviewTextureId_Panoramica();
+        boolean registered = false;
         try {
             texture = new LinearDynamicTexture(previewImage);
             int renderHeight = Math.max(1, Math.round(PREVIEW_WIDTH * (previewImage.getHeight() / (float) previewImage.getWidth())));
             closeCurrentPreview_Panoramica();
-            Minecraft.getInstance().getTextureManager().register(FLAT_PREVIEW_TEXTURE_ID, texture);
-            currentPreview = new FlatPreview(FLAT_PREVIEW_TEXTURE_ID, PREVIEW_WIDTH, renderHeight, Util.getMillis());
+            Minecraft.getInstance().getTextureManager().register(textureId, texture);
+            registered = true;
+            currentPreview = new FlatPreview(textureId, PREVIEW_WIDTH, renderHeight, Util.getMillis());
             afterCurrentPreviewSet_Panoramica();
         } catch (Exception ex) {
-            if (texture != null) {
+            if (registered) {
+                Minecraft.getInstance().getTextureManager().release(textureId);
+            } else if (texture != null) {
                 texture.close();
             } else {
                 previewImage.close();
@@ -293,14 +311,26 @@ public final class ScreenshotPreviewManager {
 
     private static void closeCurrentPreview_Panoramica() {
         Preview preview = currentPreview;
+        clearCurrentPreviewState_Panoramica();
+        if (preview != null) {
+            retirePreview_Panoramica(preview);
+        }
+    }
+
+    private static void closeCurrentPreviewNow_Panoramica() {
+        Preview preview = currentPreview;
+        clearCurrentPreviewState_Panoramica();
+        if (preview != null) {
+            preview.close();
+        }
+    }
+
+    private static void clearCurrentPreviewState_Panoramica() {
         currentPreview = null;
         currentOpenFileTarget = null;
         hoverProgress = 0.0F;
         lastHoverUpdateMillis = 0L;
         playedSlideOutSound = false;
-        if (preview != null) {
-            preview.close();
-        }
     }
 
     private static void afterCurrentPreviewSet_Panoramica() {
@@ -309,6 +339,42 @@ public final class ScreenshotPreviewManager {
         lastHoverUpdateMillis = 0L;
         playedSlideOutSound = false;
         playToastSound_Panoramica(SoundEvents.UI_TOAST_IN);
+    }
+
+    private static void retirePreview_Panoramica(@NotNull Preview preview) {
+        retiredPreviews.add(new RetiredPreview(preview, Util.getMillis() + PREVIEW_TEXTURE_RETIRE_MILLIS));
+    }
+
+    private static void closeExpiredRetiredPreviews_Panoramica() {
+        if (retiredPreviews.isEmpty()) {
+            return;
+        }
+
+        long now = Util.getMillis();
+        Iterator<RetiredPreview> iterator = retiredPreviews.iterator();
+        while (iterator.hasNext()) {
+            RetiredPreview retiredPreview = iterator.next();
+            if (now >= retiredPreview.closeAtMillis()) {
+                retiredPreview.preview().close();
+                iterator.remove();
+            }
+        }
+    }
+
+    private static void closeRetiredPreviewsNow_Panoramica() {
+        if (retiredPreviews.isEmpty()) {
+            return;
+        }
+
+        for (RetiredPreview retiredPreview : retiredPreviews) {
+            retiredPreview.preview().close();
+        }
+        retiredPreviews.clear();
+    }
+
+    @NotNull
+    private static Identifier nextFlatPreviewTextureId_Panoramica() {
+        return Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, FLAT_PREVIEW_TEXTURE_PATH + flatPreviewTextureSequence++);
     }
 
     private static void closePendingPanoramaFaces_Panoramica() {
@@ -437,6 +503,9 @@ public final class ScreenshotPreviewManager {
             }
             return Optional.empty();
         }, Style.EMPTY);
+    }
+
+    private record RetiredPreview(@NotNull Preview preview, long closeAtMillis) {
     }
 
     private record PreviewBounds(int x, int y, int width, int height) {

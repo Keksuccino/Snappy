@@ -114,6 +114,8 @@ public final class PanoramaCaptureManager {
         AccessorMixinGameRenderer gameRendererAccessor = (AccessorMixinGameRenderer) gameRenderer;
         RenderTarget originalTarget = gameRendererAccessor.getMainRenderTarget_Panoramica();
         RenderTarget captureTarget = null;
+        CaptureSession session = null;
+        boolean finishedScheduling = false;
         LocalPlayer player = minecraft.player;
         if (player == null) {
             throw new IllegalStateException("No player is available for panorama capture.");
@@ -126,11 +128,10 @@ public final class PanoramaCaptureManager {
         boolean originalRenderBlockOutline = gameRendererAccessor.getRenderBlockOutline_Panoramica();
         Camera camera = gameRenderer.mainCamera();
         boolean wasPanoramicMode = camera.isPanoramicMode();
-        AtomicInteger pendingFaces = new AtomicInteger(FACE_ROTATIONS.length);
-        AtomicBoolean failed = new AtomicBoolean(false);
 
         try {
             captureTarget = new TextureTarget("Panoramica Capture", preset.sideSize, preset.sideSize, true, GpuFormat.RGBA8_UNORM);
+            session = new CaptureSession(minecraft, outputDirectory, captureTarget);
             activeDimensions = new CaptureDimensions(preset.sideSize, preset.sideSize);
             gameRendererAccessor.setMainRenderTarget_Panoramica(captureTarget);
             minecraft.levelRenderer.resize(preset.sideSize, preset.sideSize);
@@ -139,8 +140,10 @@ public final class PanoramaCaptureManager {
 
             for (int i = 0; i < FACE_ROTATIONS.length; i++) {
                 renderFace(gameRenderer, player, originalYRot, FACE_ROTATIONS[i]);
-                scheduleFaceWrite(minecraft, captureTarget, outputDirectory, i, pendingFaces, failed);
+                scheduleFaceWrite(session, i);
             }
+            finishedScheduling = true;
+            session.finishScheduling();
         } finally {
             player.setXRot(originalXRot);
             player.setYRot(originalYRot);
@@ -153,7 +156,10 @@ public final class PanoramaCaptureManager {
             if (!wasPanoramicMode) {
                 camera.disablePanoramicMode();
             }
-            if (captureTarget != null) {
+
+            if (!finishedScheduling && session != null) {
+                session.abort();
+            } else if (captureTarget != null && session == null) {
                 captureTarget.destroyBuffers();
             }
         }
@@ -175,56 +181,34 @@ public final class PanoramaCaptureManager {
     }
 
     private static void scheduleFaceWrite(
-            @NotNull Minecraft minecraft,
-            @NotNull RenderTarget captureTarget,
-            @NotNull Path outputDirectory,
-            int face,
-            @NotNull AtomicInteger pendingFaces,
-            @NotNull AtomicBoolean failed
+            @NotNull CaptureSession session,
+            int face
     ) {
+        session.retainFace();
         try {
-            Screenshot.takeScreenshot(captureTarget, image -> {
+            Screenshot.takeScreenshot(session.captureTarget, image -> {
                 ScreenshotPreviewManager.collectPanoramaFace(face, image);
-                Util.ioPool().execute(() -> writeFace(minecraft, outputDirectory, face, image, pendingFaces, failed));
+                Util.ioPool().execute(() -> writeFace(session, face, image));
             });
         } catch (Exception ex) {
-            failed.set(true);
+            session.fail();
             Panoramica.getLogger().warn("[PANORAMICA] Could not copy panorama face {}.", face, ex);
-            finishFace(minecraft, outputDirectory, pendingFaces, failed);
+            session.finishFace();
         }
     }
 
     private static void writeFace(
-            @NotNull Minecraft minecraft,
-            @NotNull Path outputDirectory,
+            @NotNull CaptureSession session,
             int face,
-            @NotNull NativeImage image,
-            @NotNull AtomicInteger pendingFaces,
-            @NotNull AtomicBoolean failed
+            @NotNull NativeImage image
     ) {
         try (NativeImage closableImage = image) {
-            closableImage.writeToFile(outputDirectory.resolve("panorama_" + face + ".png"));
+            closableImage.writeToFile(session.outputDirectory.resolve("panorama_" + face + ".png"));
         } catch (Exception ex) {
-            failed.set(true);
+            session.fail();
             Panoramica.getLogger().warn("[PANORAMICA] Could not save panorama face {}.", face, ex);
         } finally {
-            finishFace(minecraft, outputDirectory, pendingFaces, failed);
-        }
-    }
-
-    private static void finishFace(
-            @NotNull Minecraft minecraft,
-            @NotNull Path outputDirectory,
-            @NotNull AtomicInteger pendingFaces,
-            @NotNull AtomicBoolean failed
-    ) {
-        if (pendingFaces.decrementAndGet() == 0) {
-            captureInProgress = false;
-            ScreenshotPreviewManager.finishPanoramaCapture();
-            PanoramaMenuManager.invalidate();
-            minecraft.execute(() -> showScreenshotMessage(minecraft, failed.get()
-                    ? Component.translatable("panoramica.capture.partial_failure", outputDirectory.toString())
-                    : Component.translatable("panoramica.capture.success", folderComponent(outputDirectory))));
+            session.finishFace();
         }
     }
 
@@ -261,6 +245,75 @@ public final class PanoramaCaptureManager {
         return Component.literal(outputDirectory.getFileName().toString())
                 .withStyle(ChatFormatting.UNDERLINE)
                 .withStyle(style -> style.withClickEvent(new OpenFile(outputDirectory.toFile().getAbsoluteFile())));
+    }
+
+    private static final class CaptureSession {
+
+        private final Minecraft minecraft;
+        private final Path outputDirectory;
+        private final RenderTarget captureTarget;
+        private final AtomicInteger pendingFaces = new AtomicInteger();
+        private final AtomicBoolean failed = new AtomicBoolean(false);
+        private final AtomicBoolean schedulingFinished = new AtomicBoolean(false);
+        private final AtomicBoolean completed = new AtomicBoolean(false);
+        private final AtomicBoolean captureTargetDestroyed = new AtomicBoolean(false);
+        private volatile boolean aborted;
+
+        private CaptureSession(@NotNull Minecraft minecraft, @NotNull Path outputDirectory, @NotNull RenderTarget captureTarget) {
+            this.minecraft = minecraft;
+            this.outputDirectory = outputDirectory;
+            this.captureTarget = captureTarget;
+        }
+
+        private void retainFace() {
+            this.pendingFaces.incrementAndGet();
+        }
+
+        private void fail() {
+            this.failed.set(true);
+        }
+
+        private void finishFace() {
+            this.pendingFaces.decrementAndGet();
+            this.completeIfReady();
+        }
+
+        private void finishScheduling() {
+            this.schedulingFinished.set(true);
+            this.completeIfReady();
+        }
+
+        private void abort() {
+            this.aborted = true;
+            this.fail();
+            this.finishScheduling();
+        }
+
+        private void completeIfReady() {
+            if (!this.schedulingFinished.get() || this.pendingFaces.get() > 0 || !this.completed.compareAndSet(false, true)) {
+                return;
+            }
+
+            this.minecraft.execute(() -> {
+                this.destroyCaptureTarget();
+                if (this.aborted) {
+                    return;
+                }
+
+                captureInProgress = false;
+                ScreenshotPreviewManager.finishPanoramaCapture();
+                PanoramaMenuManager.invalidate();
+                showScreenshotMessage(this.minecraft, this.failed.get()
+                        ? Component.translatable("panoramica.capture.partial_failure", this.outputDirectory.toString())
+                        : Component.translatable("panoramica.capture.success", folderComponent(this.outputDirectory)));
+            });
+        }
+
+        private void destroyCaptureTarget() {
+            if (this.captureTargetDestroyed.compareAndSet(false, true)) {
+                this.captureTarget.destroyBuffers();
+            }
+        }
     }
 
     private record CaptureDimensions(int width, int height) {

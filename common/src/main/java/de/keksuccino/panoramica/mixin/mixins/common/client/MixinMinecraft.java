@@ -15,6 +15,7 @@ public class MixinMinecraft {
     @Inject(method = "tick", at = @At("TAIL"))
     private void after_tick_Panoramica(CallbackInfo info) {
         PanoramaCaptureManager.clientTick((Minecraft) (Object) this);
+        ScreenshotPreviewManager.clientTick();
     }
 
     @Inject(method = "close", at = @At("HEAD"))
