@@ -12,11 +12,13 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.StringWidget;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -29,7 +31,7 @@ import java.util.Locale;
 public class ScreenshotBrowserScreen extends Screen {
 
     private static final int HEADER_HEIGHT = 74;
-    private static final int FOOTER_HEIGHT = 64;
+    private static final int FOOTER_HEIGHT = 42;
     private static final int BUTTON_HEIGHT = 20;
     private static final int SIDE_MARGIN = 20;
     private static final int BUTTON_GAP = 6;
@@ -40,6 +42,11 @@ public class ScreenshotBrowserScreen extends Screen {
     private static final long STATUS_MESSAGE_VISIBLE_MILLIS = 10_000L;
     private static final int STATUS_SUCCESS_COLOR = 0xFF78E878;
     private static final int STATUS_WARNING_COLOR = 0xFFFFD166;
+    private static final Identifier BACK_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/detail_back_icon_15x15.png");
+    private static final Identifier REFRESH_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/refresh_icon_15x15.png");
+    private static final Identifier SELECT_ALL_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/select_all_icon_15x15.png");
+    private static final Identifier CLEAR_SELECTION_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/clear_selection_icon_15x15.png");
+    private static final Identifier DELETE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/delete_icon_15x15.png");
 
     @Nullable
     private final Screen parent;
@@ -115,35 +122,35 @@ public class ScreenshotBrowserScreen extends Screen {
         ));
         this.applyFilter();
 
-        int firstRowY = this.height - 54;
-        int secondRowY = this.height - 28;
-        int rowButtonWidth = Math.max(54, (this.width - SIDE_MARGIN * 2 - BUTTON_GAP * 3) / 4);
-        int leftX = SIDE_MARGIN;
-        this.addRenderableWidget(Button.builder(CommonComponents.GUI_BACK, button -> this.onClose()).bounds(leftX, firstRowY, rowButtonWidth, BUTTON_HEIGHT).build());
-        leftX += rowButtonWidth + BUTTON_GAP;
-        this.addRenderableWidget(Button.builder(Component.translatable("panoramica.browser.refresh"), button -> this.refreshEntries()).bounds(leftX, firstRowY, rowButtonWidth, BUTTON_HEIGHT).build());
-        leftX += rowButtonWidth + BUTTON_GAP;
-        this.addRenderableWidget(Button.builder(Component.translatable("panoramica.browser.select_all"), button -> {
+        int footerY = this.height - 30;
+        int iconButtonWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE;
+        int totalFooterWidth = iconButtonWidth * 5 + BUTTON_GAP * 4;
+        int footerX = centerX - totalFooterWidth / 2;
+
+        this.addFooterIconButton(footerX, footerY, CommonComponents.GUI_BACK, button -> this.onClose(), BACK_ICON);
+        footerX += iconButtonWidth + BUTTON_GAP;
+        this.addFooterIconButton(footerX, footerY, Component.translatable("panoramica.browser.refresh"), button -> this.refreshEntries(), REFRESH_ICON);
+        footerX += iconButtonWidth + BUTTON_GAP;
+        this.addFooterIconButton(footerX, footerY, Component.translatable("panoramica.browser.select_all"), button -> {
             ScreenshotGridWidget currentGrid = this.grid;
             if (currentGrid != null) {
                 currentGrid.selectAll();
             }
-        }).bounds(leftX, firstRowY, rowButtonWidth, BUTTON_HEIGHT).build());
-        leftX += rowButtonWidth + BUTTON_GAP;
-        this.clearSelectionButton = this.addRenderableWidget(Button.builder(Component.translatable("panoramica.browser.clear_selection"), button -> {
+        }, SELECT_ALL_ICON);
+        footerX += iconButtonWidth + BUTTON_GAP;
+        this.clearSelectionButton = this.addFooterIconButton(footerX, footerY, Component.translatable("panoramica.browser.clear_selection"), button -> {
             ScreenshotGridWidget currentGrid = this.grid;
             if (currentGrid != null) {
                 currentGrid.clearSelection();
             }
-        }).bounds(leftX, firstRowY, rowButtonWidth, BUTTON_HEIGHT).build());
-
-        int deleteWidth = Math.min(210, Math.max(150, this.width - SIDE_MARGIN * 2));
-        this.deleteSelectedButton = this.addRenderableWidget(Button.builder(this.deleteSelectedMessage(0), button -> {
+        }, CLEAR_SELECTION_ICON);
+        footerX += iconButtonWidth + BUTTON_GAP;
+        this.deleteSelectedButton = this.addFooterIconButton(footerX, footerY, this.deleteSelectedMessage(0), button -> {
             ScreenshotGridWidget currentGrid = this.grid;
             if (currentGrid != null && currentGrid.hasSelection()) {
                 this.confirmDelete(currentGrid.selectedEntries());
             }
-        }).bounds(centerX - deleteWidth / 2, secondRowY, deleteWidth, BUTTON_HEIGHT).build());
+        }, DELETE_ICON);
         this.updateSelectionButtons();
     }
 
@@ -242,6 +249,19 @@ public class ScreenshotBrowserScreen extends Screen {
         return Component.translatable("panoramica.browser.sort", Component.translatable(this.sortMode.labelKey()));
     }
 
+    @NotNull
+    private TexturedIconButton addFooterIconButton(
+            int x,
+            int y,
+            @NotNull Component message,
+            @NotNull Button.OnPress onPress,
+            @NotNull Identifier icon
+    ) {
+        TexturedIconButton button = this.addRenderableWidget(new TexturedIconButton(message, onPress, icon));
+        button.setPosition(x, y);
+        return button;
+    }
+
     private void openEntry(@NotNull ScreenshotEntry entry) {
         int index = this.filteredEntries.indexOf(entry);
         if (index >= 0) {
@@ -317,8 +337,10 @@ public class ScreenshotBrowserScreen extends Screen {
         ScreenshotGridWidget currentGrid = this.grid;
         int selected = currentGrid == null ? 0 : currentGrid.selectionCount();
         if (this.deleteSelectedButton != null) {
+            Component message = this.deleteSelectedMessage(selected);
             this.deleteSelectedButton.active = selected > 0;
-            this.deleteSelectedButton.setMessage(this.deleteSelectedMessage(selected));
+            this.deleteSelectedButton.setMessage(message);
+            this.deleteSelectedButton.setTooltip(Tooltip.create(message));
         }
         if (this.clearSelectionButton != null) {
             this.clearSelectionButton.active = selected > 0;
