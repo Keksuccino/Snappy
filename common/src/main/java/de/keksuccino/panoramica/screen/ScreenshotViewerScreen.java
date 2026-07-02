@@ -53,6 +53,7 @@ public class ScreenshotViewerScreen extends Screen {
     private static final float PANORAMA_ROTATION_FULL_TURN_DEGREES = 360.0F;
     private static final float PANORAMA_VERTICAL_ANGLE_MIN_DEGREES = -90.0F;
     private static final float PANORAMA_VERTICAL_ANGLE_MAX_DEGREES = 90.0F;
+    private static final Identifier METADATA_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/info_icon_100x100.png");
     private static int textureSequence;
 
     private final Screen parent;
@@ -67,8 +68,6 @@ public class ScreenshotViewerScreen extends Screen {
     private PreviewCubeMapTexture panoramaTexture;
     private int imageWidth = 16;
     private int imageHeight = 9;
-    private int sourceWidth;
-    private int sourceHeight;
     private float panoramaRotationDegrees;
     private float panoramaVerticalAngleDegrees;
     private long panoramaRotationLastMillis;
@@ -79,6 +78,8 @@ public class ScreenshotViewerScreen extends Screen {
     private Button previousButton;
     @Nullable
     private Button nextButton;
+    @Nullable
+    private Button metadataButton;
     @Nullable
     private Button outsideButton;
     @Nullable
@@ -102,13 +103,17 @@ public class ScreenshotViewerScreen extends Screen {
         int centerX = this.width / 2;
 
         int backWidth = 72;
+        int metadataWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE;
         int outsideWidth = 154;
         int deleteWidth = 70;
-        int totalWidth = backWidth + outsideWidth + deleteWidth + BUTTON_GAP * 2;
+        int totalWidth = backWidth + metadataWidth + outsideWidth + deleteWidth + BUTTON_GAP * 3;
         int x = centerX - totalWidth / 2;
 
         this.addRenderableWidget(Button.builder(CommonComponents.GUI_BACK, button -> this.onClose()).bounds(x, bottomY, backWidth, BUTTON_HEIGHT).build());
         x += backWidth + BUTTON_GAP;
+        this.metadataButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("panoramica.viewer.metadata"), button -> this.openMetadata(), METADATA_ICON));
+        this.metadataButton.setPosition(x, bottomY);
+        x += metadataWidth + BUTTON_GAP;
         this.outsideButton = this.addRenderableWidget(Button.builder(Component.translatable("panoramica.viewer.show_outside"), button -> this.showOutsideMinecraft()).bounds(x, bottomY, outsideWidth, BUTTON_HEIGHT).build());
         x += outsideWidth + BUTTON_GAP;
         this.deleteButton = this.addRenderableWidget(Button.builder(this.deleteMessage(), button -> this.confirmDeleteCurrent()).bounds(x, bottomY, deleteWidth, BUTTON_HEIGHT).build());
@@ -236,6 +241,13 @@ public class ScreenshotViewerScreen extends Screen {
         }
     }
 
+    private void openMetadata() {
+        ScreenshotEntry entry = this.currentEntry();
+        if (entry != null) {
+            this.minecraft.gui.setScreen(new ScreenshotMetadataScreen(this, entry));
+        }
+    }
+
     private void confirmDeleteCurrent() {
         ScreenshotEntry entry = this.currentEntry();
         if (entry == null) {
@@ -281,8 +293,6 @@ public class ScreenshotViewerScreen extends Screen {
         this.resetPanoramaPlayback();
         this.loadStatus = LoadStatus.LOADING;
         this.statusMessage = Component.translatable("panoramica.browser.loading");
-        this.sourceWidth = 0;
-        this.sourceHeight = 0;
         this.updateButtons();
 
         if (entry == null) {
@@ -348,8 +358,6 @@ public class ScreenshotViewerScreen extends Screen {
             this.normalTextureId = textureId;
             this.imageWidth = width;
             this.imageHeight = height;
-            this.sourceWidth = loadedImage.sourceWidth();
-            this.sourceHeight = loadedImage.sourceHeight();
             this.loadStatus = LoadStatus.READY;
             this.statusMessage = Component.empty();
         } catch (Throwable ex) {
@@ -380,8 +388,6 @@ public class ScreenshotViewerScreen extends Screen {
             this.panoramaTexture = new PreviewCubeMapTexture(ScreenshotImageLoader.decodePanoramaViewerFaces(faceBytes));
             this.imageWidth = 16;
             this.imageHeight = 9;
-            this.sourceWidth = ScreenshotImageLoader.VIEWER_PANORAMA_FACE_MAX_SIZE;
-            this.sourceHeight = ScreenshotImageLoader.VIEWER_PANORAMA_FACE_MAX_SIZE;
             this.loadStatus = LoadStatus.READY;
             this.statusMessage = Component.empty();
             this.resetPanoramaPlayback();
@@ -424,6 +430,9 @@ public class ScreenshotViewerScreen extends Screen {
         }
         if (this.nextButton != null) {
             this.nextButton.active = this.index + 1 < this.entries.size();
+        }
+        if (this.metadataButton != null) {
+            this.metadataButton.active = hasEntry;
         }
         if (this.outsideButton != null) {
             this.outsideButton.active = hasEntry;
@@ -470,11 +479,6 @@ public class ScreenshotViewerScreen extends Screen {
             this.renderPanoramaVerticalProgressBar(graphics, mouseX, mouseY);
         } else {
             this.renderNormalImage(graphics, bounds[0], bounds[1], bounds[2], bounds[3]);
-        }
-
-        if (this.sourceWidth > 0 && this.sourceHeight > 0 && entry != null && !entry.isPanorama()) {
-            Component dimensions = Component.translatable("panoramica.viewer.dimensions", this.sourceWidth, this.sourceHeight);
-            graphics.text(this.font, dimensions, areaX + 6, areaY + areaHeight - 14, 0xFFB0B0B0);
         }
     }
 

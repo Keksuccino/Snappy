@@ -2,6 +2,7 @@ package de.keksuccino.panoramica.screen;
 
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.capture.PanoramaCaptureManager;
+import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import org.jetbrains.annotations.NotNull;
@@ -51,15 +52,21 @@ public final class ScreenshotBrowserCatalog {
     public static DeletionResult deleteAll(@NotNull List<ScreenshotEntry> entries) {
         int deleted = 0;
         int failed = 0;
+        List<Path> deletedPaths = new ArrayList<>();
 
         for (ScreenshotEntry entry : entries) {
             try {
                 entry.delete();
+                deletedPaths.add(entry.path());
                 deleted++;
             } catch (IOException ex) {
                 failed++;
                 Panoramica.getLogger().warn("[PANORAMICA] Could not delete screenshot {}.", entry.path(), ex);
             }
+        }
+
+        if (!deletedPaths.isEmpty()) {
+            ScreenshotMetadataManager.removeAll(deletedPaths);
         }
 
         return new DeletionResult(deleted, failed);

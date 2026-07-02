@@ -8,6 +8,8 @@ import de.keksuccino.panoramica.KeyMappings;
 import de.keksuccino.panoramica.Options;
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.menu.PanoramaMenuManager;
+import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager;
+import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager.CaptureContext;
 import de.keksuccino.panoramica.mixin.mixins.common.client.AccessorMixinGameRenderer;
 import de.keksuccino.panoramica.preview.ScreenshotPreviewManager;
 import net.minecraft.ChatFormatting;
@@ -79,10 +81,11 @@ public final class PanoramaCaptureManager {
         }
 
         showScreenshotMessage(minecraft, Component.translatable("panoramica.capture.started", preset.sideSize + "x" + preset.sideSize));
+        CaptureContext metadataContext = ScreenshotMetadataManager.capturePanoramaScreenshot(minecraft);
 
         try {
             ScreenshotPreviewManager.beginPanoramaCapture();
-            capture(minecraft, outputDirectory, preset);
+            capture(minecraft, outputDirectory, preset, metadataContext);
         } catch (Exception ex) {
             captureInProgress = false;
             ScreenshotPreviewManager.finishPanoramaCapture();
@@ -109,7 +112,12 @@ public final class PanoramaCaptureManager {
         }
     }
 
-    private static void capture(@NotNull Minecraft minecraft, @NotNull Path outputDirectory, @NotNull Options.ResolutionPreset preset) {
+    private static void capture(
+            @NotNull Minecraft minecraft,
+            @NotNull Path outputDirectory,
+            @NotNull Options.ResolutionPreset preset,
+            @NotNull CaptureContext metadataContext
+    ) {
         GameRenderer gameRenderer = minecraft.gameRenderer;
         AccessorMixinGameRenderer gameRendererAccessor = (AccessorMixinGameRenderer) gameRenderer;
         RenderTarget originalTarget = gameRendererAccessor.getMainRenderTarget_Panoramica();
@@ -131,7 +139,7 @@ public final class PanoramaCaptureManager {
 
         try {
             captureTarget = new TextureTarget("Panoramica Capture", preset.sideSize, preset.sideSize, true, GpuFormat.RGBA8_UNORM);
-            session = new CaptureSession(minecraft, outputDirectory, captureTarget);
+            session = new CaptureSession(minecraft, outputDirectory, captureTarget, metadataContext, preset.sideSize);
             activeDimensions = new CaptureDimensions(preset.sideSize, preset.sideSize);
             gameRendererAccessor.setMainRenderTarget_Panoramica(captureTarget);
             minecraft.levelRenderer.resize(preset.sideSize, preset.sideSize);
@@ -252,6 +260,8 @@ public final class PanoramaCaptureManager {
         private final Minecraft minecraft;
         private final Path outputDirectory;
         private final RenderTarget captureTarget;
+        private final CaptureContext metadataContext;
+        private final int faceSize;
         private final AtomicInteger pendingFaces = new AtomicInteger();
         private final AtomicBoolean failed = new AtomicBoolean(false);
         private final AtomicBoolean schedulingFinished = new AtomicBoolean(false);
@@ -259,10 +269,18 @@ public final class PanoramaCaptureManager {
         private final AtomicBoolean captureTargetDestroyed = new AtomicBoolean(false);
         private volatile boolean aborted;
 
-        private CaptureSession(@NotNull Minecraft minecraft, @NotNull Path outputDirectory, @NotNull RenderTarget captureTarget) {
+        private CaptureSession(
+                @NotNull Minecraft minecraft,
+                @NotNull Path outputDirectory,
+                @NotNull RenderTarget captureTarget,
+                @NotNull CaptureContext metadataContext,
+                int faceSize
+        ) {
             this.minecraft = minecraft;
             this.outputDirectory = outputDirectory;
             this.captureTarget = captureTarget;
+            this.metadataContext = metadataContext;
+            this.faceSize = faceSize;
         }
 
         private void retainFace() {
@@ -303,6 +321,9 @@ public final class PanoramaCaptureManager {
                 captureInProgress = false;
                 ScreenshotPreviewManager.finishPanoramaCapture();
                 PanoramaMenuManager.invalidate();
+                if (!this.failed.get()) {
+                    ScreenshotMetadataManager.savePanoramaMetadataAsync(this.outputDirectory, this.metadataContext, this.faceSize);
+                }
                 showScreenshotMessage(this.minecraft, this.failed.get()
                         ? Component.translatable("panoramica.capture.partial_failure", this.outputDirectory.toString())
                         : Component.translatable("panoramica.capture.success", folderComponent(this.outputDirectory)));

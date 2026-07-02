@@ -1,6 +1,8 @@
 package de.keksuccino.panoramica.capture;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
+import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager;
+import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager.CaptureContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.network.chat.Component;
@@ -25,9 +27,10 @@ public final class NormalScreenshotCaptureManager {
             @NotNull Minecraft minecraft,
             @NotNull File workDir,
             @NotNull RenderTarget target,
-            @NotNull Consumer<Component> callback
+            @NotNull Consumer<Component> callback,
+            @NotNull CaptureContext metadataContext
     ) {
-        PENDING_SCREENSHOTS.addLast(new PendingScreenshot(workDir, target, callback));
+        PENDING_SCREENSHOTS.addLast(new PendingScreenshot(workDir, target, callback, metadataContext));
         forceHideHudForNextFrame = true;
         minecraft.getFramerateLimitTracker().onInputReceived();
     }
@@ -49,6 +52,7 @@ public final class NormalScreenshotCaptureManager {
         List<PendingScreenshot> screenshots = new ArrayList<>(PENDING_SCREENSHOTS);
         PENDING_SCREENSHOTS.clear();
         for (PendingScreenshot screenshot : screenshots) {
+            ScreenshotMetadataManager.enqueueNormalContext(screenshot.metadataContext());
             Screenshot.grab(screenshot.workDir(), screenshot.target(), screenshot.callback());
         }
     }
@@ -61,7 +65,8 @@ public final class NormalScreenshotCaptureManager {
     private record PendingScreenshot(
             @NotNull File workDir,
             @NotNull RenderTarget target,
-            @NotNull Consumer<Component> callback
+            @NotNull Consumer<Component> callback,
+            @NotNull CaptureContext metadataContext
     ) {
     }
 
