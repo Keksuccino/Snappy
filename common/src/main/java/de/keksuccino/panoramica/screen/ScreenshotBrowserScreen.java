@@ -1,5 +1,6 @@
 package de.keksuccino.panoramica.screen;
 
+import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import de.keksuccino.panoramica.Options;
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.menu.PanoramaMenuManager;
@@ -151,10 +152,14 @@ public class ScreenshotBrowserScreen extends Screen {
         super.extractRenderState(graphics, mouseX, mouseY, a);
 
         int countY = this.searchBox == null ? HEADER_CONTROL_Y : this.searchBox.getY() + this.searchBox.getHeight() - this.font.lineHeight;
-        Component countText = Component.translatable("panoramica.browser.count", this.filteredEntries.size(), this.allEntries.size());
+        Component countText = Component.translatable("panoramica.browser.count", this.filteredEntries.size());
         int countMaxWidth = this.sortButton == null ? this.width - SIDE_MARGIN * 2 : Math.max(20, this.sortButton.getX() - SIDE_MARGIN - BUTTON_GAP);
         graphics.text(this.font, this.ellipsize(countText.getString(), countMaxWidth), SIDE_MARGIN, countY, 0xFFFFFFFF);
         this.renderStatusMessage(graphics);
+
+        if (this.grid != null && this.grid.isOverThumbnail(mouseX, mouseY)) {
+            graphics.requestCursor(CursorTypes.POINTING_HAND);
+        }
     }
 
     @Override

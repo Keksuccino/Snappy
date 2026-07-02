@@ -62,7 +62,7 @@
   "panoramica.browser.sort.newest_first": "Newest First",
   "panoramica.browser.sort.oldest_first": "Oldest First",
   "panoramica.browser.sort.by_type": "By Type",
-  "panoramica.browser.count": "%s shown / %s total",
+  "panoramica.browser.count": "%s screenshots",
   "panoramica.browser.empty": "No screenshots found.",
   "panoramica.browser.loading": "Loading...",
   "panoramica.browser.thumbnail_failed": "Could not load",

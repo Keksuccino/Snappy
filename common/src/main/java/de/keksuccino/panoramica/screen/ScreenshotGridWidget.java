@@ -30,6 +30,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private static final int TILE_WIDTH = 136;
     private static final int TILE_HEIGHT = 118;
     private static final int TILE_GAP = 8;
+    private static final int SCROLL_AREA_BORDER_SIZE = 1;
     private static final int THUMBNAIL_BUFFER_ROWS = 2;
     private static final int IMAGE_WIDTH = 120;
     private static final int IMAGE_HEIGHT = 68;
@@ -37,6 +38,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private static final int CARD_COLOR = 0x66000000;
     private static final int CARD_HOVER_COLOR = 0x80373737;
     private static final int CARD_SELECTED_COLOR = 0x80406090;
+    private static final int SCROLL_AREA_BORDER_COLOR = 0xFF707070;
     private static final int BORDER_COLOR = 0xFF707070;
     private static final int BORDER_HOVER_COLOR = 0xFFFFFFFF;
     private static final int BORDER_SELECTED_COLOR = 0xFF75A7FF;
@@ -76,7 +78,14 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
             @NotNull Consumer<List<ScreenshotEntry>> deleteCallback,
             @NotNull Runnable selectionChangedCallback
     ) {
-        super(x, y, width, height, Component.translatable("panoramica.browser.grid"), AbstractScrollArea.defaultSettings(36));
+        super(
+                x + SCROLL_AREA_BORDER_SIZE,
+                y + SCROLL_AREA_BORDER_SIZE,
+                Math.max(1, width - SCROLL_AREA_BORDER_SIZE * 2),
+                Math.max(1, height - SCROLL_AREA_BORDER_SIZE * 2),
+                Component.translatable("panoramica.browser.grid"),
+                AbstractScrollArea.defaultSettings(36)
+        );
         this.font = font;
         this.thumbnailCache = new ScreenshotThumbnailCache(minecraft);
         this.openCallback = openCallback;
@@ -130,6 +139,11 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
         return !this.selectedEntries.isEmpty();
     }
 
+    public boolean isOverThumbnail(double mouseX, double mouseY) {
+        int index = this.indexAt(mouseX, mouseY);
+        return index >= 0 && this.isOverThumbnail(index, mouseX, mouseY);
+    }
+
     public void selectAll() {
         this.endCheckboxDrag();
         this.selectedEntries.clear();
@@ -175,6 +189,13 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
             graphics.disableScissor();
         }
         this.extractScrollbar(graphics, mouseX, mouseY);
+        graphics.outline(
+                this.getX() - SCROLL_AREA_BORDER_SIZE,
+                this.getY() - SCROLL_AREA_BORDER_SIZE,
+                this.getWidth() + SCROLL_AREA_BORDER_SIZE * 2,
+                this.getHeight() + SCROLL_AREA_BORDER_SIZE * 2,
+                SCROLL_AREA_BORDER_COLOR
+        );
     }
 
     private void renderTiles(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
@@ -625,6 +646,18 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
         int checkboxY = tileY + 12;
         return mouseX >= checkboxX - 2 && mouseX < checkboxX + CHECKBOX_SIZE + 2
                 && mouseY >= checkboxY - 2 && mouseY < checkboxY + CHECKBOX_SIZE + 2;
+    }
+
+    private boolean isOverThumbnail(int index, double mouseX, double mouseY) {
+        int columns = this.columns();
+        int row = index / columns;
+        int column = index % columns;
+        int tileX = this.gridLeft(columns) + column * (TILE_WIDTH + TILE_GAP);
+        int tileY = this.getY() + PADDING - (int) this.scrollAmount() + row * (TILE_HEIGHT + TILE_GAP);
+        int imageX = tileX + (TILE_WIDTH - IMAGE_WIDTH) / 2;
+        int imageY = tileY + 8;
+        return mouseX >= imageX && mouseX < imageX + IMAGE_WIDTH
+                && mouseY >= imageY && mouseY < imageY + IMAGE_HEIGHT;
     }
 
     private int columns() {
