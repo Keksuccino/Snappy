@@ -6,8 +6,10 @@
     "client.MixinCamera",
     "client.MixinCubeMap",
     "client.MixinGameRenderer",
+    "client.MixinGui",
     "client.MixinKeyMapping_Category",
     "client.MixinMinecraft",
+    "client.MixinScreenshot",
     "client.AccessorMixinGameRenderer"
   ],
   "mixins": [

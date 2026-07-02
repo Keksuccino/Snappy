@@ -14,6 +14,7 @@ public class Options extends AbstractOptions {
     public final Option<String> menuPanoramaMode = new Option<>(config, "menu_panorama_mode", MenuPanoramaMode.SHOW_LATEST.id, "menu");
     public final Option<String> cycleInterval = new Option<>(config, "cycle_interval", CycleInterval.SECONDS_30.id, "menu");
     public final Option<String> storageLocation = new Option<>(config, "storage_location", StorageLocation.DEDICATED_FOLDER.id, "capture");
+    public final Option<String> screenshotPreviewMode = new Option<>(config, "screenshot_preview_mode", ScreenshotPreviewMode.BOTH.id, "preview");
 
     public Options() {
         this.config.syncConfig();
@@ -54,6 +55,15 @@ public class Options extends AbstractOptions {
 
     public void setStorageLocation(@NotNull StorageLocation location) {
         this.storageLocation.setValue(location.id);
+    }
+
+    @NotNull
+    public ScreenshotPreviewMode getScreenshotPreviewMode() {
+        return ScreenshotPreviewMode.byId(this.screenshotPreviewMode.getValue(), this.screenshotPreviewMode);
+    }
+
+    public void setScreenshotPreviewMode(@NotNull ScreenshotPreviewMode mode) {
+        this.screenshotPreviewMode.setValue(mode.id);
     }
 
     public enum ResolutionPreset {
@@ -199,6 +209,43 @@ public class Options extends AbstractOptions {
             }
             option.setValue(DEDICATED_FOLDER.id);
             return DEDICATED_FOLDER;
+        }
+    }
+
+    public enum ScreenshotPreviewMode {
+        BOTH("both", true, true),
+        PANORAMAS_ONLY("panoramas_only", true, false),
+        NORMAL_ONLY("normal_only", false, true),
+        DISABLED("disabled", false, false);
+
+        public final String id;
+        public final boolean showPanoramaScreenshots;
+        public final boolean showNormalScreenshots;
+
+        ScreenshotPreviewMode(@NotNull String id, boolean showPanoramaScreenshots, boolean showNormalScreenshots) {
+            this.id = id;
+            this.showPanoramaScreenshots = showPanoramaScreenshots;
+            this.showNormalScreenshots = showNormalScreenshots;
+        }
+
+        @NotNull
+        public ScreenshotPreviewMode next() {
+            ScreenshotPreviewMode[] values = values();
+            return values[(this.ordinal() + 1) % values.length];
+        }
+
+        @NotNull
+        public String labelKey() {
+            return "panoramica.options.preview_mode." + this.id;
+        }
+
+        @NotNull
+        private static ScreenshotPreviewMode byId(@NotNull String id, @NotNull Option<String> option) {
+            for (ScreenshotPreviewMode mode : values()) {
+                if (mode.id.equals(normalize(id))) return mode;
+            }
+            option.setValue(BOTH.id);
+            return BOTH;
         }
     }
 

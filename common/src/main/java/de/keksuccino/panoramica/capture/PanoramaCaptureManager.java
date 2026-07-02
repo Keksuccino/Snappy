@@ -9,6 +9,7 @@ import de.keksuccino.panoramica.Options;
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.menu.PanoramaMenuManager;
 import de.keksuccino.panoramica.mixin.mixins.common.client.AccessorMixinGameRenderer;
+import de.keksuccino.panoramica.preview.ScreenshotPreviewManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
@@ -80,9 +81,11 @@ public final class PanoramaCaptureManager {
         minecraft.showDebugChat(Component.translatable("panoramica.capture.started", preset.sideSize + "x" + preset.sideSize));
 
         try {
+            ScreenshotPreviewManager.beginPanoramaCapture();
             capture(minecraft, outputDirectory, preset);
         } catch (Exception ex) {
             captureInProgress = false;
+            ScreenshotPreviewManager.finishPanoramaCapture();
             Panoramica.getLogger().error("[PANORAMICA] Could not capture panorama.", ex);
             minecraft.showDebugChat(Component.translatable("panoramica.capture.failure", ex.getMessage()));
         }
@@ -180,7 +183,10 @@ public final class PanoramaCaptureManager {
             @NotNull AtomicBoolean failed
     ) {
         try {
-            Screenshot.takeScreenshot(captureTarget, image -> Util.ioPool().execute(() -> writeFace(minecraft, outputDirectory, face, image, pendingFaces, failed)));
+            Screenshot.takeScreenshot(captureTarget, image -> {
+                ScreenshotPreviewManager.collectPanoramaFace(face, image);
+                Util.ioPool().execute(() -> writeFace(minecraft, outputDirectory, face, image, pendingFaces, failed));
+            });
         } catch (Exception ex) {
             failed.set(true);
             Panoramica.getLogger().warn("[PANORAMICA] Could not copy panorama face {}.", face, ex);
@@ -214,6 +220,7 @@ public final class PanoramaCaptureManager {
     ) {
         if (pendingFaces.decrementAndGet() == 0) {
             captureInProgress = false;
+            ScreenshotPreviewManager.finishPanoramaCapture();
             PanoramaMenuManager.invalidate();
             minecraft.execute(() -> minecraft.showDebugChat(failed.get()
                     ? Component.translatable("panoramica.capture.partial_failure", outputDirectory.toString())

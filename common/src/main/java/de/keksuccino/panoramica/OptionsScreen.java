@@ -72,6 +72,9 @@ public class OptionsScreen extends Screen {
         currentY += spacing;
 
         this.addButtonRow(currentY, this.buildStorageLocationButton());
+        currentY += spacing;
+
+        this.addButtonRow(currentY, this.buildPreviewModeButton());
 
         this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose()).bounds(centerX - 75, this.height - 40, 150, BUTTON_HEIGHT).build());
 
@@ -143,6 +146,16 @@ public class OptionsScreen extends Screen {
                 .tooltip(Tooltip.create(Component.translatable("panoramica.options.storage.desc"))).build();
     }
 
+    @NotNull
+    protected Button buildPreviewModeButton() {
+        return Button.builder(this.previewModeMessage(), button -> {
+                    Options options = Panoramica.getOptions();
+                    options.setScreenshotPreviewMode(options.getScreenshotPreviewMode().next());
+                    button.setMessage(this.previewModeMessage());
+                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.translatable("panoramica.options.preview_mode.desc"))).build();
+    }
+
     protected void updateCycleIntervalButton() {
         if (this.cycleIntervalButton != null) {
             boolean active = Panoramica.getOptions().getMenuPanoramaMode() == Options.MenuPanoramaMode.CYCLE_ALL;
@@ -195,6 +208,11 @@ public class OptionsScreen extends Screen {
     @NotNull
     protected Component storageLocationMessage() {
         return this.optionMessage("panoramica.options.storage", this.genericCycleValue(Component.translatable(Panoramica.getOptions().getStorageLocation().labelKey())));
+    }
+
+    @NotNull
+    protected Component previewModeMessage() {
+        return this.optionMessage("panoramica.options.preview_mode", this.genericCycleValue(Component.translatable(Panoramica.getOptions().getScreenshotPreviewMode().labelKey())));
     }
 
     @NotNull

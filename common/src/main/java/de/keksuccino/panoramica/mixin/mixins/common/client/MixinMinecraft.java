@@ -1,6 +1,7 @@
 package de.keksuccino.panoramica.mixin.mixins.common.client;
 
 import de.keksuccino.panoramica.capture.PanoramaCaptureManager;
+import de.keksuccino.panoramica.preview.ScreenshotPreviewManager;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -13,6 +14,11 @@ public class MixinMinecraft {
     @Inject(method = "tick", at = @At("TAIL"))
     private void after_tick_Panoramica(CallbackInfo info) {
         PanoramaCaptureManager.clientTick((Minecraft) (Object) this);
+    }
+
+    @Inject(method = "close", at = @At("HEAD"))
+    private void before_close_Panoramica(CallbackInfo info) {
+        ScreenshotPreviewManager.close();
     }
 
 }
