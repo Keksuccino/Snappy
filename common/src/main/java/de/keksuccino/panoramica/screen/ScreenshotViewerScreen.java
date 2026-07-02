@@ -41,7 +41,7 @@ public class ScreenshotViewerScreen extends Screen {
     private static final int PANORAMA_PROGRESS_MAX_WIDTH = 360;
     private static final int PANORAMA_PROGRESS_MIN_WIDTH = 120;
     private static final int PANORAMA_PROGRESS_HORIZONTAL_MARGIN = 80;
-    private static final int PANORAMA_PROGRESS_BOTTOM_MARGIN = 18;
+    private static final int PANORAMA_PROGRESS_BOTTOM_MARGIN = 28;
     private static final int PANORAMA_PROGRESS_TRACK_HEIGHT = 4;
     private static final int PANORAMA_PROGRESS_DOT_SIZE = 8;
     private static final int PANORAMA_PROGRESS_HIT_PADDING = 8;
@@ -120,7 +120,7 @@ public class ScreenshotViewerScreen extends Screen {
 
     @Override
     public boolean mouseClicked(@NotNull MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0 && this.isPanoramaProgressHit(event.x(), event.y())) {
+        if (event.button() == 0 && this.isPanoramaProgressGrabberHit(event.x(), event.y())) {
             this.panoramaProgressDragging = true;
             this.setDragging(true);
             this.setPanoramaRotationFromMouse(event.x());
@@ -488,11 +488,9 @@ public class ScreenshotViewerScreen extends Screen {
         int trackX = this.panoramaProgressX();
         int trackY = this.panoramaProgressY();
         int trackWidth = this.panoramaProgressWidth();
-        int trackCenterY = trackY + PANORAMA_PROGRESS_TRACK_HEIGHT / 2;
         int dotSize = PANORAMA_PROGRESS_DOT_SIZE + (this.panoramaProgressDragging ? 2 : 0);
-        float progress = this.panoramaRotationProgress();
-        int fillWidth = Mth.clamp(Math.round(trackWidth * progress), 0, trackWidth);
-        int dotCenterX = trackX + fillWidth;
+        int trackCenterY = this.panoramaProgressCenterY();
+        int dotCenterX = this.panoramaProgressDotCenterX();
 
         graphics.fill(
                 trackX - PANORAMA_PROGRESS_HIT_PADDING,
@@ -502,7 +500,6 @@ public class ScreenshotViewerScreen extends Screen {
                 0x99000000
         );
         graphics.fill(trackX, trackY, trackX + trackWidth, trackY + PANORAMA_PROGRESS_TRACK_HEIGHT, 0xAA404040);
-        graphics.fill(trackX, trackY, trackX + fillWidth, trackY + PANORAMA_PROGRESS_TRACK_HEIGHT, 0xFFFFFFFF);
         graphics.outline(trackX, trackY, trackWidth, PANORAMA_PROGRESS_TRACK_HEIGHT, 0xCCFFFFFF);
         graphics.fill(
                 dotCenterX - dotSize / 2,
@@ -519,8 +516,8 @@ public class ScreenshotViewerScreen extends Screen {
                 0xFF000000
         );
 
-        if (this.panoramaProgressDragging || this.isPanoramaProgressHit(mouseX, mouseY)) {
-            graphics.requestCursor(this.panoramaProgressDragging ? CursorTypes.RESIZE_EW : CursorTypes.POINTING_HAND);
+        if (this.panoramaProgressDragging || this.isPanoramaProgressGrabberHit(mouseX, mouseY)) {
+            graphics.requestCursor(CursorTypes.POINTING_HAND);
         }
     }
 
@@ -564,17 +561,18 @@ public class ScreenshotViewerScreen extends Screen {
         return entry != null && entry.isPanorama() && this.loadStatus == LoadStatus.READY && this.panoramaTexture != null;
     }
 
-    private boolean isPanoramaProgressHit(double mouseX, double mouseY) {
+    private boolean isPanoramaProgressGrabberHit(double mouseX, double mouseY) {
         if (!this.isPanoramaProgressVisible()) {
             return false;
         }
-        int trackX = this.panoramaProgressX();
-        int trackY = this.panoramaProgressY();
-        int trackWidth = this.panoramaProgressWidth();
-        return mouseX >= trackX - PANORAMA_PROGRESS_HIT_PADDING
-                && mouseX <= trackX + trackWidth + PANORAMA_PROGRESS_HIT_PADDING
-                && mouseY >= trackY - PANORAMA_PROGRESS_HIT_PADDING
-                && mouseY <= trackY + PANORAMA_PROGRESS_TRACK_HEIGHT + PANORAMA_PROGRESS_HIT_PADDING;
+        int dotSize = PANORAMA_PROGRESS_DOT_SIZE + (this.panoramaProgressDragging ? 2 : 0);
+        int hitRadius = dotSize / 2 + PANORAMA_PROGRESS_HIT_PADDING;
+        int dotCenterX = this.panoramaProgressDotCenterX();
+        int dotCenterY = this.panoramaProgressCenterY();
+        return mouseX >= dotCenterX - hitRadius
+                && mouseX <= dotCenterX + hitRadius
+                && mouseY >= dotCenterY - hitRadius
+                && mouseY <= dotCenterY + hitRadius;
     }
 
     private int panoramaProgressX() {
@@ -585,8 +583,18 @@ public class ScreenshotViewerScreen extends Screen {
         return this.imageAreaY() + this.imageAreaHeight() - PANORAMA_PROGRESS_BOTTOM_MARGIN;
     }
 
+    private int panoramaProgressCenterY() {
+        return this.panoramaProgressY() + PANORAMA_PROGRESS_TRACK_HEIGHT / 2;
+    }
+
     private int panoramaProgressWidth() {
         return Mth.clamp(this.imageAreaWidth() - PANORAMA_PROGRESS_HORIZONTAL_MARGIN, PANORAMA_PROGRESS_MIN_WIDTH, PANORAMA_PROGRESS_MAX_WIDTH);
+    }
+
+    private int panoramaProgressDotCenterX() {
+        int trackWidth = this.panoramaProgressWidth();
+        int progressWidth = Mth.clamp(Math.round(trackWidth * this.panoramaRotationProgress()), 0, trackWidth);
+        return this.panoramaProgressX() + progressWidth;
     }
 
     private static float wrapPanoramaRotation(float rotationDegrees) {
