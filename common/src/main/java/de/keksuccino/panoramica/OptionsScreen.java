@@ -17,6 +17,7 @@ public class OptionsScreen extends Screen {
 
     protected static final int BUTTON_HEIGHT = 20;
     protected static final int BUTTON_ROW_MAX_WIDTH = 360;
+    protected static final int CYCLE_VALUE_COLOR = 0xFFAA00;
 
     @Nullable
     protected Screen parent;
@@ -116,7 +117,7 @@ public class OptionsScreen extends Screen {
     @NotNull
     protected Component resolutionMessage() {
         Options.ResolutionPreset preset = Panoramica.getOptions().getScreenshotResolution();
-        return this.optionMessage("panoramica.options.resolution", Component.translatable(preset.labelKey()));
+        return this.optionMessage("panoramica.options.resolution", this.genericCycleValue(Component.translatable(preset.labelKey())));
     }
 
     @NotNull
@@ -127,7 +128,7 @@ public class OptionsScreen extends Screen {
 
     @NotNull
     protected Component menuModeMessage() {
-        return this.optionMessage("panoramica.options.menu_mode", Component.translatable(Panoramica.getOptions().getMenuPanoramaMode().labelKey()));
+        return this.optionMessage("panoramica.options.menu_mode", this.genericCycleValue(Component.translatable(Panoramica.getOptions().getMenuPanoramaMode().labelKey())));
     }
 
     @NotNull
@@ -135,18 +136,31 @@ public class OptionsScreen extends Screen {
         Component value = Component.translatable(Panoramica.getOptions().getCycleInterval().labelKey());
         if (Panoramica.getOptions().getMenuPanoramaMode() != Options.MenuPanoramaMode.CYCLE_ALL) {
             value = value.copy().withStyle(Style.EMPTY.withColor(ChatFormatting.GRAY));
+        } else {
+            value = this.genericCycleValue(value);
         }
         return this.optionMessage("panoramica.options.cycle_interval", value);
     }
 
     @NotNull
     protected Component storageLocationMessage() {
-        return this.optionMessage("panoramica.options.storage", Component.translatable(Panoramica.getOptions().getStorageLocation().labelKey()));
+        return this.optionMessage("panoramica.options.storage", this.genericCycleValue(Component.translatable(Panoramica.getOptions().getStorageLocation().labelKey())));
     }
 
     @NotNull
     protected Component optionMessage(@NotNull String labelKey, @NotNull Component value) {
         return Component.translatable(labelKey, value);
+    }
+
+    @NotNull
+    protected Component genericCycleValue(@NotNull Component value) {
+        return value.copy().withStyle(Style.EMPTY.withColor(CYCLE_VALUE_COLOR));
+    }
+
+    @NotNull
+    protected Component booleanCycleValue(boolean enabled) {
+        return Component.translatable(enabled ? "panoramica.options.toggle.enabled" : "panoramica.options.toggle.disabled")
+                .withStyle(Style.EMPTY.withColor(enabled ? ChatFormatting.GREEN : ChatFormatting.RED));
     }
 
     protected void addButtonRow(int y, @NotNull Button button) {

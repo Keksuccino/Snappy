@@ -77,7 +77,7 @@ public final class PanoramaCaptureManager {
             return;
         }
 
-        minecraft.showDebugChat(Component.translatable("panoramica.capture.started", preset.sideSize));
+        minecraft.showDebugChat(Component.translatable("panoramica.capture.started", preset.sideSize + "x" + preset.sideSize));
 
         try {
             capture(minecraft, outputDirectory, preset);
