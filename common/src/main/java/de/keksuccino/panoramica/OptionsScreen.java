@@ -25,6 +25,7 @@ public class OptionsScreen extends Screen {
     protected static final int CYCLE_VALUE_COLOR = 0xFFAA00;
     protected static final int KEYBIND_RESET_BUTTON_WIDTH = 50;
     protected static final int KEYBIND_GAP = 5;
+    protected static final int OPTION_ROW_COUNT = 9;
 
     @Nullable
     protected Screen parent;
@@ -45,12 +46,14 @@ public class OptionsScreen extends Screen {
     protected void init() {
 
         int centerX = this.width / 2;
-        int topY = 50;
-        int spacing = 26;
+        int doneY = this.height >= 300 ? this.height - 40 : this.height - 24;
+        int optionsBottomY = doneY - 8;
+        int spacing = Math.min(26, Math.max(BUTTON_HEIGHT, (optionsBottomY - 30 - BUTTON_HEIGHT) / (OPTION_ROW_COUNT - 1)));
+        int topY = Math.max(28, Math.min(50, optionsBottomY - BUTTON_HEIGHT - (spacing * (OPTION_ROW_COUNT - 1))));
 
         StringWidget titleWidget = this.addRenderableWidget(new StringWidget(this.getTitle(), this.font));
         titleWidget.setX(centerX - (titleWidget.getWidth() / 2));
-        titleWidget.setY(20);
+        titleWidget.setY(Math.max(8, Math.min(20, topY - 24)));
 
         int currentY = topY;
 
@@ -64,6 +67,9 @@ public class OptionsScreen extends Screen {
         currentY += spacing;
 
         this.addButtonRow(currentY, this.buildMenuModeButton());
+        currentY += spacing;
+
+        this.addButtonRow(currentY, this.buildMenuParallaxButton());
         currentY += spacing;
 
         this.cycleIntervalButton = this.buildCycleIntervalButton();
@@ -82,7 +88,7 @@ public class OptionsScreen extends Screen {
 
         this.addButtonRow(currentY, this.buildScreenshotChatMessagesButton());
 
-        this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose()).bounds(centerX - 75, this.height - 40, 150, BUTTON_HEIGHT).build());
+        this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose()).bounds(centerX - 75, doneY, 150, BUTTON_HEIGHT).build());
 
     }
 
@@ -129,6 +135,16 @@ public class OptionsScreen extends Screen {
                     PanoramaMenuManager.invalidate();
                 }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
                 .tooltip(Tooltip.create(Component.translatable("panoramica.options.menu_mode.desc"))).build();
+    }
+
+    @NotNull
+    protected Button buildMenuParallaxButton() {
+        return Button.builder(this.menuParallaxMessage(), button -> {
+                    Options options = Panoramica.getOptions();
+                    options.setMenuPanoramaParallaxEnabled(!options.isMenuPanoramaParallaxEnabled());
+                    button.setMessage(this.menuParallaxMessage());
+                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.translatable("panoramica.options.menu_parallax.desc"))).build();
     }
 
     @NotNull
@@ -218,6 +234,11 @@ public class OptionsScreen extends Screen {
     @NotNull
     protected Component menuModeMessage() {
         return this.optionMessage("panoramica.options.menu_mode", this.genericCycleValue(Component.translatable(Panoramica.getOptions().getMenuPanoramaMode().labelKey())));
+    }
+
+    @NotNull
+    protected Component menuParallaxMessage() {
+        return this.optionMessage("panoramica.options.menu_parallax", this.booleanCycleValue(Panoramica.getOptions().isMenuPanoramaParallaxEnabled()));
     }
 
     @NotNull

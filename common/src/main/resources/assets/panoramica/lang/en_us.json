@@ -22,6 +22,8 @@
   "panoramica.options.menu_mode.show_selected": "Show Selected Panoramas",
   "panoramica.options.menu_mode.show_latest": "Show Latest Panorama",
   "panoramica.options.menu_mode.show_vanilla": "Show Vanilla Panorama",
+  "panoramica.options.menu_parallax": "Menu Background Parallax: %s",
+  "panoramica.options.menu_parallax.desc": "Gently tilts and turns the menu background panorama toward the mouse cursor.",
   "panoramica.options.cycle_interval": "Background Cycle Interval: %s",
   "panoramica.options.cycle_interval.desc": "How long each panorama stays visible when the menu background mode cycles through multiple panoramas.",
   "panoramica.options.cycle_interval.inactive_desc": "Only used when \"Menu Background\" is set to a mode that can cycle through multiple panoramas.",

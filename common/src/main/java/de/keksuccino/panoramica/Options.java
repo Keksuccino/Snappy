@@ -12,6 +12,7 @@ public class Options extends AbstractOptions {
 
     public final Option<String> screenshotResolution = new Option<>(config, "screenshot_resolution", ResolutionPreset.DEFAULT_1024.id, "capture");
     public final Option<String> menuPanoramaMode = new Option<>(config, "menu_panorama_mode", MenuPanoramaMode.SHOW_LATEST.id, "menu");
+    public final Option<Boolean> menuPanoramaParallax = new Option<>(config, "menu_panorama_parallax", true, "menu");
     public final Option<String> cycleInterval = new Option<>(config, "cycle_interval", CycleInterval.SECONDS_30.id, "menu");
     public final Option<String> storageLocation = new Option<>(config, "storage_location", StorageLocation.DEDICATED_FOLDER.id, "capture");
     public final Option<Boolean> hideHudInNormalScreenshots = new Option<>(config, "hide_hud_in_normal_screenshots", false, "capture");
@@ -41,6 +42,14 @@ public class Options extends AbstractOptions {
 
     public void setMenuPanoramaMode(@NotNull MenuPanoramaMode mode) {
         this.menuPanoramaMode.setValue(mode.id);
+    }
+
+    public boolean isMenuPanoramaParallaxEnabled() {
+        return this.menuPanoramaParallax.getValue();
+    }
+
+    public void setMenuPanoramaParallaxEnabled(boolean enabled) {
+        this.menuPanoramaParallax.setValue(enabled);
     }
 
     @NotNull

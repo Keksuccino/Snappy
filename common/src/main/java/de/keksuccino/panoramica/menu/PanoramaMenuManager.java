@@ -1,11 +1,13 @@
 package de.keksuccino.panoramica.menu;
 
+import com.mojang.blaze3d.platform.Window;
 import de.keksuccino.panoramica.Options;
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.capture.PanoramaCaptureManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -23,10 +25,15 @@ public final class PanoramaMenuManager {
     private static final Identifier VANILLA_PANORAMA_BASE = Identifier.withDefaultNamespace("textures/gui/title/background/panorama");
     private static final Identifier DYNAMIC_PANORAMA_ID = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "dynamic/menu_panorama");
     private static final long SCAN_INTERVAL_MS = 5_000L;
+    private static final float PARALLAX_X_ROTATION_RANGE = 3.0F;
+    private static final float PARALLAX_Y_ROTATION_RANGE = 5.0F;
+    private static final float PARALLAX_SMOOTHING = 0.12F;
 
     private static List<Path> cachedPanoramas = List.of();
     private static long lastScanMillis;
     private static boolean scanDirty = true;
+    private static float parallaxXRotationOffset;
+    private static float parallaxYRotationOffset;
     @Nullable
     private static Path registeredFolder;
     @Nullable
@@ -78,6 +85,31 @@ public final class PanoramaMenuManager {
     public static void invalidate() {
         scanDirty = true;
         failedFolder = null;
+    }
+
+    public static void updateMenuParallax() {
+        if (!Panoramica.getOptions().isMenuPanoramaParallaxEnabled()) {
+            resetMenuParallax();
+            return;
+        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+        Window window = minecraft.getWindow();
+        int width = Math.max(1, window.getScreenWidth());
+        int height = Math.max(1, window.getScreenHeight());
+
+        float mouseX = normalizeMousePosition(minecraft.mouseHandler.xpos(), width);
+        float mouseY = normalizeMousePosition(minecraft.mouseHandler.ypos(), height);
+        parallaxXRotationOffset = Mth.lerp(PARALLAX_SMOOTHING, parallaxXRotationOffset, mouseY * PARALLAX_X_ROTATION_RANGE);
+        parallaxYRotationOffset = Mth.lerp(PARALLAX_SMOOTHING, parallaxYRotationOffset, mouseX * PARALLAX_Y_ROTATION_RANGE);
+    }
+
+    public static float applyMenuParallaxXRotation(float rotXInDegrees) {
+        return rotXInDegrees + parallaxXRotationOffset;
+    }
+
+    public static float applyMenuParallaxYRotation(float rotYInDegrees) {
+        return rotYInDegrees + parallaxYRotationOffset;
     }
 
     @Nullable
@@ -164,6 +196,15 @@ public final class PanoramaMenuManager {
             }
         }
         return true;
+    }
+
+    private static float normalizeMousePosition(double position, int size) {
+        return Mth.clamp((float) ((position / size) * 2.0D - 1.0D), -1.0F, 1.0F);
+    }
+
+    private static void resetMenuParallax() {
+        parallaxXRotationOffset = 0.0F;
+        parallaxYRotationOffset = 0.0F;
     }
 
     private static long lastModifiedMillis(@NotNull Path path) {
