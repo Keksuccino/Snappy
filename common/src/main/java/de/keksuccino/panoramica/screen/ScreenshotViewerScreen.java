@@ -77,6 +77,7 @@ public class ScreenshotViewerScreen extends Screen {
     private PreviewCubeMapTexture panoramaTexture;
     private int imageWidth = 16;
     private int imageHeight = 9;
+    private int normalBackgroundColor = ScreenshotImageLoader.VIEWER_BACKGROUND_FALLBACK_COLOR;
     private float panoramaRotationDegrees;
     private float panoramaVerticalAngleDegrees;
     private long panoramaRotationLastMillis;
@@ -320,6 +321,7 @@ public class ScreenshotViewerScreen extends Screen {
         ScreenshotEntry entry = this.currentEntry();
         this.releaseCurrentImage();
         this.resetPanoramaPlayback();
+        this.normalBackgroundColor = ScreenshotImageLoader.VIEWER_BACKGROUND_FALLBACK_COLOR;
         this.loadStatus = LoadStatus.LOADING;
         this.statusMessage = Component.translatable("panoramica.browser.loading");
         this.updateButtons();
@@ -379,6 +381,7 @@ public class ScreenshotViewerScreen extends Screen {
         ScreenshotImageTexture texture = null;
         try {
             loadedImage = ScreenshotImageLoader.decodeNormalViewerImage(imageBytes);
+            int backgroundColor = ScreenshotImageLoader.createViewerBackgroundColor(loadedImage.image());
             texture = new ScreenshotImageTexture("Panoramica screenshot viewer", loadedImage.image());
             int width = texture.getPixels().getWidth();
             int height = texture.getPixels().getHeight();
@@ -387,6 +390,7 @@ public class ScreenshotViewerScreen extends Screen {
             this.normalTextureId = textureId;
             this.imageWidth = width;
             this.imageHeight = height;
+            this.normalBackgroundColor = backgroundColor;
             this.loadStatus = LoadStatus.READY;
             this.statusMessage = Component.empty();
         } catch (Throwable ex) {
@@ -444,6 +448,7 @@ public class ScreenshotViewerScreen extends Screen {
         if (textureId != null) {
             this.minecraft.getTextureManager().release(textureId);
         }
+        this.normalBackgroundColor = ScreenshotImageLoader.VIEWER_BACKGROUND_FALLBACK_COLOR;
 
         PreviewCubeMapTexture texture = this.panoramaTexture;
         this.panoramaTexture = null;
@@ -515,22 +520,29 @@ public class ScreenshotViewerScreen extends Screen {
         int areaWidth = this.imageAreaWidth();
         int areaHeight = this.imageAreaHeight();
         graphics.fill(areaX - 1, areaY - 1, areaX + areaWidth + 1, areaY + areaHeight + 1, 0xFF707070);
-        graphics.fill(areaX, areaY, areaX + areaWidth, areaY + areaHeight, 0xE0000000);
+        graphics.fill(areaX, areaY, areaX + areaWidth, areaY + areaHeight, this.imageBackgroundColor());
 
         if (this.loadStatus != LoadStatus.READY) {
             graphics.centeredText(this.font, this.statusMessage, areaX + areaWidth / 2, areaY + areaHeight / 2 - 4, 0xFFFFFFFF);
             return;
         }
 
-        int[] bounds = this.fitBounds(areaX, areaY, areaWidth, areaHeight, this.imageWidth, this.imageHeight);
         ScreenshotEntry entry = this.currentEntry();
         if (entry != null && entry.isPanorama()) {
-            this.renderPanorama(graphics, bounds[0], bounds[1], bounds[2], bounds[3]);
+            this.renderPanorama(graphics, areaX, areaY, areaWidth, areaHeight);
             this.renderPanoramaProgressBar(graphics, mouseX, mouseY);
             this.renderPanoramaVerticalProgressBar(graphics, mouseX, mouseY);
         } else {
+            int[] bounds = this.fitBounds(areaX, areaY, areaWidth, areaHeight, this.imageWidth, this.imageHeight);
             this.renderNormalImage(graphics, bounds[0], bounds[1], bounds[2], bounds[3]);
         }
+    }
+
+    private int imageBackgroundColor() {
+        ScreenshotEntry entry = this.currentEntry();
+        return this.loadStatus == LoadStatus.READY && entry != null && !entry.isPanorama()
+                ? this.normalBackgroundColor
+                : ScreenshotImageLoader.VIEWER_BACKGROUND_FALLBACK_COLOR;
     }
 
     private void renderNormalImage(@NotNull GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
@@ -547,7 +559,7 @@ public class ScreenshotViewerScreen extends Screen {
         }
 
         float spin = this.currentPanoramaRotationDegrees();
-        this.panoramaRenderer.render(texture, PreviewCubeMapRenderer.DEFAULT_ROT_X_IN_DEGREES + this.panoramaVerticalAngleDegrees, -spin);
+        this.panoramaRenderer.render(texture, width, height, PreviewCubeMapRenderer.DEFAULT_ROT_X_IN_DEGREES + this.panoramaVerticalAngleDegrees, -spin);
         graphics.blit(
                 this.panoramaRenderer.getColorTextureView(),
                 RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR),

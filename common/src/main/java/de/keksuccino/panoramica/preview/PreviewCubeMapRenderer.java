@@ -36,8 +36,8 @@ public final class PreviewCubeMapRenderer implements AutoCloseable {
     private static final Vector4f CLEAR_COLOR = new Vector4f(0.0F, 0.0F, 0.0F, 1.0F);
     public static final float DEFAULT_ROT_X_IN_DEGREES = 10.0F;
 
-    private final int width;
-    private final int height;
+    private final int defaultWidth;
+    private final int defaultHeight;
     private final Projection projection = new Projection();
     @Nullable
     private ProjectionMatrixBuffer projectionMatrixBuffer;
@@ -47,16 +47,20 @@ public final class PreviewCubeMapRenderer implements AutoCloseable {
     private RenderTarget target;
 
     public PreviewCubeMapRenderer(int width, int height) {
-        this.width = width;
-        this.height = height;
+        this.defaultWidth = Math.max(1, width);
+        this.defaultHeight = Math.max(1, height);
     }
 
     public void render(@NotNull PreviewCubeMapTexture texture, float rotYInDegrees) {
-        this.render(texture, DEFAULT_ROT_X_IN_DEGREES, rotYInDegrees);
+        this.render(texture, this.defaultWidth, this.defaultHeight, DEFAULT_ROT_X_IN_DEGREES, rotYInDegrees);
     }
 
     public void render(@NotNull PreviewCubeMapTexture texture, float rotXInDegrees, float rotYInDegrees) {
-        RenderTarget renderTarget = this.getOrCreateTarget();
+        this.render(texture, this.defaultWidth, this.defaultHeight, rotXInDegrees, rotYInDegrees);
+    }
+
+    public void render(@NotNull PreviewCubeMapTexture texture, int width, int height, float rotXInDegrees, float rotYInDegrees) {
+        RenderTarget renderTarget = this.getOrCreateTarget(width, height);
         this.projection.setupPerspective(PROJECTION_Z_NEAR, PROJECTION_Z_FAR, PROJECTION_FOV, renderTarget.width, renderTarget.height);
 
         RenderSystem.backupProjectionMatrix();
@@ -101,18 +105,23 @@ public final class PreviewCubeMapRenderer implements AutoCloseable {
 
     @NotNull
     public GpuTextureView getColorTextureView() {
-        return Objects.requireNonNull(this.getOrCreateTarget().getColorTextureView());
+        RenderTarget renderTarget = this.target;
+        if (renderTarget == null) {
+            renderTarget = this.getOrCreateTarget(this.defaultWidth, this.defaultHeight);
+        }
+        return Objects.requireNonNull(renderTarget.getColorTextureView());
     }
 
     @NotNull
-    private RenderTarget getOrCreateTarget() {
+    private RenderTarget getOrCreateTarget(int width, int height) {
+        int targetWidth = Math.max(1, width);
+        int targetHeight = Math.max(1, height);
         RenderTarget renderTarget = this.target;
-        if (renderTarget == null || renderTarget.width != this.width || renderTarget.height != this.height) {
-            if (renderTarget != null) {
-                renderTarget.destroyBuffers();
-            }
-            renderTarget = new TextureTarget("Panoramica Panorama Preview", this.width, this.height, false, GpuFormat.RGBA8_UNORM);
+        if (renderTarget == null) {
+            renderTarget = new TextureTarget("Panoramica Panorama Preview", targetWidth, targetHeight, false, GpuFormat.RGBA8_UNORM);
             this.target = renderTarget;
+        } else if (renderTarget.width != targetWidth || renderTarget.height != targetHeight) {
+            renderTarget.resize(targetWidth, targetHeight);
         }
         return renderTarget;
     }
