@@ -24,6 +24,7 @@ import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -75,6 +76,18 @@ public class ScreenshotBrowserScreen extends Screen {
     public ScreenshotBrowserScreen(@Nullable Screen parent) {
         super(Component.translatable("panoramica.browser.title"));
         this.parent = parent;
+    }
+
+    public static boolean openDetailViewer(@NotNull Minecraft minecraft, @NotNull Screen parent, @NotNull Path screenshotPath) {
+        List<ScreenshotEntry> entries = sortedEntries(ScreenshotBrowserCatalog.scan(minecraft), Panoramica.getOptions().getBrowserSortMode());
+        int index = findEntryIndex(entries, screenshotPath);
+        if (index < 0) {
+            return false;
+        }
+
+        ScreenshotBrowserScreen browserScreen = new ScreenshotBrowserScreen(parent);
+        minecraft.gui.setScreen(new ScreenshotViewerScreen(browserScreen, entries, index));
+        return true;
     }
 
     @Override
@@ -243,8 +256,7 @@ public class ScreenshotBrowserScreen extends Screen {
                 }
             }
         }
-        result.sort(this.comparator(this.sortMode));
-        this.filteredEntries = List.copyOf(result);
+        this.filteredEntries = sortedEntries(result, this.sortMode);
 
         ScreenshotGridWidget currentGrid = this.grid;
         if (currentGrid != null) {
@@ -368,22 +380,39 @@ public class ScreenshotBrowserScreen extends Screen {
     }
 
     @NotNull
-    private Comparator<ScreenshotEntry> comparator(@NotNull Options.BrowserSortMode mode) {
+    private static Comparator<ScreenshotEntry> comparator(@NotNull Options.BrowserSortMode mode) {
         return switch (mode) {
-            case NEWEST_FIRST -> this.newestFirstComparator();
-            case OLDEST_FIRST -> this.oldestFirstComparator();
+            case NEWEST_FIRST -> newestFirstComparator();
+            case OLDEST_FIRST -> oldestFirstComparator();
             case BY_TYPE -> Comparator.comparingInt((ScreenshotEntry entry) -> entry.isPanorama() ? 1 : 0)
-                    .thenComparing(this.newestFirstComparator());
+                    .thenComparing(newestFirstComparator());
         };
     }
 
     @NotNull
-    private Comparator<ScreenshotEntry> newestFirstComparator() {
+    private static List<ScreenshotEntry> sortedEntries(@NotNull List<ScreenshotEntry> entries, @NotNull Options.BrowserSortMode sortMode) {
+        List<ScreenshotEntry> sorted = new ArrayList<>(entries);
+        sorted.sort(comparator(sortMode));
+        return List.copyOf(sorted);
+    }
+
+    private static int findEntryIndex(@NotNull List<ScreenshotEntry> entries, @NotNull Path screenshotPath) {
+        Path normalizedPath = screenshotPath.toAbsolutePath().normalize();
+        for (int i = 0; i < entries.size(); i++) {
+            if (entries.get(i).path().equals(normalizedPath)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    @NotNull
+    private static Comparator<ScreenshotEntry> newestFirstComparator() {
         return Comparator.comparingLong(ScreenshotEntry::modifiedMillis).reversed().thenComparing(entry -> entry.path().toString());
     }
 
     @NotNull
-    private Comparator<ScreenshotEntry> oldestFirstComparator() {
+    private static Comparator<ScreenshotEntry> oldestFirstComparator() {
         return Comparator.comparingLong(ScreenshotEntry::modifiedMillis).thenComparing(entry -> entry.path().toString());
     }
 

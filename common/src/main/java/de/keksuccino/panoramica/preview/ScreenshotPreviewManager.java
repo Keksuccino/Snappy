@@ -6,8 +6,10 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import de.keksuccino.panoramica.Options;
 import de.keksuccino.panoramica.Panoramica;
+import de.keksuccino.panoramica.screen.ScreenshotBrowserScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -54,7 +56,7 @@ public final class ScreenshotPreviewManager {
     @Nullable
     private static Preview currentPreview;
     @Nullable
-    private static File currentOpenFileTarget;
+    private static File currentScreenshotTarget;
     @Nullable
     private static NativeImage[] pendingPanoramaFaces;
     private static final List<RetiredPreview> retiredPreviews = new ArrayList<>();
@@ -230,9 +232,12 @@ public final class ScreenshotPreviewManager {
             return false;
         }
 
-        File target = currentOpenFileTarget;
+        File target = currentScreenshotTarget;
         if (target != null) {
-            Util.getPlatform().openFile(target);
+            Screen parent = minecraft.gui.screen();
+            if (parent != null && ScreenshotBrowserScreen.openDetailViewer(minecraft, parent, target.toPath())) {
+                closeCurrentPreview_Panoramica();
+            }
         }
         return true;
     }
@@ -245,7 +250,7 @@ public final class ScreenshotPreviewManager {
 
         findOpenFileTarget_Panoramica(message).ifPresent(target -> {
             if (currentPreview != null) {
-                currentOpenFileTarget = target;
+                currentScreenshotTarget = target;
             }
         });
     }
@@ -327,14 +332,14 @@ public final class ScreenshotPreviewManager {
 
     private static void clearCurrentPreviewState_Panoramica() {
         currentPreview = null;
-        currentOpenFileTarget = null;
+        currentScreenshotTarget = null;
         hoverProgress = 0.0F;
         lastHoverUpdateMillis = 0L;
         playedSlideOutSound = false;
     }
 
     private static void afterCurrentPreviewSet_Panoramica() {
-        currentOpenFileTarget = null;
+        currentScreenshotTarget = null;
         hoverProgress = 0.0F;
         lastHoverUpdateMillis = 0L;
         playedSlideOutSound = false;
