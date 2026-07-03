@@ -2,6 +2,7 @@ package de.keksuccino.panoramica.screen;
 
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import de.keksuccino.panoramica.Options;
+import de.keksuccino.panoramica.OptionsScreen;
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.menu.PanoramaMenuManager;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.DeletionResult;
@@ -43,6 +44,7 @@ public class ScreenshotBrowserScreen extends Screen {
     private static final int STATUS_SUCCESS_COLOR = 0xFF78E878;
     private static final int STATUS_WARNING_COLOR = 0xFFFFD166;
     private static final Identifier BACK_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/detail_back_icon_15x15.png");
+    private static final Identifier SETTINGS_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/settings_icon_15x15.png");
     private static final Identifier REFRESH_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/refresh_icon_15x15.png");
     private static final Identifier SELECT_ALL_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/select_all_icon_15x15.png");
     private static final Identifier CLEAR_SELECTION_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/clear_selection_icon_15x15.png");
@@ -54,6 +56,8 @@ public class ScreenshotBrowserScreen extends Screen {
     private List<ScreenshotEntry> filteredEntries = List.of();
     @Nullable
     private ScreenshotGridWidget grid;
+    @Nullable
+    private Button settingsButton;
     @Nullable
     private Button sortButton;
     @Nullable
@@ -87,10 +91,19 @@ public class ScreenshotBrowserScreen extends Screen {
         this.sortMode = Panoramica.getOptions().getBrowserSortMode();
 
         int headerControlWidth = Math.max(120, this.width - SIDE_MARGIN * 2);
-        int searchWidth = Math.min(SEARCH_WIDTH, Math.max(80, headerControlWidth - SORT_BUTTON_WIDTH - BUTTON_GAP));
-        int sortButtonWidth = Math.min(SORT_BUTTON_WIDTH, Math.max(70, headerControlWidth - searchWidth - BUTTON_GAP));
+        int settingsButtonWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE;
+        int searchWidth = Math.min(SEARCH_WIDTH, Math.max(80, headerControlWidth - SORT_BUTTON_WIDTH - settingsButtonWidth - BUTTON_GAP * 2));
+        int sortButtonWidth = Math.min(SORT_BUTTON_WIDTH, Math.max(70, headerControlWidth - searchWidth - settingsButtonWidth - BUTTON_GAP * 2));
         int searchX = this.width - SIDE_MARGIN - searchWidth;
         int sortButtonX = searchX - BUTTON_GAP - sortButtonWidth;
+        int settingsButtonX = sortButtonX - BUTTON_GAP - settingsButtonWidth;
+        this.settingsButton = this.addRenderableWidget(new TexturedIconButton(
+                Component.translatable("panoramica.browser.settings"),
+                button -> Minecraft.getInstance().gui.setScreen(new OptionsScreen(this)),
+                SETTINGS_ICON
+        ));
+        this.settingsButton.setPosition(settingsButtonX, HEADER_CONTROL_Y);
+
         this.sortButton = this.addRenderableWidget(Button.builder(this.sortModeMessage(), button -> {
             this.sortMode = this.sortMode.next();
             Panoramica.getOptions().setBrowserSortMode(this.sortMode);
@@ -160,7 +173,8 @@ public class ScreenshotBrowserScreen extends Screen {
 
         int countY = this.searchBox == null ? HEADER_CONTROL_Y : this.searchBox.getY() + this.searchBox.getHeight() - this.font.lineHeight;
         Component countText = Component.translatable("panoramica.browser.count", this.filteredEntries.size());
-        int countMaxWidth = this.sortButton == null ? this.width - SIDE_MARGIN * 2 : Math.max(20, this.sortButton.getX() - SIDE_MARGIN - BUTTON_GAP);
+        Button leftmostHeaderButton = this.settingsButton != null ? this.settingsButton : this.sortButton;
+        int countMaxWidth = leftmostHeaderButton == null ? this.width - SIDE_MARGIN * 2 : Math.max(20, leftmostHeaderButton.getX() - SIDE_MARGIN - BUTTON_GAP);
         graphics.text(this.font, this.ellipsize(countText.getString(), countMaxWidth), SIDE_MARGIN, countY, 0xFFFFFFFF);
         this.renderStatusMessage(graphics);
 
