@@ -43,14 +43,17 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 jarJar.enable()
 
 dependencies {
+
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
     implementation "net.neoforged:neoforge:${neoforge_version}"
     implementation "maven.modrinth:konkrete:1.11.1-26.2-neoforge"
-    implementation "maven.modrinth:AANobbMI:u9zPxyVL" // Sodium
-    //implementation "maven.modrinth:BVzZfTc1:NrV7O0NJ"
-    //implementation "maven.modrinth:4I1XuqiY:jFT7K26t"
     compileOnly project(":common")
+
+    implementation "maven.modrinth:AANobbMI:u9zPxyVL" // Sodium
+    implementation "maven.modrinth:BVzZfTc1:NrV7O0NJ" // Entity Texture Features
+    implementation "maven.modrinth:4I1XuqiY:jFT7K26t" // Entity Model Features
+
 }
 
 // Exclude Fabric Loader from NeoForge
