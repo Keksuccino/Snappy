@@ -24,7 +24,7 @@ public class MixinPauseScreen {
             LayoutSettings layoutSettings,
             Operation<LayoutElement> original
     ) {
-        if (widget instanceof LinearLayout iconButtonRow) {
+        if (PanoramicaButtons.shouldShowScreenshotButtons() && widget instanceof LinearLayout iconButtonRow) {
             iconButtonRow.addChild(PanoramicaButtons.screenshotBrowser((Screen) (Object) this));
         }
         return original.call(instance, widget, columnWidth, layoutSettings);

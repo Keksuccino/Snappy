@@ -18,6 +18,7 @@ public class Options extends AbstractOptions {
     public final Option<Boolean> hideHudInNormalScreenshots = new Option<>(config, "hide_hud_in_normal_screenshots", false, "capture");
     public final Option<String> screenshotPreviewMode = new Option<>(config, "screenshot_preview_mode", ScreenshotPreviewMode.BOTH.id, "preview");
     public final Option<Boolean> screenshotChatMessages = new Option<>(config, "screenshot_chat_messages", true, "notifications");
+    public final Option<Boolean> screenshotButtonsHidden = new Option<>(config, "screenshot_buttons_hidden", false, "ui");
     public final Option<String> browserSortMode = new Option<>(config, "browser_sort_mode", BrowserSortMode.NEWEST_FIRST.id, "browser");
     public final Option<String> browserFilterMode = new Option<>(config, "browser_filter_mode", BrowserFilterMode.NONE.id, "browser");
 
@@ -93,6 +94,14 @@ public class Options extends AbstractOptions {
 
     public void setScreenshotChatMessagesEnabled(boolean enabled) {
         this.screenshotChatMessages.setValue(enabled);
+    }
+
+    public boolean areScreenshotButtonsHidden() {
+        return this.screenshotButtonsHidden.getValue();
+    }
+
+    public void setScreenshotButtonsHidden(boolean hidden) {
+        this.screenshotButtonsHidden.setValue(hidden);
     }
 
     @NotNull

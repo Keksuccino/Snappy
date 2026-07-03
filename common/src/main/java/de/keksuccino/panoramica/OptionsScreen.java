@@ -6,8 +6,11 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.ScrollableLayout;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.layouts.LinearLayout;
+import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -25,7 +28,8 @@ public class OptionsScreen extends Screen {
     protected static final int CYCLE_VALUE_COLOR = 0xFFAA00;
     protected static final int KEYBIND_RESET_BUTTON_WIDTH = 50;
     protected static final int KEYBIND_GAP = 5;
-    protected static final int OPTION_ROW_COUNT = 9;
+    protected static final int OPTION_ROW_COUNT = 10;
+    protected static final int EXTRA_GAP_COUNT = 1;
 
     @Nullable
     protected Screen parent;
@@ -48,45 +52,42 @@ public class OptionsScreen extends Screen {
         int centerX = this.width / 2;
         int doneY = this.height >= 300 ? this.height - 40 : this.height - 24;
         int optionsBottomY = doneY - 8;
-        int spacing = Math.min(26, Math.max(BUTTON_HEIGHT, (optionsBottomY - 30 - BUTTON_HEIGHT) / (OPTION_ROW_COUNT - 1)));
-        int topY = Math.max(28, Math.min(50, optionsBottomY - BUTTON_HEIGHT - (spacing * (OPTION_ROW_COUNT - 1))));
+        int gapCount = OPTION_ROW_COUNT - 1 + EXTRA_GAP_COUNT;
+        int rowAdvance = Math.min(26, Math.max(BUTTON_HEIGHT, (optionsBottomY - 30 - BUTTON_HEIGHT) / gapCount));
+        int topY = Math.max(28, Math.min(50, optionsBottomY - BUTTON_HEIGHT - (rowAdvance * gapCount)));
 
         StringWidget titleWidget = this.addRenderableWidget(new StringWidget(this.getTitle(), this.font));
         titleWidget.setX(centerX - (titleWidget.getWidth() / 2));
         titleWidget.setY(Math.max(8, Math.min(20, topY - 24)));
 
-        int currentY = topY;
+        LinearLayout optionsLayout = LinearLayout.vertical().spacing(rowAdvance - BUTTON_HEIGHT);
+        optionsLayout.defaultCellSetting().alignHorizontallyCenter();
 
         this.keybindButton = this.buildKeybindButton();
         this.keybindResetButton = this.buildKeybindResetButton();
-        this.addKeybindRow(currentY, this.keybindButton, this.keybindResetButton);
+        optionsLayout.addChild(this.buildKeybindRowLayout(this.keybindButton, this.keybindResetButton));
         this.updateKeybindButtons();
-        currentY += spacing;
 
-        this.addButtonRow(currentY, this.buildResolutionButton());
-        currentY += spacing;
-
-        this.addButtonRow(currentY, this.buildMenuModeButton());
-        currentY += spacing;
-
-        this.addButtonRow(currentY, this.buildMenuParallaxButton());
-        currentY += spacing;
+        optionsLayout.addChild(this.buildResolutionButton());
+        optionsLayout.addChild(this.buildMenuModeButton());
 
         this.cycleIntervalButton = this.buildCycleIntervalButton();
-        this.addButtonRow(currentY, this.cycleIntervalButton);
+        optionsLayout.addChild(this.cycleIntervalButton);
         this.updateCycleIntervalButton();
-        currentY += spacing;
+        optionsLayout.addChild(this.buildMenuParallaxButton());
 
-        this.addButtonRow(currentY, this.buildStorageLocationButton());
-        currentY += spacing;
+        optionsLayout.addChild(this.buildStorageLocationButton());
+        optionsLayout.addChild(this.buildHideHudInNormalScreenshotsButton());
+        optionsLayout.addChild(this.buildPreviewModeButton());
+        optionsLayout.addChild(this.buildScreenshotChatMessagesButton());
+        optionsLayout.addChild(this.buildScreenshotButtonsVisibilityButton(), settings -> settings.paddingTop(rowAdvance));
 
-        this.addButtonRow(currentY, this.buildHideHudInNormalScreenshotsButton());
-        currentY += spacing;
-
-        this.addButtonRow(currentY, this.buildPreviewModeButton());
-        currentY += spacing;
-
-        this.addButtonRow(currentY, this.buildScreenshotChatMessagesButton());
+        ScrollableLayout scrollableLayout = new ScrollableLayout(this.minecraft, optionsLayout, Math.max(BUTTON_HEIGHT, optionsBottomY - topY), ScrollableLayout.ReserveStrategy.BOTH);
+        scrollableLayout.setMinWidth(this.getButtonWidth());
+        scrollableLayout.setScrollbarSpacing(2);
+        scrollableLayout.arrangeElements();
+        scrollableLayout.setPosition((this.width - scrollableLayout.getWidth()) / 2, topY);
+        scrollableLayout.visitWidgets(this::addRenderableWidget);
 
         this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose()).bounds(centerX - 75, doneY, 150, BUTTON_HEIGHT).build());
 
@@ -198,6 +199,13 @@ public class OptionsScreen extends Screen {
                 .tooltip(Tooltip.create(Component.translatable("panoramica.options.screenshot_chat_messages.desc"))).build();
     }
 
+    @NotNull
+    protected Button buildScreenshotButtonsVisibilityButton() {
+        return Button.builder(this.screenshotButtonsVisibilityMessage(), button -> this.toggleScreenshotButtonsVisibility(button))
+                .bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.translatable("panoramica.options.screenshot_buttons_visibility.desc"))).build();
+    }
+
     protected void updateCycleIntervalButton() {
         if (this.cycleIntervalButton != null) {
             boolean active = Panoramica.getOptions().getMenuPanoramaMode().usesCycleInterval();
@@ -273,6 +281,15 @@ public class OptionsScreen extends Screen {
     }
 
     @NotNull
+    protected Component screenshotButtonsVisibilityMessage() {
+        boolean hidden = Panoramica.getOptions().areScreenshotButtonsHidden();
+        return Component.translatable(hidden
+                        ? "panoramica.options.screenshot_buttons_visibility.show"
+                        : "panoramica.options.screenshot_buttons_visibility.hide")
+                .withStyle(hidden ? ChatFormatting.GREEN : ChatFormatting.RED);
+    }
+
+    @NotNull
     protected Component keybindMessage() {
         Component value = this.keybindValue();
         Component message = this.optionMessage("panoramica.options.keybind", value);
@@ -330,21 +347,14 @@ public class OptionsScreen extends Screen {
                 .withStyle(Style.EMPTY.withColor(enabled ? ChatFormatting.GREEN : ChatFormatting.RED));
     }
 
-    protected void addButtonRow(int y, @NotNull Button button) {
-        int buttonWidth = this.getButtonWidth();
-        button.setPosition((this.width / 2) - (buttonWidth / 2), y);
-        this.addRenderableWidget(button);
-    }
-
-    protected void addKeybindRow(int y, @NotNull Button keyButton, @NotNull Button resetButton) {
+    @NotNull
+    protected LinearLayout buildKeybindRowLayout(@NotNull Button keyButton, @NotNull Button resetButton) {
         int rowWidth = this.getButtonWidth();
-        int leftX = (this.width / 2) - (rowWidth / 2);
-        int resetX = leftX + rowWidth - resetButton.getWidth();
         keyButton.setWidth(rowWidth - resetButton.getWidth() - KEYBIND_GAP);
-        keyButton.setPosition(resetX - KEYBIND_GAP - keyButton.getWidth(), y);
-        resetButton.setPosition(resetX, y);
-        this.addRenderableWidget(keyButton);
-        this.addRenderableWidget(resetButton);
+        LinearLayout row = LinearLayout.horizontal().spacing(KEYBIND_GAP);
+        row.addChild(keyButton);
+        row.addChild(resetButton);
+        return row;
     }
 
     protected int getButtonWidth() {
@@ -364,6 +374,26 @@ public class OptionsScreen extends Screen {
         }
 
         return false;
+    }
+
+    protected void toggleScreenshotButtonsVisibility(@NotNull Button button) {
+        Options options = Panoramica.getOptions();
+        if (options.areScreenshotButtonsHidden()) {
+            options.setScreenshotButtonsHidden(false);
+            button.setMessage(this.screenshotButtonsVisibilityMessage());
+            return;
+        }
+
+        this.minecraft.gui.setScreen(new ConfirmScreen(result -> {
+            if (result) {
+                Panoramica.getOptions().setScreenshotButtonsHidden(true);
+                button.setMessage(this.screenshotButtonsVisibilityMessage());
+            }
+            this.minecraft.gui.setScreen(this);
+        }, Component.translatable("panoramica.options.screenshot_buttons_visibility.confirm.title"),
+                Component.translatable("panoramica.options.screenshot_buttons_visibility.confirm.message"),
+                Component.translatable("panoramica.options.screenshot_buttons_visibility.confirm.hide"),
+                CommonComponents.GUI_CANCEL));
     }
 
     protected void afterKeybindChanged() {

@@ -41,6 +41,9 @@ public abstract class MixinTitleScreen extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void after_init_Panoramica(CallbackInfo ci) {
+        if (!PanoramicaButtons.shouldShowScreenshotButtons()) {
+            return;
+        }
         if (this.friends == null) {
             return;
         }

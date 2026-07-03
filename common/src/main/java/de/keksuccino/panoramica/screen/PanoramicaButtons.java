@@ -14,6 +14,10 @@ public final class PanoramicaButtons {
     private PanoramicaButtons() {
     }
 
+    public static boolean shouldShowScreenshotButtons() {
+        return !Panoramica.getOptions().areScreenshotButtonsHidden();
+    }
+
     public static TexturedIconButton screenshotBrowser(@NotNull Screen parent) {
         return new TexturedIconButton(
                 Component.translatable("panoramica.screenshot_browser.open"),
