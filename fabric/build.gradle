@@ -19,8 +19,8 @@ dependencies {
     implementation project(":common")
     include(implementation(annotationProcessor("io.github.llamalad7:mixinextras-fabric:${mixin_extras_version}")))
     implementation "maven.modrinth:konkrete:1.11.1-26.2-fabric"
-    implementation "maven.modrinth:AANobbMI:jvfEutyx"
-    implementation "maven.modrinth:YL57xq9U:3uIIps8q"
+    implementation "maven.modrinth:AANobbMI:3QgJXuSK" // Sodium
+    implementation "maven.modrinth:YL57xq9U:3uIIps8q" // Iris
     implementation "maven.modrinth:BVzZfTc1:HLCBKYFD"
     implementation "maven.modrinth:4I1XuqiY:xQeW3qQB"
     implementation "maven.modrinth:NNAgCjsB:iiF6U3Ne"
