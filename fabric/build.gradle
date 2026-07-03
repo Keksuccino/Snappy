@@ -21,13 +21,13 @@ dependencies {
     implementation "maven.modrinth:konkrete:1.11.1-26.2-fabric"
     implementation "maven.modrinth:modmenu:20.0.0-beta.4"
     implementation "maven.modrinth:AANobbMI:3QgJXuSK" // Sodium
-    implementation "maven.modrinth:YL57xq9U:3uIIps8q" // Iris
-    implementation "maven.modrinth:BVzZfTc1:HLCBKYFD"
-    implementation "maven.modrinth:4I1XuqiY:xQeW3qQB"
-    implementation "maven.modrinth:NNAgCjsB:iiF6U3Ne"
-    implementation "maven.modrinth:XaDC71GB:v0V661Hk" // Lithostitched
-    implementation "maven.modrinth:8oi3bsk5:SlY1ZV8Z" // Terralith
-    implementation "maven.modrinth:hl5OLM95:jDzSPLta" // Geophilic
+//    implementation "maven.modrinth:YL57xq9U:3uIIps8q" // Iris
+//    implementation "maven.modrinth:BVzZfTc1:HLCBKYFD"
+//    implementation "maven.modrinth:4I1XuqiY:xQeW3qQB"
+//    implementation "maven.modrinth:NNAgCjsB:iiF6U3Ne"
+//    implementation "maven.modrinth:XaDC71GB:v0V661Hk" // Lithostitched
+//    implementation "maven.modrinth:8oi3bsk5:SlY1ZV8Z" // Terralith
+//    implementation "maven.modrinth:hl5OLM95:jDzSPLta" // Geophilic
 
 }
 

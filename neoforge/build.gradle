@@ -47,9 +47,9 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
     implementation "net.neoforged:neoforge:${neoforge_version}"
     implementation "maven.modrinth:konkrete:1.11.1-26.2-neoforge"
-    implementation "maven.modrinth:AANobbMI:u9zPxyVL"
-    implementation "maven.modrinth:BVzZfTc1:NrV7O0NJ"
-    implementation "maven.modrinth:4I1XuqiY:jFT7K26t"
+    implementation "maven.modrinth:AANobbMI:u9zPxyVL" // Sodium
+    //implementation "maven.modrinth:BVzZfTc1:NrV7O0NJ"
+    //implementation "maven.modrinth:4I1XuqiY:jFT7K26t"
     compileOnly project(":common")
 }
 
