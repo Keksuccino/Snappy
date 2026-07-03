@@ -17,14 +17,31 @@ public class MixinGameRenderer {
 
     @Shadow @Final private GameRenderState gameRenderState;
 
+    @Inject(method = "render", at = @At("HEAD"))
+    private void before_render_Panoramica(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo info) {
+        PanoramaCaptureManager.beforeRender((GameRenderer) (Object) this);
+    }
+
     @Inject(method = "extractWindow", at = @At("TAIL"))
     private void after_extractWindow_Panoramica(CallbackInfo info) {
         PanoramaCaptureManager.overrideWindowRenderState(this.gameRenderState.windowRenderState);
     }
 
+    @Inject(method = "renderLevel", at = @At("TAIL"))
+    private void after_renderLevel_Panoramica(DeltaTracker deltaTracker, CallbackInfo info) {
+        PanoramaCaptureManager.afterRenderLevel();
+    }
+
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;render()V", shift = At.Shift.AFTER))
     private void after_renderGui_Panoramica(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo info) {
-        NormalScreenshotCaptureManager.captureQueuedScreenshots();
+        if (!PanoramaCaptureManager.isRenderCaptureActive()) {
+            NormalScreenshotCaptureManager.captureQueuedScreenshots();
+        }
+    }
+
+    @Inject(method = "render", at = @At("TAIL"))
+    private void after_render_Panoramica(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo info) {
+        PanoramaCaptureManager.afterRender((GameRenderer) (Object) this);
     }
 
 }

@@ -47,6 +47,8 @@ public final class PanoramaCaptureManager {
 
     private static volatile boolean captureInProgress;
     @Nullable
+    private static volatile CaptureSession activeSession;
+    @Nullable
     private static CaptureDimensions activeDimensions;
 
     private PanoramaCaptureManager() {
@@ -85,9 +87,11 @@ public final class PanoramaCaptureManager {
 
         try {
             ScreenshotPreviewManager.beginPanoramaCapture();
-            capture(minecraft, outputDirectory, preset, metadataContext);
+            startCapture(minecraft, outputDirectory, preset, metadataContext);
         } catch (Exception ex) {
             captureInProgress = false;
+            activeSession = null;
+            activeDimensions = null;
             ScreenshotPreviewManager.finishPanoramaCapture();
             Panoramica.getLogger().error("[PANORAMICA] Could not capture panorama.", ex);
             showScreenshotMessage(minecraft, Component.translatable("panoramica.capture.failure", ex.getMessage()));
@@ -112,7 +116,57 @@ public final class PanoramaCaptureManager {
         }
     }
 
-    private static void capture(
+    public static void beforeRenderFrame(@NotNull Minecraft minecraft, @NotNull DeltaTracker deltaTracker) {
+        CaptureSession session = activeSession;
+        if (session != null) {
+            session.prepareFrame(minecraft, deltaTracker);
+        }
+    }
+
+    public static void beforeRender(@NotNull GameRenderer gameRenderer) {
+        CaptureSession session = activeSession;
+        if (session != null) {
+            session.installRenderTarget(gameRenderer);
+        }
+    }
+
+    public static void afterRenderLevel() {
+        CaptureSession session = activeSession;
+        if (session != null) {
+            session.captureCurrentFace();
+        }
+    }
+
+    public static void afterRender(@NotNull GameRenderer gameRenderer) {
+        CaptureSession session = activeSession;
+        if (session == null) {
+            return;
+        }
+
+        session.uninstallRenderTarget(gameRenderer);
+        if (session.isFinishedScheduling()) {
+            activeSession = null;
+            session.restoreRenderState();
+            activeDimensions = null;
+            session.finishScheduling();
+        }
+    }
+
+    public static boolean isRenderCaptureActive() {
+        return activeSession != null;
+    }
+
+    public static boolean shouldFreezeGameForCapture() {
+        return activeSession != null;
+    }
+
+    @NotNull
+    public static DeltaTracker freezeRenderDelta(@NotNull DeltaTracker original) {
+        CaptureSession session = activeSession;
+        return session != null ? session.getRenderDelta(original) : original;
+    }
+
+    private static void startCapture(
             @NotNull Minecraft minecraft,
             @NotNull Path outputDirectory,
             @NotNull Options.ResolutionPreset preset,
@@ -121,9 +175,6 @@ public final class PanoramaCaptureManager {
         GameRenderer gameRenderer = minecraft.gameRenderer;
         AccessorMixinGameRenderer gameRendererAccessor = (AccessorMixinGameRenderer) gameRenderer;
         RenderTarget originalTarget = gameRendererAccessor.getMainRenderTarget_Panoramica();
-        RenderTarget captureTarget = null;
-        CaptureSession session = null;
-        boolean finishedScheduling = false;
         LocalPlayer player = minecraft.player;
         if (player == null) {
             throw new IllegalStateException("No player is available for panorama capture.");
@@ -136,56 +187,40 @@ public final class PanoramaCaptureManager {
         boolean originalRenderBlockOutline = gameRendererAccessor.getRenderBlockOutline_Panoramica();
         Camera camera = gameRenderer.mainCamera();
         boolean wasPanoramicMode = camera.isPanoramicMode();
+        RenderTarget captureTarget = new TextureTarget("Panoramica Capture", preset.sideSize, preset.sideSize, true, GpuFormat.RGBA8_UNORM);
+        CaptureSession session = new CaptureSession(
+                minecraft,
+                outputDirectory,
+                originalTarget,
+                captureTarget,
+                metadataContext,
+                preset.sideSize,
+                player,
+                originalXRot,
+                originalYRot,
+                originalXRotO,
+                originalYRotO,
+                originalRenderBlockOutline,
+                camera,
+                wasPanoramicMode
+        );
 
+        boolean started = false;
         try {
-            captureTarget = new TextureTarget("Panoramica Capture", preset.sideSize, preset.sideSize, true, GpuFormat.RGBA8_UNORM);
-            session = new CaptureSession(minecraft, outputDirectory, captureTarget, metadataContext, preset.sideSize);
             activeDimensions = new CaptureDimensions(preset.sideSize, preset.sideSize);
-            gameRendererAccessor.setMainRenderTarget_Panoramica(captureTarget);
             minecraft.levelRenderer.resize(preset.sideSize, preset.sideSize);
             gameRenderer.setRenderBlockOutline(false);
             camera.enablePanoramicMode();
-
-            for (int i = 0; i < FACE_ROTATIONS.length; i++) {
-                renderFace(gameRenderer, player, originalYRot, FACE_ROTATIONS[i]);
-                scheduleFaceWrite(session, i);
-            }
-            finishedScheduling = true;
-            session.finishScheduling();
+            session.applyCurrentFaceRotation();
+            activeSession = session;
+            started = true;
         } finally {
-            player.setXRot(originalXRot);
-            player.setYRot(originalYRot);
-            player.xRotO = originalXRotO;
-            player.yRotO = originalYRotO;
-            gameRenderer.setRenderBlockOutline(originalRenderBlockOutline);
-            gameRendererAccessor.setMainRenderTarget_Panoramica(originalTarget);
-            minecraft.levelRenderer.resize(originalTarget.width, originalTarget.height);
-            activeDimensions = null;
-            if (!wasPanoramicMode) {
-                camera.disablePanoramicMode();
-            }
-
-            if (!finishedScheduling && session != null) {
-                session.abort();
-            } else if (captureTarget != null && session == null) {
-                captureTarget.destroyBuffers();
+            if (!started) {
+                session.restoreRenderState();
+                activeDimensions = null;
+                session.destroyCaptureTarget();
             }
         }
-    }
-
-    private static void renderFace(
-            @NotNull GameRenderer gameRenderer,
-            @NotNull LocalPlayer player,
-            float baseYRot,
-            float @NotNull [] rotation
-    ) {
-        player.setYRot((baseYRot + rotation[0]) % 360.0F);
-        player.setXRot(rotation[1]);
-        player.yRotO = player.getYRot();
-        player.xRotO = player.getXRot();
-        gameRenderer.update(DeltaTracker.ONE);
-        gameRenderer.extract(DeltaTracker.ONE, true);
-        gameRenderer.renderLevel(DeltaTracker.ONE);
     }
 
     private static void scheduleFaceWrite(
@@ -195,8 +230,15 @@ public final class PanoramaCaptureManager {
         session.retainFace();
         try {
             Screenshot.takeScreenshot(session.captureTarget, image -> {
-                ScreenshotPreviewManager.collectPanoramaFace(face, image);
-                Util.ioPool().execute(() -> writeFace(session, face, image));
+                try {
+                    ScreenshotPreviewManager.collectPanoramaFace(face, image);
+                    Util.ioPool().execute(() -> writeFace(session, face, image));
+                } catch (Exception ex) {
+                    session.fail();
+                    image.close();
+                    Panoramica.getLogger().warn("[PANORAMICA] Could not process panorama face {}.", face, ex);
+                    session.finishFace();
+                }
             });
         } catch (Exception ex) {
             session.fail();
@@ -259,28 +301,158 @@ public final class PanoramaCaptureManager {
 
         private final Minecraft minecraft;
         private final Path outputDirectory;
+        private final RenderTarget originalTarget;
         private final RenderTarget captureTarget;
         private final CaptureContext metadataContext;
         private final int faceSize;
+        private final LocalPlayer player;
+        private final float originalXRot;
+        private final float originalYRot;
+        private final float originalXRotO;
+        private final float originalYRotO;
+        private final boolean originalRenderBlockOutline;
+        private final Camera camera;
+        private final boolean wasPanoramicMode;
         private final AtomicInteger pendingFaces = new AtomicInteger();
         private final AtomicBoolean failed = new AtomicBoolean(false);
         private final AtomicBoolean schedulingFinished = new AtomicBoolean(false);
         private final AtomicBoolean completed = new AtomicBoolean(false);
         private final AtomicBoolean captureTargetDestroyed = new AtomicBoolean(false);
-        private volatile boolean aborted;
+        private int nextFace;
+        private boolean finishedScheduling;
+        private boolean renderTargetInstalled;
+        private boolean renderStateRestored;
+        @Nullable
+        private DeltaTracker frozenRenderDelta;
 
         private CaptureSession(
                 @NotNull Minecraft minecraft,
                 @NotNull Path outputDirectory,
+                @NotNull RenderTarget originalTarget,
                 @NotNull RenderTarget captureTarget,
                 @NotNull CaptureContext metadataContext,
-                int faceSize
+                int faceSize,
+                @NotNull LocalPlayer player,
+                float originalXRot,
+                float originalYRot,
+                float originalXRotO,
+                float originalYRotO,
+                boolean originalRenderBlockOutline,
+                @NotNull Camera camera,
+                boolean wasPanoramicMode
         ) {
             this.minecraft = minecraft;
             this.outputDirectory = outputDirectory;
+            this.originalTarget = originalTarget;
             this.captureTarget = captureTarget;
             this.metadataContext = metadataContext;
             this.faceSize = faceSize;
+            this.player = player;
+            this.originalXRot = originalXRot;
+            this.originalYRot = originalYRot;
+            this.originalXRotO = originalXRotO;
+            this.originalYRotO = originalYRotO;
+            this.originalRenderBlockOutline = originalRenderBlockOutline;
+            this.camera = camera;
+            this.wasPanoramicMode = wasPanoramicMode;
+        }
+
+        private void prepareFrame(@NotNull Minecraft minecraft, @NotNull DeltaTracker deltaTracker) {
+            if (minecraft != this.minecraft || this.finishedScheduling) {
+                return;
+            }
+            if (minecraft.level == null || minecraft.player != this.player) {
+                this.fail();
+                this.finishedScheduling = true;
+                return;
+            }
+
+            this.freezeRenderDelta(deltaTracker);
+            this.applyCurrentFaceRotation();
+        }
+
+        private void installRenderTarget(@NotNull GameRenderer gameRenderer) {
+            if (this.finishedScheduling || this.renderTargetInstalled) {
+                return;
+            }
+
+            ((AccessorMixinGameRenderer) gameRenderer).setMainRenderTarget_Panoramica(this.captureTarget);
+            this.renderTargetInstalled = true;
+        }
+
+        private void uninstallRenderTarget(@NotNull GameRenderer gameRenderer) {
+            if (this.renderTargetInstalled) {
+                ((AccessorMixinGameRenderer) gameRenderer).setMainRenderTarget_Panoramica(this.originalTarget);
+                this.renderTargetInstalled = false;
+            }
+        }
+
+        private void captureCurrentFace() {
+            if (this.finishedScheduling || !this.renderTargetInstalled) {
+                return;
+            }
+
+            int face = this.nextFace;
+            if (face >= FACE_ROTATIONS.length) {
+                this.finishedScheduling = true;
+                return;
+            }
+
+            scheduleFaceWrite(this, face);
+            this.nextFace++;
+            if (this.nextFace >= FACE_ROTATIONS.length) {
+                this.finishedScheduling = true;
+            } else {
+                this.applyCurrentFaceRotation();
+            }
+        }
+
+        private void applyCurrentFaceRotation() {
+            float[] rotation = FACE_ROTATIONS[this.nextFace];
+            this.player.setYRot((this.originalYRot + rotation[0]) % 360.0F);
+            this.player.setXRot(rotation[1]);
+            this.player.yRotO = this.player.getYRot();
+            this.player.xRotO = this.player.getXRot();
+        }
+
+        @NotNull
+        private DeltaTracker getRenderDelta(@NotNull DeltaTracker original) {
+            return this.freezeRenderDelta(original);
+        }
+
+        @NotNull
+        private DeltaTracker freezeRenderDelta(@NotNull DeltaTracker original) {
+            if (this.frozenRenderDelta == null) {
+                this.frozenRenderDelta = new FrozenRenderDelta(
+                        original.getGameTimeDeltaTicks(),
+                        original.getGameTimeDeltaPartialTick(false),
+                        original.getRealtimeDeltaTicks()
+                );
+            }
+
+            return this.frozenRenderDelta;
+        }
+
+        private boolean isFinishedScheduling() {
+            return this.finishedScheduling;
+        }
+
+        private void restoreRenderState() {
+            if (this.renderStateRestored) {
+                return;
+            }
+
+            this.renderStateRestored = true;
+            this.player.setXRot(this.originalXRot);
+            this.player.setYRot(this.originalYRot);
+            this.player.xRotO = this.originalXRotO;
+            this.player.yRotO = this.originalYRotO;
+            this.minecraft.gameRenderer.setRenderBlockOutline(this.originalRenderBlockOutline);
+            ((AccessorMixinGameRenderer) this.minecraft.gameRenderer).setMainRenderTarget_Panoramica(this.originalTarget);
+            this.minecraft.levelRenderer.resize(this.originalTarget.width, this.originalTarget.height);
+            if (!this.wasPanoramicMode) {
+                this.camera.disablePanoramicMode();
+            }
         }
 
         private void retainFace() {
@@ -301,12 +473,6 @@ public final class PanoramaCaptureManager {
             this.completeIfReady();
         }
 
-        private void abort() {
-            this.aborted = true;
-            this.fail();
-            this.finishScheduling();
-        }
-
         private void completeIfReady() {
             if (!this.schedulingFinished.get() || this.pendingFaces.get() > 0 || !this.completed.compareAndSet(false, true)) {
                 return;
@@ -314,10 +480,6 @@ public final class PanoramaCaptureManager {
 
             this.minecraft.execute(() -> {
                 this.destroyCaptureTarget();
-                if (this.aborted) {
-                    return;
-                }
-
                 captureInProgress = false;
                 ScreenshotPreviewManager.finishPanoramaCapture();
                 PanoramaMenuManager.invalidate();
@@ -338,6 +500,24 @@ public final class PanoramaCaptureManager {
     }
 
     private record CaptureDimensions(int width, int height) {
+    }
+
+    private record FrozenRenderDelta(float gameTimeDeltaTicks, float gameTimeDeltaPartialTick, float realtimeDeltaTicks) implements DeltaTracker {
+
+        @Override
+        public float getGameTimeDeltaTicks() {
+            return this.gameTimeDeltaTicks;
+        }
+
+        @Override
+        public float getGameTimeDeltaPartialTick(boolean ignoreFrozenGame) {
+            return this.gameTimeDeltaPartialTick;
+        }
+
+        @Override
+        public float getRealtimeDeltaTicks() {
+            return this.realtimeDeltaTicks;
+        }
     }
 
 }
