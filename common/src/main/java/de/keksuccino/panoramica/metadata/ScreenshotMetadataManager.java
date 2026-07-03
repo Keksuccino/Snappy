@@ -7,7 +7,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import de.keksuccino.panoramica.Panoramica;
+import de.keksuccino.panoramica.util.file.GameDirectoryUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.player.LocalPlayer;
@@ -45,7 +47,6 @@ public final class ScreenshotMetadataManager {
     private static final Object METADATA_LOCK = new Object();
     private static final Object PENDING_NORMAL_CONTEXT_LOCK = new Object();
     private static final ArrayDeque<CaptureContext> PENDING_NORMAL_CONTEXTS = new ArrayDeque<>();
-    private static final Path METADATA_FILE = Panoramica.INSTANCE_DATA_DIR.toPath().resolve(METADATA_FILE_NAME);
 
     @Nullable
     private static Map<String, ScreenshotMetadata> metadataByPath;
@@ -234,11 +235,12 @@ public final class ScreenshotMetadataManager {
         }
 
         metadataByPath = new LinkedHashMap<>();
-        if (!Files.isRegularFile(METADATA_FILE)) {
+        Path metadataFile = metadataFile();
+        if (!Files.isRegularFile(metadataFile)) {
             return;
         }
 
-        try (BufferedReader reader = Files.newBufferedReader(METADATA_FILE, StandardCharsets.UTF_8)) {
+        try (BufferedReader reader = Files.newBufferedReader(metadataFile, StandardCharsets.UTF_8)) {
             JsonElement rootElement = JsonParser.parseReader(reader);
             if (!rootElement.isJsonObject()) {
                 return;
@@ -260,7 +262,7 @@ public final class ScreenshotMetadataManager {
                 }
             }
         } catch (Exception ex) {
-            Panoramica.getLogger().warn("[PANORAMICA] Could not read screenshot metadata from {}.", METADATA_FILE, ex);
+            Panoramica.getLogger().warn("[PANORAMICA] Could not read screenshot metadata from {}.", metadataFile, ex);
         }
     }
 
@@ -275,8 +277,9 @@ public final class ScreenshotMetadataManager {
     }
 
     private static void writeLocked() {
+        Path metadataFile = metadataFile();
         try {
-            Files.createDirectories(METADATA_FILE.getParent());
+            Files.createDirectories(metadataFile.getParent());
             JsonObject root = new JsonObject();
             root.addProperty("version", FORMAT_VERSION);
             JsonObject entries = new JsonObject();
@@ -285,18 +288,25 @@ public final class ScreenshotMetadataManager {
                     .forEach(entry -> entries.add(entry.getKey(), entry.getValue().toJson()));
             root.add("screenshots", entries);
 
-            Path temporaryFile = METADATA_FILE.resolveSibling(METADATA_FILE.getFileName() + ".tmp");
+            Path temporaryFile = metadataFile.resolveSibling(metadataFile.getFileName() + ".tmp");
             try (BufferedWriter writer = Files.newBufferedWriter(temporaryFile, StandardCharsets.UTF_8)) {
                 GSON.toJson(root, writer);
             }
             try {
-                Files.move(temporaryFile, METADATA_FILE, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                Files.move(temporaryFile, metadataFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException ex) {
-                Files.move(temporaryFile, METADATA_FILE, StandardCopyOption.REPLACE_EXISTING);
+                Files.move(temporaryFile, metadataFile, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException ex) {
-            Panoramica.getLogger().warn("[PANORAMICA] Could not write screenshot metadata to {}.", METADATA_FILE, ex);
+            Panoramica.getLogger().warn("[PANORAMICA] Could not write screenshot metadata to {}.", metadataFile, ex);
         }
+    }
+
+    @NotNull
+    private static Path metadataFile() {
+        return GameDirectoryUtils.getGameDirectory().toPath()
+                .resolve(Screenshot.SCREENSHOT_DIR)
+                .resolve(METADATA_FILE_NAME);
     }
 
     @Nullable

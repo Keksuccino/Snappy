@@ -7,6 +7,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import de.keksuccino.panoramica.Panoramica;
+import de.keksuccino.panoramica.util.file.GameDirectoryUtils;
+import net.minecraft.client.Screenshot;
 import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -33,7 +35,6 @@ public final class MenuBackgroundSelectionManager {
     private static final long VALIDATION_INTERVAL_MS = 5_000L;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Object SELECTION_LOCK = new Object();
-    private static final Path SELECTION_FILE = Panoramica.INSTANCE_DATA_DIR.toPath().resolve(SELECTION_FILE_NAME);
 
     @Nullable
     private static LinkedHashSet<String> selectedPanoramas;
@@ -128,11 +129,12 @@ public final class MenuBackgroundSelectionManager {
         }
 
         selectedPanoramas = new LinkedHashSet<>();
-        if (!Files.isRegularFile(SELECTION_FILE)) {
+        Path selectionFile = selectionFile();
+        if (!Files.isRegularFile(selectionFile)) {
             return;
         }
 
-        try (BufferedReader reader = Files.newBufferedReader(SELECTION_FILE, StandardCharsets.UTF_8)) {
+        try (BufferedReader reader = Files.newBufferedReader(selectionFile, StandardCharsets.UTF_8)) {
             JsonElement rootElement = JsonParser.parseReader(reader);
             if (!rootElement.isJsonObject()) {
                 return;
@@ -149,7 +151,7 @@ public final class MenuBackgroundSelectionManager {
                 }
             }
         } catch (Exception ex) {
-            Panoramica.getLogger().warn("[PANORAMICA] Could not read menu background selection from {}.", SELECTION_FILE, ex);
+            Panoramica.getLogger().warn("[PANORAMICA] Could not read menu background selection from {}.", selectionFile, ex);
         }
     }
 
@@ -166,8 +168,9 @@ public final class MenuBackgroundSelectionManager {
     }
 
     private static void writeLocked() {
+        Path selectionFile = selectionFile();
         try {
-            Files.createDirectories(SELECTION_FILE.getParent());
+            Files.createDirectories(selectionFile.getParent());
             JsonObject root = new JsonObject();
             root.addProperty("version", FORMAT_VERSION);
             JsonArray selected = new JsonArray();
@@ -176,18 +179,25 @@ public final class MenuBackgroundSelectionManager {
             }
             root.add("selected_panoramas", selected);
 
-            Path temporaryFile = SELECTION_FILE.resolveSibling(SELECTION_FILE.getFileName() + ".tmp");
+            Path temporaryFile = selectionFile.resolveSibling(selectionFile.getFileName() + ".tmp");
             try (BufferedWriter writer = Files.newBufferedWriter(temporaryFile, StandardCharsets.UTF_8)) {
                 GSON.toJson(root, writer);
             }
             try {
-                Files.move(temporaryFile, SELECTION_FILE, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                Files.move(temporaryFile, selectionFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException ex) {
-                Files.move(temporaryFile, SELECTION_FILE, StandardCopyOption.REPLACE_EXISTING);
+                Files.move(temporaryFile, selectionFile, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException ex) {
-            Panoramica.getLogger().warn("[PANORAMICA] Could not write menu background selection to {}.", SELECTION_FILE, ex);
+            Panoramica.getLogger().warn("[PANORAMICA] Could not write menu background selection to {}.", selectionFile, ex);
         }
+    }
+
+    @NotNull
+    private static Path selectionFile() {
+        return GameDirectoryUtils.getGameDirectory().toPath()
+                .resolve(Screenshot.SCREENSHOT_DIR)
+                .resolve(SELECTION_FILE_NAME);
     }
 
     @Nullable
