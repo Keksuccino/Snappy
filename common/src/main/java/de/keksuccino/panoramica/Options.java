@@ -142,6 +142,7 @@ public class Options extends AbstractOptions {
     public enum MenuPanoramaMode {
         CYCLE_ALL("cycle_all"),
         SHOW_LATEST("show_latest"),
+        SHOW_SELECTED("show_selected"),
         SHOW_VANILLA("show_vanilla");
 
         public final String id;
@@ -159,6 +160,10 @@ public class Options extends AbstractOptions {
         @NotNull
         public String labelKey() {
             return "panoramica.options.menu_mode." + this.id;
+        }
+
+        public boolean usesCycleInterval() {
+            return this == CYCLE_ALL || this == SHOW_SELECTED;
         }
 
         @NotNull

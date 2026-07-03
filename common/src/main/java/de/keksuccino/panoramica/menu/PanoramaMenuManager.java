@@ -82,6 +82,13 @@ public final class PanoramaMenuManager {
 
     @Nullable
     private static Path selectFolder(@NotNull Minecraft minecraft, @NotNull Options.MenuPanoramaMode mode) {
+        if (mode == Options.MenuPanoramaMode.SHOW_SELECTED) {
+            return selectSelectedFolder();
+        }
+        if (mode == Options.MenuPanoramaMode.SHOW_VANILLA) {
+            return null;
+        }
+
         List<Path> panoramas = getPanoramaFolders(minecraft);
         if (panoramas.isEmpty()) {
             return null;
@@ -94,8 +101,23 @@ public final class PanoramaMenuManager {
                 int index = (int) ((Util.getMillis() / 1000L / interval) % panoramas.size());
                 yield panoramas.get(index);
             }
-            case SHOW_VANILLA -> null;
+            case SHOW_VANILLA, SHOW_SELECTED -> null;
         };
+    }
+
+    @Nullable
+    private static Path selectSelectedFolder() {
+        List<Path> selectedPanoramas = MenuBackgroundSelectionManager.getSelectedPanoramaFolders();
+        if (selectedPanoramas.isEmpty()) {
+            return null;
+        }
+        if (selectedPanoramas.size() == 1) {
+            return selectedPanoramas.get(0);
+        }
+
+        int interval = Math.max(1, Panoramica.getOptions().getCycleInterval().seconds);
+        int index = (int) ((Util.getMillis() / 1000L / interval) % selectedPanoramas.size());
+        return selectedPanoramas.get(index);
     }
 
     @NotNull

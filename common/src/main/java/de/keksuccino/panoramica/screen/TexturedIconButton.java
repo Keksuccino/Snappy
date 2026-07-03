@@ -15,7 +15,7 @@ public class TexturedIconButton extends Button {
     public static final int DEFAULT_ICON_SIZE = 15;
     public static final int DEFAULT_TEXTURE_SIZE = 15;
 
-    private final Identifier iconTexture;
+    private Identifier iconTexture;
     private final int iconSize;
     private final int textureSize;
 
@@ -39,6 +39,10 @@ public class TexturedIconButton extends Button {
         this.iconSize = iconSize;
         this.textureSize = textureSize;
         this.setTooltip(Tooltip.create(this.getMessage()));
+    }
+
+    public void setIconTexture(@NotNull Identifier iconTexture) {
+        this.iconTexture = iconTexture;
     }
 
     @Override

@@ -2,6 +2,7 @@ package de.keksuccino.panoramica.screen;
 
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.capture.PanoramaCaptureManager;
+import de.keksuccino.panoramica.menu.MenuBackgroundSelectionManager;
 import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
@@ -67,6 +68,7 @@ public final class ScreenshotBrowserCatalog {
 
         if (!deletedPaths.isEmpty()) {
             ScreenshotMetadataManager.removeAll(deletedPaths);
+            MenuBackgroundSelectionManager.removeAll(deletedPaths);
         }
 
         return new DeletionResult(deleted, failed);

@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import de.keksuccino.panoramica.Panoramica;
+import de.keksuccino.panoramica.menu.MenuBackgroundSelectionManager;
 import de.keksuccino.panoramica.menu.PanoramaMenuManager;
 import de.keksuccino.panoramica.preview.PreviewCubeMapRenderer;
 import de.keksuccino.panoramica.preview.PreviewCubeMapTexture;
@@ -14,6 +15,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -59,6 +61,8 @@ public class ScreenshotViewerScreen extends Screen {
     private static final Identifier DELETE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/delete_icon_15x15.png");
     private static final Identifier PREVIOUS_IMAGE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/previous_image_icon_15x15.png");
     private static final Identifier NEXT_IMAGE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/next_image_icon_15x15.png");
+    private static final Identifier MENU_BACKGROUND_DISABLED_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/menu_background_disabled_icon_15x15.png");
+    private static final Identifier MENU_BACKGROUND_ENABLED_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/menu_background_enabled_icon_15x15.png");
     private static int textureSequence;
 
     private final Screen parent;
@@ -89,6 +93,8 @@ public class ScreenshotViewerScreen extends Screen {
     private Button outsideButton;
     @Nullable
     private Button deleteButton;
+    @Nullable
+    private TexturedIconButton menuBackgroundSelectionButton;
 
     public ScreenshotViewerScreen(@NotNull Screen parent, @NotNull List<ScreenshotEntry> entries, int index) {
         super(Component.translatable("panoramica.viewer.title"));
@@ -104,7 +110,7 @@ public class ScreenshotViewerScreen extends Screen {
 
     @Override
     protected void init() {
-        int bottomY = this.height - 30;
+        int bottomY = this.footerButtonY();
         int centerX = this.width / 2;
 
         int iconButtonWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE;
@@ -122,6 +128,14 @@ public class ScreenshotViewerScreen extends Screen {
         x += iconButtonWidth + BUTTON_GAP;
         this.deleteButton = this.addRenderableWidget(new TexturedIconButton(this.deleteMessage(), button -> this.confirmDeleteCurrent(), DELETE_ICON));
         this.deleteButton.setPosition(x, bottomY);
+
+        this.menuBackgroundSelectionButton = this.addRenderableWidget(new TexturedIconButton(
+                Component.translatable("panoramica.viewer.menu_background.tooltip"),
+                button -> this.toggleMenuBackgroundSelection(),
+                MENU_BACKGROUND_DISABLED_ICON
+        ));
+        this.menuBackgroundSelectionButton.setPosition(0, bottomY);
+        this.menuBackgroundSelectionButton.visible = false;
 
         int sideY = this.imageAreaY() + this.imageAreaHeight() / 2 - BUTTON_HEIGHT / 2;
         this.previousButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("panoramica.viewer.previous"), button -> this.previous(), PREVIOUS_IMAGE_ICON));
@@ -252,6 +266,14 @@ public class ScreenshotViewerScreen extends Screen {
         ScreenshotEntry entry = this.currentEntry();
         if (entry != null) {
             this.minecraft.gui.setScreen(new ScreenshotMetadataScreen(this, entry));
+        }
+    }
+
+    private void toggleMenuBackgroundSelection() {
+        ScreenshotEntry entry = this.currentEntry();
+        if (entry != null && entry.isPanorama()) {
+            MenuBackgroundSelectionManager.toggle(entry.path());
+            this.updateButtons();
         }
     }
 
@@ -431,7 +453,8 @@ public class ScreenshotViewerScreen extends Screen {
     }
 
     private void updateButtons() {
-        boolean hasEntry = this.currentEntry() != null;
+        ScreenshotEntry entry = this.currentEntry();
+        boolean hasEntry = entry != null;
         if (this.previousButton != null) {
             this.previousButton.active = this.index > 0;
         }
@@ -447,11 +470,33 @@ public class ScreenshotViewerScreen extends Screen {
         if (this.deleteButton != null) {
             this.deleteButton.active = hasEntry;
         }
+        this.updateMenuBackgroundSelectionButton(entry);
     }
 
     @NotNull
     private Component deleteMessage() {
         return Component.translatable("panoramica.browser.delete").withStyle(ChatFormatting.RED);
+    }
+
+    private void updateMenuBackgroundSelectionButton(@Nullable ScreenshotEntry entry) {
+        TexturedIconButton button = this.menuBackgroundSelectionButton;
+        if (button == null) {
+            return;
+        }
+
+        boolean visible = entry != null && entry.isPanorama();
+        button.visible = visible;
+        button.active = visible;
+        if (!visible) {
+            return;
+        }
+
+        boolean selected = MenuBackgroundSelectionManager.isSelected(entry.path());
+        Component tooltip = Component.translatable("panoramica.viewer.menu_background.tooltip");
+        button.setMessage(tooltip);
+        button.setTooltip(Tooltip.create(tooltip));
+        button.setIconTexture(selected ? MENU_BACKGROUND_ENABLED_ICON : MENU_BACKGROUND_DISABLED_ICON);
+        button.setPosition(this.imageAreaX() + this.imageAreaWidth() - button.getWidth(), this.footerButtonY());
     }
 
     private void renderHeader(@NotNull GuiGraphicsExtractor graphics) {
@@ -739,6 +784,10 @@ public class ScreenshotViewerScreen extends Screen {
         int x = areaX + (areaWidth - renderWidth) / 2;
         int y = areaY + (areaHeight - renderHeight) / 2;
         return new int[]{x, y, renderWidth, renderHeight};
+    }
+
+    private int footerButtonY() {
+        return this.height - 30;
     }
 
     private int imageAreaX() {

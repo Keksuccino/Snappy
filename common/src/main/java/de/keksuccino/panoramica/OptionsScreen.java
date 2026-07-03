@@ -184,7 +184,7 @@ public class OptionsScreen extends Screen {
 
     protected void updateCycleIntervalButton() {
         if (this.cycleIntervalButton != null) {
-            boolean active = Panoramica.getOptions().getMenuPanoramaMode() == Options.MenuPanoramaMode.CYCLE_ALL;
+            boolean active = Panoramica.getOptions().getMenuPanoramaMode().usesCycleInterval();
             this.cycleIntervalButton.active = active;
             this.cycleIntervalButton.setMessage(this.cycleIntervalMessage());
             this.cycleIntervalButton.setTooltip(Tooltip.create(Component.translatable(active
@@ -223,7 +223,7 @@ public class OptionsScreen extends Screen {
     @NotNull
     protected Component cycleIntervalMessage() {
         Component value = Component.translatable(Panoramica.getOptions().getCycleInterval().labelKey());
-        if (Panoramica.getOptions().getMenuPanoramaMode() != Options.MenuPanoramaMode.CYCLE_ALL) {
+        if (!Panoramica.getOptions().getMenuPanoramaMode().usesCycleInterval()) {
             value = value.copy().withStyle(Style.EMPTY.withColor(ChatFormatting.GRAY));
         } else {
             value = this.genericCycleValue(value);

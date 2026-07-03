@@ -38,7 +38,7 @@ public class ScreenshotBrowserScreen extends Screen {
     private static final int BUTTON_GAP = 6;
     private static final int HEADER_CONTROL_Y = 42;
     private static final int SORT_BUTTON_WIDTH = 126;
-    private static final int SEARCH_WIDTH = 210;
+    private static final int SEARCH_WIDTH = 180;
     private static final int STATUS_MESSAGE_MARGIN = 20;
     private static final long STATUS_MESSAGE_VISIBLE_MILLIS = 10_000L;
     private static final int STATUS_SUCCESS_COLOR = 0xFF78E878;
