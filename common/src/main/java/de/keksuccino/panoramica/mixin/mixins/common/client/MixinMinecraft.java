@@ -60,6 +60,7 @@ public class MixinMinecraft {
     private void wrap_renderFrameUpdateGameRenderer_Panoramica(GameRenderer instance, DeltaTracker deltaTracker, Operation<Void> original) {
         PanoramaCaptureManager.beforeRenderFrame((Minecraft) (Object) this, deltaTracker);
         original.call(instance, PanoramaCaptureManager.freezeRenderDelta(deltaTracker));
+        PanoramaCaptureManager.afterGameRendererUpdate(instance);
     }
 
     @WrapOperation(method = "renderFrame", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GameRenderer;extract(Lnet/minecraft/client/DeltaTracker;Z)V"))

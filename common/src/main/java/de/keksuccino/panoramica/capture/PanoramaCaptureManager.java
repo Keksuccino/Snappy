@@ -11,6 +11,7 @@ import de.keksuccino.panoramica.menu.PanoramaMenuManager;
 import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager;
 import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager.CaptureContext;
 import de.keksuccino.panoramica.mixin.mixins.common.client.AccessorMixinGameRenderer;
+import de.keksuccino.panoramica.mixin.mixins.common.client.AccessorMixinLevelRenderer;
 import de.keksuccino.panoramica.preview.ScreenshotPreviewManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Camera;
@@ -19,6 +20,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.SkyRenderer;
 import net.minecraft.client.renderer.state.WindowRenderState;
 import net.minecraft.network.chat.ClickEvent.OpenFile;
 import net.minecraft.network.chat.Component;
@@ -123,6 +126,13 @@ public final class PanoramaCaptureManager {
         }
     }
 
+    public static void afterGameRendererUpdate(@NotNull GameRenderer gameRenderer) {
+        CaptureSession session = activeSession;
+        if (session != null) {
+            session.refreshPanoramicDirection(gameRenderer);
+        }
+    }
+
     public static void beforeRender(@NotNull GameRenderer gameRenderer) {
         CaptureSession session = activeSession;
         if (session != null) {
@@ -149,6 +159,8 @@ public final class PanoramaCaptureManager {
             session.restoreRenderState();
             activeDimensions = null;
             session.finishScheduling();
+        } else {
+            session.restorePlayerRotation();
         }
     }
 
@@ -210,8 +222,7 @@ public final class PanoramaCaptureManager {
             activeDimensions = new CaptureDimensions(preset.sideSize, preset.sideSize);
             minecraft.levelRenderer.resize(preset.sideSize, preset.sideSize);
             gameRenderer.setRenderBlockOutline(false);
-            camera.enablePanoramicMode();
-            session.applyCurrentFaceRotation();
+            session.installCaptureSkyRenderer();
             activeSession = session;
             started = true;
         } finally {
@@ -221,6 +232,16 @@ public final class PanoramaCaptureManager {
                 session.destroyCaptureTarget();
             }
         }
+    }
+
+    private static void replaceSkyRenderer(@NotNull LevelRenderer levelRenderer, @NotNull Minecraft minecraft, @NotNull RenderTarget target) {
+        AccessorMixinLevelRenderer levelRendererAccessor = (AccessorMixinLevelRenderer) levelRenderer;
+        SkyRenderer skyRenderer = levelRendererAccessor.getSkyRenderer_Panoramica();
+        if (skyRenderer != null) {
+            skyRenderer.close();
+        }
+
+        levelRendererAccessor.setSkyRenderer_Panoramica(new SkyRenderer(minecraft.getTextureManager(), minecraft.getAtlasManager(), target));
     }
 
     private static void scheduleFaceWrite(
@@ -369,6 +390,13 @@ public final class PanoramaCaptureManager {
 
             this.freezeRenderDelta(deltaTracker);
             this.applyCurrentFaceRotation();
+            this.camera.enablePanoramicMode();
+        }
+
+        private void refreshPanoramicDirection(@NotNull GameRenderer gameRenderer) {
+            if (!this.finishedScheduling && gameRenderer.mainCamera() == this.camera) {
+                this.camera.enablePanoramicMode();
+            }
         }
 
         private void installRenderTarget(@NotNull GameRenderer gameRenderer) {
@@ -387,6 +415,10 @@ public final class PanoramaCaptureManager {
             }
         }
 
+        private void installCaptureSkyRenderer() {
+            replaceSkyRenderer(this.minecraft.levelRenderer, this.minecraft, this.captureTarget);
+        }
+
         private void captureCurrentFace() {
             if (this.finishedScheduling || !this.renderTargetInstalled) {
                 return;
@@ -402,9 +434,8 @@ public final class PanoramaCaptureManager {
             this.nextFace++;
             if (this.nextFace >= FACE_ROTATIONS.length) {
                 this.finishedScheduling = true;
-            } else {
-                this.applyCurrentFaceRotation();
             }
+            this.restorePlayerRotation();
         }
 
         private void applyCurrentFaceRotation() {
@@ -443,16 +474,21 @@ public final class PanoramaCaptureManager {
             }
 
             this.renderStateRestored = true;
-            this.player.setXRot(this.originalXRot);
-            this.player.setYRot(this.originalYRot);
-            this.player.xRotO = this.originalXRotO;
-            this.player.yRotO = this.originalYRotO;
+            this.restorePlayerRotation();
             this.minecraft.gameRenderer.setRenderBlockOutline(this.originalRenderBlockOutline);
             ((AccessorMixinGameRenderer) this.minecraft.gameRenderer).setMainRenderTarget_Panoramica(this.originalTarget);
             this.minecraft.levelRenderer.resize(this.originalTarget.width, this.originalTarget.height);
             if (!this.wasPanoramicMode) {
                 this.camera.disablePanoramicMode();
             }
+            replaceSkyRenderer(this.minecraft.levelRenderer, this.minecraft, this.originalTarget);
+        }
+
+        private void restorePlayerRotation() {
+            this.player.setXRot(this.originalXRot);
+            this.player.setYRot(this.originalYRot);
+            this.player.xRotO = this.originalXRotO;
+            this.player.yRotO = this.originalYRotO;
         }
 
         private void retainFace() {
