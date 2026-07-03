@@ -90,7 +90,7 @@ public class ScreenshotMetadataScreen extends Screen {
         int panelWidth = this.panelWidth();
         int panelHeight = this.panelHeight();
         graphics.fill(panelX - 1, panelY - 1, panelX + panelWidth + 1, panelY + panelHeight + 1, 0xFF707070);
-        graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0xD8000000);
+        graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x80000000);
 
         ScreenshotMetadata metadata = ScreenshotMetadataManager.find(this.entry.path()).orElse(null);
         if (metadata == null) {

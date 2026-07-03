@@ -17,7 +17,7 @@ public final class ScreenshotImageLoader {
     public static final int THUMBNAIL_PANORAMA_HEIGHT = 144;
     public static final int VIEWER_NORMAL_MAX_SIZE = 2048;
     public static final int VIEWER_PANORAMA_FACE_MAX_SIZE = 1024;
-    public static final int VIEWER_BACKGROUND_FALLBACK_COLOR = 0xE0000000;
+    public static final int VIEWER_BACKGROUND_FALLBACK_COLOR = 0x80000000;
     private static final int VIEWER_BACKGROUND_BUCKET_BITS = 4;
     private static final int VIEWER_BACKGROUND_BUCKETS_PER_CHANNEL = 1 << VIEWER_BACKGROUND_BUCKET_BITS;
     private static final int VIEWER_BACKGROUND_BUCKET_COUNT = VIEWER_BACKGROUND_BUCKETS_PER_CHANNEL
@@ -203,7 +203,7 @@ public final class ScreenshotImageLoader {
             int averageGreen = Math.round(this.green / (float) this.weight);
             int averageBlue = Math.round(this.blue / (float) this.weight);
             return ARGB.color(
-                    0xFF,
+                    0x80,
                     darkenChannel(averageRed),
                     darkenChannel(averageGreen),
                     darkenChannel(averageBlue)

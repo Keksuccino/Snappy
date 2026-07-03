@@ -39,7 +39,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private static final int SCROLLBAR_TRACK_WIDTH = 2;
     private static final int SCROLLBAR_THUMB_WIDTH = 4;
     private static final int SCROLLBAR_MIN_THUMB_HEIGHT = 18;
-    private static final int SCROLL_AREA_BACKGROUND_COLOR = 0xD8000000;
+    private static final int SCROLL_AREA_BACKGROUND_COLOR = 0x80000000;
     private static final int CARD_COLOR = 0x66000000;
     private static final int CARD_HOVER_COLOR = 0x80373737;
     private static final int CARD_SELECTED_COLOR = 0x80406090;
