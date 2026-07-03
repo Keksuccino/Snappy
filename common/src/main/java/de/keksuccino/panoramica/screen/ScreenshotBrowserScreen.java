@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import de.keksuccino.panoramica.Options;
 import de.keksuccino.panoramica.OptionsScreen;
 import de.keksuccino.panoramica.Panoramica;
+import de.keksuccino.panoramica.menu.MenuBackgroundSelectionManager;
 import de.keksuccino.panoramica.menu.PanoramaMenuManager;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.DeletionResult;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
@@ -25,10 +26,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class ScreenshotBrowserScreen extends Screen {
 
@@ -39,7 +45,11 @@ public class ScreenshotBrowserScreen extends Screen {
     private static final int BUTTON_GAP = 6;
     private static final int HEADER_CONTROL_Y = 42;
     private static final int SORT_BUTTON_WIDTH = 126;
+    private static final int FILTER_BUTTON_WIDTH = 200;
     private static final int SEARCH_WIDTH = 180;
+    private static final int MIN_SORT_BUTTON_WIDTH = 70;
+    private static final int MIN_FILTER_BUTTON_WIDTH = 92;
+    private static final int MIN_SEARCH_WIDTH = 80;
     private static final int STATUS_MESSAGE_MARGIN = 20;
     private static final long STATUS_MESSAGE_VISIBLE_MILLIS = 10_000L;
     private static final int STATUS_SUCCESS_COLOR = 0xFF78E878;
@@ -62,12 +72,15 @@ public class ScreenshotBrowserScreen extends Screen {
     @Nullable
     private Button sortButton;
     @Nullable
+    private Button filterButton;
+    @Nullable
     private EditBox searchBox;
     @Nullable
     private Button deleteSelectedButton;
     @Nullable
     private Button clearSelectionButton;
     private Options.BrowserSortMode sortMode = Options.BrowserSortMode.NEWEST_FIRST;
+    private Options.BrowserFilterMode filterMode = Options.BrowserFilterMode.NONE;
     private String searchQuery = "";
     private Component statusMessage = Component.empty();
     private int statusMessageColor = 0xFFFFFFFF;
@@ -102,13 +115,18 @@ public class ScreenshotBrowserScreen extends Screen {
         titleWidget.setX(centerX - titleWidget.getWidth() / 2);
         titleWidget.setY(12);
         this.sortMode = Panoramica.getOptions().getBrowserSortMode();
+        this.filterMode = Panoramica.getOptions().getBrowserFilterMode();
 
         int headerControlWidth = Math.max(120, this.width - SIDE_MARGIN * 2);
         int settingsButtonWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE;
-        int searchWidth = Math.min(SEARCH_WIDTH, Math.max(80, headerControlWidth - SORT_BUTTON_WIDTH - settingsButtonWidth - BUTTON_GAP * 2));
-        int sortButtonWidth = Math.min(SORT_BUTTON_WIDTH, Math.max(70, headerControlWidth - searchWidth - settingsButtonWidth - BUTTON_GAP * 2));
+        int availableTextControlWidth = Math.max(0, headerControlWidth - settingsButtonWidth - BUTTON_GAP * 3);
+        int[] headerControlWidths = this.headerControlWidths(availableTextControlWidth);
+        int searchWidth = headerControlWidths[0];
+        int sortButtonWidth = headerControlWidths[1];
+        int filterButtonWidth = headerControlWidths[2];
         int searchX = this.width - SIDE_MARGIN - searchWidth;
-        int sortButtonX = searchX - BUTTON_GAP - sortButtonWidth;
+        int filterButtonX = searchX - BUTTON_GAP - filterButtonWidth;
+        int sortButtonX = filterButtonX - BUTTON_GAP - sortButtonWidth;
         int settingsButtonX = sortButtonX - BUTTON_GAP - settingsButtonWidth;
         this.settingsButton = this.addRenderableWidget(new TexturedIconButton(
                 Component.translatable("panoramica.browser.settings"),
@@ -123,6 +141,13 @@ public class ScreenshotBrowserScreen extends Screen {
             this.updateSortButton();
             this.applyFilter();
         }).bounds(sortButtonX, HEADER_CONTROL_Y, sortButtonWidth, BUTTON_HEIGHT).build());
+
+        this.filterButton = this.addRenderableWidget(Button.builder(this.filterModeMessage(), button -> {
+            this.filterMode = this.filterMode.next();
+            Panoramica.getOptions().setBrowserFilterMode(this.filterMode);
+            this.updateFilterButton();
+            this.applyFilter();
+        }).bounds(filterButtonX, HEADER_CONTROL_Y, filterButtonWidth, BUTTON_HEIGHT).build());
 
         this.searchBox = this.addRenderableWidget(new EditBox(this.font, searchX, HEADER_CONTROL_Y, searchWidth, BUTTON_HEIGHT, Component.translatable("panoramica.browser.search")));
         this.searchBox.setMaxLength(128);
@@ -243,17 +268,17 @@ public class ScreenshotBrowserScreen extends Screen {
 
     private void applyFilter() {
         String query = this.searchQuery.trim().toLowerCase(Locale.ROOT);
+        Options.BrowserFilterMode activeFilter = this.filterMode;
+        Set<Path> selectedMenuBackgrounds = activeFilter == Options.BrowserFilterMode.MENU_BACKGROUNDS
+                ? new HashSet<>(MenuBackgroundSelectionManager.getSelectedPanoramaFolders())
+                : Set.of();
+        ZoneId todayZone = activeFilter == Options.BrowserFilterMode.TODAY ? ZoneId.systemDefault() : null;
+        LocalDate today = todayZone == null ? null : LocalDate.now(todayZone);
         List<ScreenshotEntry> result = new ArrayList<>();
-        if (query.isEmpty()) {
-            result.addAll(this.allEntries);
-        } else {
-            for (ScreenshotEntry entry : this.allEntries) {
-                String type = entry.isPanorama() ? "panorama" : "normal screenshot";
-                if (entry.lowerCaseDisplayName().contains(query)
-                        || entry.formattedDate().toLowerCase(Locale.ROOT).contains(query)
-                        || type.contains(query)) {
-                    result.add(entry);
-                }
+        for (ScreenshotEntry entry : this.allEntries) {
+            if (this.matchesSearch(entry, query)
+                    && this.matchesBrowserFilter(entry, activeFilter, selectedMenuBackgrounds, today, todayZone)) {
+                result.add(entry);
             }
         }
         this.filteredEntries = sortedEntries(result, this.sortMode);
@@ -264,15 +289,61 @@ public class ScreenshotBrowserScreen extends Screen {
         }
     }
 
+    private boolean matchesSearch(@NotNull ScreenshotEntry entry, @NotNull String query) {
+        if (query.isEmpty()) {
+            return true;
+        }
+
+        String type = entry.isPanorama() ? "panorama" : "normal screenshot";
+        return entry.lowerCaseDisplayName().contains(query)
+                || entry.formattedDate().toLowerCase(Locale.ROOT).contains(query)
+                || type.contains(query);
+    }
+
+    private boolean matchesBrowserFilter(
+            @NotNull ScreenshotEntry entry,
+            @NotNull Options.BrowserFilterMode filterMode,
+            @NotNull Set<Path> selectedMenuBackgrounds,
+            @Nullable LocalDate today,
+            @Nullable ZoneId todayZone
+    ) {
+        return switch (filterMode) {
+            case NONE -> true;
+            case MENU_BACKGROUNDS -> entry.isPanorama() && selectedMenuBackgrounds.contains(entry.path());
+            case ONLY_PANORAMAS -> entry.isPanorama();
+            case ONLY_NORMAL_SCREENSHOTS -> !entry.isPanorama();
+            case TODAY -> entry.isPanorama() && today != null && todayZone != null && this.isModifiedOnDate(entry, today, todayZone);
+        };
+    }
+
+    private boolean isModifiedOnDate(@NotNull ScreenshotEntry entry, @NotNull LocalDate date, @NotNull ZoneId zone) {
+        long modifiedMillis = entry.modifiedMillis();
+        if (modifiedMillis <= 0L) {
+            return false;
+        }
+        return Instant.ofEpochMilli(modifiedMillis).atZone(zone).toLocalDate().equals(date);
+    }
+
     private void updateSortButton() {
         if (this.sortButton != null) {
             this.sortButton.setMessage(this.sortModeMessage());
         }
     }
 
+    private void updateFilterButton() {
+        if (this.filterButton != null) {
+            this.filterButton.setMessage(this.filterModeMessage());
+        }
+    }
+
     @NotNull
     private Component sortModeMessage() {
         return Component.translatable("panoramica.browser.sort", Component.translatable(this.sortMode.labelKey()));
+    }
+
+    @NotNull
+    private Component filterModeMessage() {
+        return Component.translatable("panoramica.browser.filter", Component.translatable(this.filterMode.labelKey()));
     }
 
     @NotNull
@@ -377,6 +448,43 @@ public class ScreenshotBrowserScreen extends Screen {
     private Component deleteSelectedMessage(int selected) {
         Component message = Component.translatable("panoramica.browser.delete_selected", selected);
         return selected > 0 ? message.copy().withStyle(ChatFormatting.RED) : message;
+    }
+
+    private int[] headerControlWidths(int availableTextControlWidth) {
+        int searchWidth = SEARCH_WIDTH;
+        int sortButtonWidth = SORT_BUTTON_WIDTH;
+        int filterButtonWidth = FILTER_BUTTON_WIDTH;
+        int overflow = Math.max(0, searchWidth + sortButtonWidth + filterButtonWidth - availableTextControlWidth);
+
+        int shrink = Math.min(overflow, Math.max(0, searchWidth - MIN_SEARCH_WIDTH));
+        searchWidth -= shrink;
+        overflow -= shrink;
+
+        shrink = Math.min(overflow, Math.max(0, filterButtonWidth - MIN_FILTER_BUTTON_WIDTH));
+        filterButtonWidth -= shrink;
+        overflow -= shrink;
+
+        shrink = Math.min(overflow, Math.max(0, sortButtonWidth - MIN_SORT_BUTTON_WIDTH));
+        sortButtonWidth -= shrink;
+        overflow -= shrink;
+
+        if (overflow > 0) {
+            shrink = Math.min(overflow, searchWidth);
+            searchWidth -= shrink;
+            overflow -= shrink;
+        }
+
+        if (overflow > 0) {
+            shrink = Math.min(overflow, filterButtonWidth);
+            filterButtonWidth -= shrink;
+            overflow -= shrink;
+        }
+
+        if (overflow > 0) {
+            sortButtonWidth = Math.max(0, sortButtonWidth - overflow);
+        }
+
+        return new int[]{searchWidth, sortButtonWidth, filterButtonWidth};
     }
 
     @NotNull

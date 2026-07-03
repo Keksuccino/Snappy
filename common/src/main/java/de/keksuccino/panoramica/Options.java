@@ -18,6 +18,7 @@ public class Options extends AbstractOptions {
     public final Option<String> screenshotPreviewMode = new Option<>(config, "screenshot_preview_mode", ScreenshotPreviewMode.BOTH.id, "preview");
     public final Option<Boolean> screenshotChatMessages = new Option<>(config, "screenshot_chat_messages", true, "notifications");
     public final Option<String> browserSortMode = new Option<>(config, "browser_sort_mode", BrowserSortMode.NEWEST_FIRST.id, "browser");
+    public final Option<String> browserFilterMode = new Option<>(config, "browser_filter_mode", BrowserFilterMode.NONE.id, "browser");
 
     public Options() {
         this.config.syncConfig();
@@ -92,6 +93,15 @@ public class Options extends AbstractOptions {
 
     public void setBrowserSortMode(@NotNull BrowserSortMode mode) {
         this.browserSortMode.setValue(mode.id);
+    }
+
+    @NotNull
+    public BrowserFilterMode getBrowserFilterMode() {
+        return BrowserFilterMode.byId(this.browserFilterMode.getValue(), this.browserFilterMode);
+    }
+
+    public void setBrowserFilterMode(@NotNull BrowserFilterMode mode) {
+        this.browserFilterMode.setValue(mode.id);
     }
 
     public enum ResolutionPreset {
@@ -311,6 +321,40 @@ public class Options extends AbstractOptions {
             }
             option.setValue(NEWEST_FIRST.id);
             return NEWEST_FIRST;
+        }
+    }
+
+    public enum BrowserFilterMode {
+        NONE("none"),
+        MENU_BACKGROUNDS("menu_backgrounds"),
+        ONLY_PANORAMAS("only_panoramas"),
+        ONLY_NORMAL_SCREENSHOTS("only_normal_screenshots"),
+        TODAY("today");
+
+        public final String id;
+
+        BrowserFilterMode(@NotNull String id) {
+            this.id = id;
+        }
+
+        @NotNull
+        public BrowserFilterMode next() {
+            BrowserFilterMode[] values = values();
+            return values[(this.ordinal() + 1) % values.length];
+        }
+
+        @NotNull
+        public String labelKey() {
+            return "panoramica.browser.filter." + this.id;
+        }
+
+        @NotNull
+        private static BrowserFilterMode byId(@NotNull String id, @NotNull Option<String> option) {
+            for (BrowserFilterMode mode : values()) {
+                if (mode.id.equals(normalize(id))) return mode;
+            }
+            option.setValue(NONE.id);
+            return NONE;
         }
     }
 
