@@ -11,6 +11,7 @@ import de.keksuccino.panoramica.preview.PreviewCubeMapTexture;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.DeletionResult;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
 import de.keksuccino.panoramica.screen.ScreenshotImageLoader.LoadedImage;
+import de.keksuccino.panoramica.util.rendering.RenderingUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -24,6 +25,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
@@ -47,6 +49,8 @@ public class ScreenshotViewerScreen extends Screen {
     private static final int PANORAMA_PROGRESS_TRACK_THICKNESS = 4;
     private static final int PANORAMA_PROGRESS_DOT_SIZE = 8;
     private static final int PANORAMA_PROGRESS_HIT_PADDING = 8;
+    private static final int IMAGE_AREA_BORDER_SIZE = 1;
+    private static final int IMAGE_AREA_BORDER_COLOR = ARGB.color(255, 112, 112, 112);
     private static final int PANORAMA_VERTICAL_PROGRESS_MAX_HEIGHT = 300;
     private static final int PANORAMA_VERTICAL_PROGRESS_MIN_HEIGHT = 100;
     private static final int PANORAMA_VERTICAL_PROGRESS_VERTICAL_MARGIN = 120;
@@ -519,7 +523,15 @@ public class ScreenshotViewerScreen extends Screen {
         int areaY = this.imageAreaY();
         int areaWidth = this.imageAreaWidth();
         int areaHeight = this.imageAreaHeight();
-        graphics.fill(areaX - 1, areaY - 1, areaX + areaWidth + 1, areaY + areaHeight + 1, 0xFF707070);
+        RenderingUtils.renderBorder(
+                graphics,
+                areaX - IMAGE_AREA_BORDER_SIZE,
+                areaY - IMAGE_AREA_BORDER_SIZE,
+                areaWidth + IMAGE_AREA_BORDER_SIZE * 2,
+                areaHeight + IMAGE_AREA_BORDER_SIZE * 2,
+                IMAGE_AREA_BORDER_SIZE,
+                IMAGE_AREA_BORDER_COLOR
+        );
         graphics.fill(areaX, areaY, areaX + areaWidth, areaY + areaHeight, this.imageBackgroundColor());
 
         if (this.loadStatus != LoadStatus.READY) {

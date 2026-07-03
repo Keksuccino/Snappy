@@ -3,6 +3,7 @@ package de.keksuccino.panoramica.screen;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
 import de.keksuccino.panoramica.screen.ScreenshotThumbnailCache.Thumbnail;
+import de.keksuccino.panoramica.util.rendering.RenderingUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -13,6 +14,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
@@ -39,16 +41,16 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private static final int SCROLLBAR_TRACK_WIDTH = 2;
     private static final int SCROLLBAR_THUMB_WIDTH = 4;
     private static final int SCROLLBAR_MIN_THUMB_HEIGHT = 18;
-    private static final int SCROLL_AREA_BACKGROUND_COLOR = 0x80000000;
-    private static final int CARD_COLOR = 0x66000000;
-    private static final int CARD_HOVER_COLOR = 0x80373737;
-    private static final int CARD_SELECTED_COLOR = 0x80406090;
-    private static final int SCROLL_AREA_BORDER_COLOR = 0xFF707070;
+    private static final int SCROLL_AREA_BACKGROUND_COLOR = ARGB.color(128, 0, 0, 0);
+    private static final int CARD_COLOR = ARGB.color(102, 0, 0, 0);
+    private static final int CARD_HOVER_COLOR = ARGB.color(128, 55, 55, 55);
+    private static final int CARD_SELECTED_COLOR = ARGB.color(128, 64, 96, 144);
+    private static final int SCROLL_AREA_BORDER_COLOR = ARGB.color(255, 112, 112, 112);
     private static final int SCROLLBAR_TRACK_COLOR = 0x66404040;
     private static final int SCROLLBAR_THUMB_COLOR = 0xCCFFFFFF;
-    private static final int BORDER_COLOR = 0xFF707070;
-    private static final int BORDER_HOVER_COLOR = 0xFFFFFFFF;
-    private static final int BORDER_SELECTED_COLOR = 0xFF75A7FF;
+    private static final int BORDER_COLOR = ARGB.color(255, 112, 112, 112);
+    private static final int BORDER_HOVER_COLOR = ARGB.color(255, 255, 255, 255);
+    private static final int BORDER_SELECTED_COLOR = ARGB.color(255, 117, 167, 255);
     private static final int TEXT_COLOR = 0xFFFFFFFF;
     private static final int SECONDARY_TEXT_COLOR = 0xFFB0B0B0;
     private static final int EMPTY_TEXT_COLOR = 0xFFA0A0A0;
@@ -181,11 +183,13 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
 
     @Override
     protected void extractWidgetRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
-        graphics.fill(
+        RenderingUtils.renderBorder(
+                graphics,
                 this.getX() - SCROLL_AREA_BORDER_SIZE,
                 this.getY() - SCROLL_AREA_BORDER_SIZE,
-                this.getRight() + SCROLL_AREA_BORDER_SIZE,
-                this.getBottom() + SCROLL_AREA_BORDER_SIZE,
+                this.getWidth() + SCROLL_AREA_BORDER_SIZE * 2,
+                this.getHeight() + SCROLL_AREA_BORDER_SIZE * 2,
+                SCROLL_AREA_BORDER_SIZE,
                 SCROLL_AREA_BORDER_COLOR
         );
         graphics.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), SCROLL_AREA_BACKGROUND_COLOR);
@@ -314,7 +318,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
             boolean focused
     ) {
         int borderColor = selected ? BORDER_SELECTED_COLOR : hovered || focused ? BORDER_HOVER_COLOR : BORDER_COLOR;
-        graphics.fill(x, y, x + TILE_WIDTH, y + TILE_HEIGHT, borderColor);
+        RenderingUtils.renderBorder(graphics, x, y, TILE_WIDTH, TILE_HEIGHT, 1, borderColor);
         graphics.fill(x + 1, y + 1, x + TILE_WIDTH - 1, y + TILE_HEIGHT - 1, selected ? CARD_SELECTED_COLOR : hovered ? CARD_HOVER_COLOR : CARD_COLOR);
 
         int imageX = x + (TILE_WIDTH - IMAGE_WIDTH) / 2;

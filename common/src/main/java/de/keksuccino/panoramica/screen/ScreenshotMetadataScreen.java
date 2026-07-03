@@ -6,11 +6,13 @@ import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager.ScreenshotMet
 import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager.TimeInfo;
 import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager.WorldInfo;
 import de.keksuccino.panoramica.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
+import de.keksuccino.panoramica.util.rendering.RenderingUtils;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,8 +36,12 @@ public class ScreenshotMetadataScreen extends Screen {
     private static final int SECTION_PADDING = 10;
     private static final int SECTION_TITLE_HEIGHT = 13;
     private static final int ROW_HEIGHT = 13;
-    private static final int SECTION_BACKGROUND_COLOR = 0x66000000;
-    private static final int SECTION_BORDER_COLOR = 0xFF707070;
+    private static final int PANEL_BACKGROUND_COLOR = ARGB.color(128, 0, 0, 0);
+    private static final int PANEL_BORDER_SIZE = 1;
+    private static final int PANEL_BORDER_COLOR = ARGB.color(255, 112, 112, 112);
+    private static final int SECTION_BACKGROUND_COLOR = ARGB.color(102, 0, 0, 0);
+    private static final int SECTION_BORDER_SIZE = 1;
+    private static final int SECTION_BORDER_COLOR = ARGB.color(255, 112, 112, 112);
     private static final int SCROLL_STEP = 24;
     private static final int BUTTON_HEIGHT = 20;
     private static final int BACK_BUTTON_WIDTH = 72;
@@ -89,8 +95,16 @@ public class ScreenshotMetadataScreen extends Screen {
         int panelY = this.panelY();
         int panelWidth = this.panelWidth();
         int panelHeight = this.panelHeight();
-        graphics.fill(panelX - 1, panelY - 1, panelX + panelWidth + 1, panelY + panelHeight + 1, 0xFF707070);
-        graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x80000000);
+        RenderingUtils.renderBorder(
+                graphics,
+                panelX - PANEL_BORDER_SIZE,
+                panelY - PANEL_BORDER_SIZE,
+                panelWidth + PANEL_BORDER_SIZE * 2,
+                panelHeight + PANEL_BORDER_SIZE * 2,
+                PANEL_BORDER_SIZE,
+                PANEL_BORDER_COLOR
+        );
+        graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, PANEL_BACKGROUND_COLOR);
 
         ScreenshotMetadata metadata = ScreenshotMetadataManager.find(this.entry.path()).orElse(null);
         if (metadata == null) {
@@ -130,8 +144,8 @@ public class ScreenshotMetadataScreen extends Screen {
             @NotNull List<MetadataRow> rows
     ) {
         int sectionHeight = SECTION_PADDING * 2 + SECTION_TITLE_HEIGHT + rows.size() * ROW_HEIGHT;
-        graphics.fill(x, y, x + width, y + sectionHeight, SECTION_BORDER_COLOR);
-        graphics.fill(x + 1, y + 1, x + width - 1, y + sectionHeight - 1, SECTION_BACKGROUND_COLOR);
+        RenderingUtils.renderBorder(graphics, x, y, width, sectionHeight, SECTION_BORDER_SIZE, SECTION_BORDER_COLOR);
+        graphics.fill(x + SECTION_BORDER_SIZE, y + SECTION_BORDER_SIZE, x + width - SECTION_BORDER_SIZE, y + sectionHeight - SECTION_BORDER_SIZE, SECTION_BACKGROUND_COLOR);
         graphics.text(this.font, title, x + SECTION_PADDING, y + SECTION_PADDING, 0xFFFFD166);
 
         int labelWidth = Math.min(132, Math.max(84, width / 3));
