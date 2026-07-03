@@ -18,6 +18,7 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -44,11 +45,7 @@ public class ScreenshotBrowserScreen extends Screen {
     private static final int SIDE_MARGIN = 20;
     private static final int BUTTON_GAP = 6;
     private static final int HEADER_CONTROL_Y = 42;
-    private static final int SORT_BUTTON_WIDTH = 126;
-    private static final int FILTER_BUTTON_WIDTH = 200;
-    private static final int SEARCH_WIDTH = 180;
-    private static final int MIN_SORT_BUTTON_WIDTH = 70;
-    private static final int MIN_FILTER_BUTTON_WIDTH = 92;
+    private static final int SEARCH_WIDTH = 108;
     private static final int MIN_SEARCH_WIDTH = 80;
     private static final int STATUS_MESSAGE_MARGIN = 20;
     private static final long STATUS_MESSAGE_VISIBLE_MILLIS = 10_000L;
@@ -56,6 +53,9 @@ public class ScreenshotBrowserScreen extends Screen {
     private static final int STATUS_WARNING_COLOR = 0xFFFFD166;
     private static final Identifier BACK_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/detail_back_icon_15x15.png");
     private static final Identifier SETTINGS_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/settings_icon_15x15.png");
+    private static final Identifier SORT_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/sort_icon_15x15.png");
+    private static final Identifier FILTER_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/filter_icon_15x15.png");
+    private static final Identifier SEARCH_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/search_icon_15x15.png");
     private static final Identifier REFRESH_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/refresh_icon_15x15.png");
     private static final Identifier SELECT_ALL_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/select_all_icon_15x15.png");
     private static final Identifier CLEAR_SELECTION_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/clear_selection_icon_15x15.png");
@@ -74,6 +74,8 @@ public class ScreenshotBrowserScreen extends Screen {
     @Nullable
     private Button filterButton;
     @Nullable
+    private Button searchButton;
+    @Nullable
     private EditBox searchBox;
     @Nullable
     private Button deleteSelectedButton;
@@ -81,6 +83,7 @@ public class ScreenshotBrowserScreen extends Screen {
     private Button clearSelectionButton;
     private Options.BrowserSortMode sortMode = Options.BrowserSortMode.NEWEST_FIRST;
     private Options.BrowserFilterMode filterMode = Options.BrowserFilterMode.NONE;
+    private boolean searchExpanded;
     private String searchQuery = "";
     private Component statusMessage = Component.empty();
     private int statusMessageColor = 0xFFFFFFFF;
@@ -118,38 +121,44 @@ public class ScreenshotBrowserScreen extends Screen {
         this.filterMode = Panoramica.getOptions().getBrowserFilterMode();
 
         int headerControlWidth = Math.max(120, this.width - SIDE_MARGIN * 2);
-        int settingsButtonWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE;
-        int availableTextControlWidth = Math.max(0, headerControlWidth - settingsButtonWidth - BUTTON_GAP * 3);
-        int[] headerControlWidths = this.headerControlWidths(availableTextControlWidth);
-        int searchWidth = headerControlWidths[0];
-        int sortButtonWidth = headerControlWidths[1];
-        int filterButtonWidth = headerControlWidths[2];
-        int searchX = this.width - SIDE_MARGIN - searchWidth;
-        int filterButtonX = searchX - BUTTON_GAP - filterButtonWidth;
-        int sortButtonX = filterButtonX - BUTTON_GAP - sortButtonWidth;
-        int settingsButtonX = sortButtonX - BUTTON_GAP - settingsButtonWidth;
+        int headerIconControlsWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE * 3;
+        int availableSearchWidth = Math.max(0, headerControlWidth - headerIconControlsWidth - BUTTON_GAP * 3);
+        int searchWidth = this.headerSearchWidth(availableSearchWidth);
         this.settingsButton = this.addRenderableWidget(new TexturedIconButton(
                 Component.translatable("panoramica.browser.settings"),
                 button -> Minecraft.getInstance().gui.setScreen(new OptionsScreen(this)),
                 SETTINGS_ICON
         ));
-        this.settingsButton.setPosition(settingsButtonX, HEADER_CONTROL_Y);
 
-        this.sortButton = this.addRenderableWidget(Button.builder(this.sortModeMessage(), button -> {
-            this.sortMode = this.sortMode.next();
-            Panoramica.getOptions().setBrowserSortMode(this.sortMode);
-            this.updateSortButton();
-            this.applyFilter();
-        }).bounds(sortButtonX, HEADER_CONTROL_Y, sortButtonWidth, BUTTON_HEIGHT).build());
+        this.sortButton = this.addRenderableWidget(new TexturedIconButton(
+                this.sortModeMessage(),
+                button -> {
+                    this.sortMode = this.sortMode.next();
+                    Panoramica.getOptions().setBrowserSortMode(this.sortMode);
+                    this.updateSortButton();
+                    this.applyFilter();
+                },
+                SORT_ICON
+        ));
 
-        this.filterButton = this.addRenderableWidget(Button.builder(this.filterModeMessage(), button -> {
-            this.filterMode = this.filterMode.next();
-            Panoramica.getOptions().setBrowserFilterMode(this.filterMode);
-            this.updateFilterButton();
-            this.applyFilter();
-        }).bounds(filterButtonX, HEADER_CONTROL_Y, filterButtonWidth, BUTTON_HEIGHT).build());
+        this.filterButton = this.addRenderableWidget(new TexturedIconButton(
+                this.filterModeMessage(),
+                button -> {
+                    this.filterMode = this.filterMode.next();
+                    Panoramica.getOptions().setBrowserFilterMode(this.filterMode);
+                    this.updateFilterButton();
+                    this.applyFilter();
+                },
+                FILTER_ICON
+        ));
 
-        this.searchBox = this.addRenderableWidget(new EditBox(this.font, searchX, HEADER_CONTROL_Y, searchWidth, BUTTON_HEIGHT, Component.translatable("panoramica.browser.search")));
+        this.searchButton = this.addRenderableWidget(new TexturedIconButton(
+                Component.translatable("panoramica.browser.search"),
+                button -> this.expandSearch(),
+                SEARCH_ICON
+        ));
+
+        this.searchBox = this.addRenderableWidget(new EditBox(this.font, 0, HEADER_CONTROL_Y, searchWidth, BUTTON_HEIGHT, Component.translatable("panoramica.browser.search")));
         this.searchBox.setMaxLength(128);
         this.searchBox.setHint(Component.translatable("panoramica.browser.search_hint"));
         this.searchBox.setValue(this.searchQuery);
@@ -157,6 +166,7 @@ public class ScreenshotBrowserScreen extends Screen {
             this.searchQuery = value;
             this.applyFilter();
         });
+        this.updateSearchControls();
 
         int gridY = HEADER_HEIGHT;
         int gridHeight = Math.max(80, this.height - HEADER_HEIGHT - FOOTER_HEIGHT);
@@ -237,6 +247,27 @@ public class ScreenshotBrowserScreen extends Screen {
     }
 
     @Override
+    public boolean mouseClicked(@NotNull MouseButtonEvent event, boolean doubleClick) {
+        if (event.button() == 0) {
+            Button currentSearchButton = this.searchButton;
+            if (!this.searchExpanded && currentSearchButton != null && currentSearchButton.isMouseOver(event.x(), event.y())) {
+                currentSearchButton.playDownSound(Minecraft.getInstance().getSoundManager());
+                this.expandSearch();
+                return true;
+            }
+
+            EditBox currentSearchBox = this.searchBox;
+            if (this.searchExpanded && currentSearchBox != null && !currentSearchBox.isMouseOver(event.x(), event.y())) {
+                boolean handled = super.mouseClicked(event, doubleClick);
+                this.collapseSearch();
+                return handled;
+            }
+        }
+
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
     public void removed() {
         ScreenshotGridWidget currentGrid = this.grid;
         if (currentGrid != null) {
@@ -250,6 +281,9 @@ public class ScreenshotBrowserScreen extends Screen {
         ScreenshotGridWidget currentGrid = this.grid;
         if (currentGrid != null) {
             currentGrid.tickDragSelection();
+        }
+        if (this.searchExpanded && this.searchBox != null && !this.searchBox.isFocused()) {
+            this.collapseSearch();
         }
     }
 
@@ -326,13 +360,86 @@ public class ScreenshotBrowserScreen extends Screen {
 
     private void updateSortButton() {
         if (this.sortButton != null) {
-            this.sortButton.setMessage(this.sortModeMessage());
+            this.updateButtonMessageAndTooltip(this.sortButton, this.sortModeMessage());
         }
     }
 
     private void updateFilterButton() {
         if (this.filterButton != null) {
-            this.filterButton.setMessage(this.filterModeMessage());
+            this.updateButtonMessageAndTooltip(this.filterButton, this.filterModeMessage());
+        }
+    }
+
+    private void updateButtonMessageAndTooltip(@NotNull Button button, @NotNull Component message) {
+        button.setMessage(message);
+        button.setTooltip(Tooltip.create(message));
+    }
+
+    private void expandSearch() {
+        this.searchExpanded = true;
+        this.updateSearchControls();
+        EditBox currentSearchBox = this.searchBox;
+        if (currentSearchBox != null) {
+            this.setFocused(currentSearchBox);
+            currentSearchBox.setFocused(true);
+        }
+    }
+
+    private void collapseSearch() {
+        this.searchExpanded = false;
+        EditBox currentSearchBox = this.searchBox;
+        if (currentSearchBox != null) {
+            currentSearchBox.setFocused(false);
+            if (this.getFocused() == currentSearchBox) {
+                this.setFocused(null);
+            }
+        }
+        this.updateSearchControls();
+    }
+
+    private void updateSearchControls() {
+        this.updateHeaderControlLayout();
+
+        Button currentSearchButton = this.searchButton;
+        if (currentSearchButton != null) {
+            currentSearchButton.visible = !this.searchExpanded;
+            currentSearchButton.active = !this.searchExpanded;
+        }
+
+        EditBox currentSearchBox = this.searchBox;
+        if (currentSearchBox != null) {
+            currentSearchBox.visible = this.searchExpanded;
+            currentSearchBox.active = this.searchExpanded;
+        }
+    }
+
+    private void updateHeaderControlLayout() {
+        int searchControlWidth = this.searchExpanded && this.searchBox != null
+                ? this.searchBox.getWidth()
+                : TexturedIconButton.DEFAULT_BUTTON_SIZE;
+        int searchX = this.width - SIDE_MARGIN - searchControlWidth;
+
+        if (this.searchButton != null) {
+            this.searchButton.setPosition(searchX, HEADER_CONTROL_Y);
+        }
+        if (this.searchBox != null) {
+            this.searchBox.setPosition(searchX, HEADER_CONTROL_Y);
+        }
+
+        int controlX = searchX - BUTTON_GAP;
+        if (this.filterButton != null) {
+            controlX -= this.filterButton.getWidth();
+            this.filterButton.setPosition(controlX, HEADER_CONTROL_Y);
+            controlX -= BUTTON_GAP;
+        }
+        if (this.sortButton != null) {
+            controlX -= this.sortButton.getWidth();
+            this.sortButton.setPosition(controlX, HEADER_CONTROL_Y);
+            controlX -= BUTTON_GAP;
+        }
+        if (this.settingsButton != null) {
+            controlX -= this.settingsButton.getWidth();
+            this.settingsButton.setPosition(controlX, HEADER_CONTROL_Y);
         }
     }
 
@@ -450,41 +557,11 @@ public class ScreenshotBrowserScreen extends Screen {
         return selected > 0 ? message.copy().withStyle(ChatFormatting.RED) : message;
     }
 
-    private int[] headerControlWidths(int availableTextControlWidth) {
-        int searchWidth = SEARCH_WIDTH;
-        int sortButtonWidth = SORT_BUTTON_WIDTH;
-        int filterButtonWidth = FILTER_BUTTON_WIDTH;
-        int overflow = Math.max(0, searchWidth + sortButtonWidth + filterButtonWidth - availableTextControlWidth);
-
-        int shrink = Math.min(overflow, Math.max(0, searchWidth - MIN_SEARCH_WIDTH));
-        searchWidth -= shrink;
-        overflow -= shrink;
-
-        shrink = Math.min(overflow, Math.max(0, filterButtonWidth - MIN_FILTER_BUTTON_WIDTH));
-        filterButtonWidth -= shrink;
-        overflow -= shrink;
-
-        shrink = Math.min(overflow, Math.max(0, sortButtonWidth - MIN_SORT_BUTTON_WIDTH));
-        sortButtonWidth -= shrink;
-        overflow -= shrink;
-
-        if (overflow > 0) {
-            shrink = Math.min(overflow, searchWidth);
-            searchWidth -= shrink;
-            overflow -= shrink;
+    private int headerSearchWidth(int availableSearchWidth) {
+        if (availableSearchWidth < MIN_SEARCH_WIDTH) {
+            return Math.max(0, availableSearchWidth);
         }
-
-        if (overflow > 0) {
-            shrink = Math.min(overflow, filterButtonWidth);
-            filterButtonWidth -= shrink;
-            overflow -= shrink;
-        }
-
-        if (overflow > 0) {
-            sortButtonWidth = Math.max(0, sortButtonWidth - overflow);
-        }
-
-        return new int[]{searchWidth, sortButtonWidth, filterButtonWidth};
+        return Math.min(SEARCH_WIDTH, availableSearchWidth);
     }
 
     @NotNull
