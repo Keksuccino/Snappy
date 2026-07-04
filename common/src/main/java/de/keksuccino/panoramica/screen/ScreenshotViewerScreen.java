@@ -1,5 +1,6 @@
 package de.keksuccino.panoramica.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
@@ -57,8 +58,10 @@ public class ScreenshotViewerScreen extends Screen {
     private static final int PANORAMA_VERTICAL_PROGRESS_RIGHT_MARGIN = 28;
     private static final float PANORAMA_ROTATION_DEGREES_PER_MILLI = 0.01F;
     private static final float PANORAMA_ROTATION_FULL_TURN_DEGREES = 360.0F;
+    private static final float PANORAMA_MOUSE_LOOK_SENSITIVITY = 0.16F;
     private static final float PANORAMA_VERTICAL_ANGLE_MIN_DEGREES = -90.0F;
     private static final float PANORAMA_VERTICAL_ANGLE_MAX_DEGREES = 90.0F;
+    private static final int NO_HOVER_MOUSE_POSITION = -1;
     private static final Identifier BACK_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/detail_back_icon_15x15.png");
     private static final Identifier METADATA_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/metadata_icon_15x15.png");
     private static final Identifier SHOW_OUTSIDE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/show_outside_icon_15x15.png");
@@ -87,6 +90,8 @@ public class ScreenshotViewerScreen extends Screen {
     private long panoramaRotationLastMillis;
     private boolean panoramaProgressDragging;
     private boolean panoramaVerticalProgressDragging;
+    private boolean panoramaMouseLookActive;
+    private boolean panoramaMouseLookCursorGrabbed;
     private Component statusMessage = Component.translatable("panoramica.browser.loading");
     @Nullable
     private Button previousButton;
@@ -152,9 +157,11 @@ public class ScreenshotViewerScreen extends Screen {
 
     @Override
     public void extractRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        int hoverMouseX = this.hoverMouseX(mouseX);
+        int hoverMouseY = this.hoverMouseY(mouseY);
         this.renderHeader(graphics);
-        this.renderImage(graphics, mouseX, mouseY);
-        super.extractRenderState(graphics, mouseX, mouseY, a);
+        this.renderImage(graphics, hoverMouseX, hoverMouseY);
+        super.extractRenderState(graphics, hoverMouseX, hoverMouseY, a);
     }
 
     @Override
@@ -173,11 +180,22 @@ public class ScreenshotViewerScreen extends Screen {
                 return true;
             }
         }
-        return super.mouseClicked(event, doubleClick);
+        if (super.mouseClicked(event, doubleClick)) {
+            return true;
+        }
+        if (event.button() == 0 && this.isPanoramaMouseLookHit(event.x(), event.y())) {
+            this.startPanoramaMouseLook();
+            return true;
+        }
+        return false;
     }
 
     @Override
     public boolean mouseDragged(@NotNull MouseButtonEvent event, double dx, double dy) {
+        if (this.panoramaMouseLookActive && event.button() == 0) {
+            this.rotatePanoramaFromMouseDrag(dx, dy);
+            return true;
+        }
         if (this.panoramaProgressDragging && event.button() == 0) {
             this.setPanoramaRotationFromMouse(event.x());
             return true;
@@ -191,6 +209,10 @@ public class ScreenshotViewerScreen extends Screen {
 
     @Override
     public boolean mouseReleased(@NotNull MouseButtonEvent event) {
+        if (this.panoramaMouseLookActive && event.button() == 0) {
+            this.stopPanoramaMouseLook();
+            return true;
+        }
         if (this.panoramaProgressDragging && event.button() == 0) {
             this.setPanoramaRotationFromMouse(event.x());
             this.panoramaProgressDragging = false;
@@ -227,6 +249,7 @@ public class ScreenshotViewerScreen extends Screen {
     @Override
     public void removed() {
         this.loadGeneration++;
+        this.stopPanoramaMouseLook();
         this.releaseCurrentImage();
         this.panoramaRenderer.close();
     }
@@ -670,7 +693,7 @@ public class ScreenshotViewerScreen extends Screen {
 
     private float currentPanoramaRotationDegrees() {
         long now = Util.getMillis();
-        if (!this.panoramaProgressDragging) {
+        if (!this.panoramaProgressDragging && !this.panoramaMouseLookActive) {
             if (this.panoramaRotationLastMillis == 0L) {
                 this.panoramaRotationLastMillis = now;
             }
@@ -693,6 +716,20 @@ public class ScreenshotViewerScreen extends Screen {
         this.panoramaRotationLastMillis = Util.getMillis();
     }
 
+    private void rotatePanoramaFromMouseDrag(double dx, double dy) {
+        if (!Double.isFinite(dx) || !Double.isFinite(dy)) {
+            return;
+        }
+
+        this.panoramaRotationDegrees = wrapPanoramaRotation(this.panoramaRotationDegrees + (float) dx * PANORAMA_MOUSE_LOOK_SENSITIVITY);
+        this.panoramaVerticalAngleDegrees = Mth.clamp(
+                this.panoramaVerticalAngleDegrees + (float) dy * PANORAMA_MOUSE_LOOK_SENSITIVITY,
+                PANORAMA_VERTICAL_ANGLE_MIN_DEGREES,
+                PANORAMA_VERTICAL_ANGLE_MAX_DEGREES
+        );
+        this.panoramaRotationLastMillis = Util.getMillis();
+    }
+
     private float panoramaVerticalAngleProgress() {
         return (this.panoramaVerticalAngleDegrees - PANORAMA_VERTICAL_ANGLE_MIN_DEGREES)
                 / (PANORAMA_VERTICAL_ANGLE_MAX_DEGREES - PANORAMA_VERTICAL_ANGLE_MIN_DEGREES);
@@ -708,6 +745,7 @@ public class ScreenshotViewerScreen extends Screen {
 
     private void resetPanoramaPlayback() {
         boolean wasProgressDragging = this.panoramaProgressDragging || this.panoramaVerticalProgressDragging;
+        this.stopPanoramaMouseLook();
         this.panoramaRotationDegrees = 0.0F;
         this.panoramaRotationLastMillis = Util.getMillis();
         this.panoramaProgressDragging = false;
@@ -720,6 +758,54 @@ public class ScreenshotViewerScreen extends Screen {
     private boolean isPanoramaProgressVisible() {
         ScreenshotEntry entry = this.currentEntry();
         return entry != null && entry.isPanorama() && this.loadStatus == LoadStatus.READY && this.panoramaTexture != null;
+    }
+
+    private boolean isPanoramaMouseLookHit(double mouseX, double mouseY) {
+        return this.isPanoramaProgressVisible()
+                && mouseX >= this.imageAreaX()
+                && mouseX <= this.imageAreaX() + this.imageAreaWidth()
+                && mouseY >= this.imageAreaY()
+                && mouseY <= this.imageAreaY() + this.imageAreaHeight();
+    }
+
+    private void startPanoramaMouseLook() {
+        if (this.minecraft == null || !this.minecraft.isWindowActive()) {
+            return;
+        }
+
+        this.currentPanoramaRotationDegrees();
+        this.panoramaMouseLookActive = true;
+        this.panoramaRotationLastMillis = Util.getMillis();
+        this.setPanoramaMouseLookCursorGrabbed(true);
+    }
+
+    private void stopPanoramaMouseLook() {
+        boolean wasActive = this.panoramaMouseLookActive;
+        this.panoramaMouseLookActive = false;
+        this.setPanoramaMouseLookCursorGrabbed(false);
+        if (wasActive) {
+            this.panoramaRotationLastMillis = Util.getMillis();
+        }
+    }
+
+    private void setPanoramaMouseLookCursorGrabbed(boolean grabbed) {
+        if (this.panoramaMouseLookCursorGrabbed == grabbed || this.minecraft == null) {
+            return;
+        }
+        if (grabbed && !this.minecraft.isWindowActive()) {
+            return;
+        }
+
+        this.panoramaMouseLookCursorGrabbed = grabbed;
+        double centerX = this.minecraft.getWindow().getScreenWidth() / 2.0D;
+        double centerY = this.minecraft.getWindow().getScreenHeight() / 2.0D;
+        this.minecraft.mouseHandler.setIgnoreFirstMove();
+        InputConstants.grabOrReleaseMouse(
+                this.minecraft.getWindow(),
+                grabbed ? InputConstants.CURSOR_DISABLED : InputConstants.CURSOR_NORMAL,
+                centerX,
+                centerY
+        );
     }
 
     private boolean isPanoramaProgressGrabberHit(double mouseX, double mouseY) {
@@ -828,6 +914,14 @@ public class ScreenshotViewerScreen extends Screen {
 
     private int imageAreaHeight() {
         return Math.max(60, this.height - 92);
+    }
+
+    private int hoverMouseX(int mouseX) {
+        return this.panoramaMouseLookCursorGrabbed ? NO_HOVER_MOUSE_POSITION : mouseX;
+    }
+
+    private int hoverMouseY(int mouseY) {
+        return this.panoramaMouseLookCursorGrabbed ? NO_HOVER_MOUSE_POSITION : mouseY;
     }
 
     @NotNull
