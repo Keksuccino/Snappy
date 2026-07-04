@@ -162,6 +162,11 @@
   "panoramica.photo_mode.grid": "Grid [G]: %s",
   "panoramica.photo_mode.grid.desc": "Shows a translucent rule-of-thirds grid over the photo view.",
   "panoramica.photo_mode.vignette": "Vignette: %s",
+  "panoramica.photo_mode.depth_of_field": "Depth of Field: %s",
+  "panoramica.photo_mode.depth_of_field.desc": "Applies a camera-lens depth blur to the photo view.",
+  "panoramica.photo_mode.dof_focus_distance": "Focus Distance: %s",
+  "panoramica.photo_mode.dof_focal_length": "Focal Length: %s",
+  "panoramica.photo_mode.dof_aperture": "Aperture: %s",
   "panoramica.photo_mode.colorize": "Colorize: %s",
   "panoramica.photo_mode.colorize.desc": "Applies a color grading filter to the photo view.",
   "panoramica.photo_mode.colorize.none": "None",
@@ -233,5 +238,7 @@
   "panoramica.photo_mode.screenshot.unavailable": "Photo mode screenshots can only be taken while in a world.",
   "panoramica.photo_mode.blocks": "%s blocks",
   "panoramica.photo_mode.degrees": "%s°",
+  "panoramica.photo_mode.millimeters": "%smm",
+  "panoramica.photo_mode.aperture": "f/%s",
   "panoramica.photo_mode.percent": "%s%%"
 }

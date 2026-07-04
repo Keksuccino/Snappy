@@ -26,6 +26,7 @@ import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.fog.FogData;
 import net.minecraft.client.renderer.state.GameRenderState;
 import net.minecraft.client.renderer.state.level.LevelRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.network.chat.Component;
@@ -56,6 +57,8 @@ import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
+import org.joml.Matrix4fc;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.File;
@@ -79,6 +82,15 @@ public final class PhotoModeManager {
     private static final double SELF_PLAYER_POSITION_OFFSET_RANGE = 5.0D;
     private static final double SELF_PLAYER_ROTATION_OFFSET_RANGE = 180.0D;
     private static final double SELF_PLAYER_TRANSFORM_EPSILON = 1.0E-4D;
+    public static final float DEPTH_OF_FIELD_FOCUS_DISTANCE_MIN = 0.05F;
+    public static final float DEPTH_OF_FIELD_FOCUS_DISTANCE_MAX = 120.0F;
+    public static final float DEPTH_OF_FIELD_FOCUS_DISTANCE_DEFAULT = 8.0F;
+    public static final float DEPTH_OF_FIELD_FOCAL_LENGTH_MIN = 18.0F;
+    public static final float DEPTH_OF_FIELD_FOCAL_LENGTH_MAX = 200.0F;
+    public static final float DEPTH_OF_FIELD_FOCAL_LENGTH_DEFAULT = 50.0F;
+    public static final float DEPTH_OF_FIELD_APERTURE_MIN = 1.2F;
+    public static final float DEPTH_OF_FIELD_APERTURE_MAX = 22.0F;
+    public static final float DEPTH_OF_FIELD_APERTURE_DEFAULT = 2.8F;
     public static final double PHOTO_FOG_MIN_DISTANCE = 8.0D;
     public static final double PHOTO_FOG_MAX_DISTANCE = 512.0D;
     public static final double PHOTO_FOG_DEFAULT_DISTANCE = 64.0D;
@@ -108,6 +120,8 @@ public final class PhotoModeManager {
     private static boolean environmentOverrideScope;
     private static boolean suppressEnvironmentRefreshSounds;
     private static boolean suppressSkyColorOverride;
+    private static final Matrix4f depthOfFieldProjectionMatrix = new Matrix4f();
+    private static boolean depthOfFieldProjectionMatrixAvailable;
     private static int nextVisualLightningEntityId = VISUAL_LIGHTNING_ENTITY_ID_START;
 
     private PhotoModeManager() {
@@ -134,6 +148,7 @@ public final class PhotoModeManager {
         if (active != null) {
             active.clearVisualEffects(Minecraft.getInstance().level);
         }
+        PhotoModeDepthOfFieldRenderer.close();
         session = null;
         environmentOverrideScope = false;
         suppressEnvironmentRefreshSounds = false;
@@ -385,6 +400,34 @@ public final class PhotoModeManager {
                 renderHeight,
                 ARGB.white(alpha / 255.0F)
         );
+    }
+
+    public static void processDepthOfFieldEffect(
+            @NotNull Minecraft minecraft,
+            @NotNull RenderTarget mainRenderTarget,
+            @NotNull GraphicsResourceAllocator resourceAllocator,
+            @NotNull CameraRenderState cameraState
+    ) {
+        Session active = session;
+        if (active == null || minecraft.level == null || !active.depthOfFieldEnabled()) {
+            depthOfFieldProjectionMatrixAvailable = false;
+            return;
+        }
+
+        Matrix4fc projectionMatrix = depthOfFieldProjectionMatrixAvailable ? depthOfFieldProjectionMatrix : cameraState.projectionMatrix;
+        depthOfFieldProjectionMatrixAvailable = false;
+        PhotoModeDepthOfFieldRenderer.process(mainRenderTarget, resourceAllocator, cameraState, projectionMatrix, active);
+    }
+
+    public static void captureDepthOfFieldProjection(@NotNull Matrix4fc projectionMatrix) {
+        Session active = session;
+        if (active == null || !active.depthOfFieldEnabled()) {
+            depthOfFieldProjectionMatrixAvailable = false;
+            return;
+        }
+
+        depthOfFieldProjectionMatrix.set(projectionMatrix);
+        depthOfFieldProjectionMatrixAvailable = true;
     }
 
     @SuppressWarnings("deprecation")
@@ -687,6 +730,10 @@ public final class PhotoModeManager {
         private float brightness;
         private float vignette;
         private PhotoModeColorizePreset colorizePreset = PhotoModeColorizePreset.NONE;
+        private boolean depthOfFieldEnabled;
+        private float depthOfFieldFocusDistance = DEPTH_OF_FIELD_FOCUS_DISTANCE_DEFAULT;
+        private float depthOfFieldFocalLength = DEPTH_OF_FIELD_FOCAL_LENGTH_DEFAULT;
+        private float depthOfFieldAperture = DEPTH_OF_FIELD_APERTURE_DEFAULT;
         private Vec3 selfPlayerPositionOffset = Vec3.ZERO;
         private Vec3 selfPlayerRotationOffset = Vec3.ZERO;
         private boolean hideSelfPlayer;
@@ -762,6 +809,10 @@ public final class PhotoModeManager {
             this.brightness = minecraft.options.gamma().get().floatValue();
             this.vignette = 0.0F;
             this.colorizePreset = PhotoModeColorizePreset.NONE;
+            this.depthOfFieldEnabled = false;
+            this.depthOfFieldFocusDistance = DEPTH_OF_FIELD_FOCUS_DISTANCE_DEFAULT;
+            this.depthOfFieldFocalLength = DEPTH_OF_FIELD_FOCAL_LENGTH_DEFAULT;
+            this.depthOfFieldAperture = DEPTH_OF_FIELD_APERTURE_DEFAULT;
             this.selfPlayerPositionOffset = Vec3.ZERO;
             this.selfPlayerRotationOffset = Vec3.ZERO;
             this.hideSelfPlayer = false;
@@ -1006,6 +1057,38 @@ public final class PhotoModeManager {
 
         public void setColorizePreset(@NotNull PhotoModeColorizePreset colorizePreset) {
             this.colorizePreset = colorizePreset;
+        }
+
+        public boolean depthOfFieldEnabled() {
+            return this.depthOfFieldEnabled;
+        }
+
+        public void setDepthOfFieldEnabled(boolean depthOfFieldEnabled) {
+            this.depthOfFieldEnabled = depthOfFieldEnabled;
+        }
+
+        public float depthOfFieldFocusDistance() {
+            return this.depthOfFieldFocusDistance;
+        }
+
+        public void setDepthOfFieldFocusDistance(float depthOfFieldFocusDistance) {
+            this.depthOfFieldFocusDistance = Mth.clamp(depthOfFieldFocusDistance, DEPTH_OF_FIELD_FOCUS_DISTANCE_MIN, DEPTH_OF_FIELD_FOCUS_DISTANCE_MAX);
+        }
+
+        public float depthOfFieldFocalLength() {
+            return this.depthOfFieldFocalLength;
+        }
+
+        public void setDepthOfFieldFocalLength(float depthOfFieldFocalLength) {
+            this.depthOfFieldFocalLength = Mth.clamp(depthOfFieldFocalLength, DEPTH_OF_FIELD_FOCAL_LENGTH_MIN, DEPTH_OF_FIELD_FOCAL_LENGTH_MAX);
+        }
+
+        public float depthOfFieldAperture() {
+            return this.depthOfFieldAperture;
+        }
+
+        public void setDepthOfFieldAperture(float depthOfFieldAperture) {
+            this.depthOfFieldAperture = Mth.clamp(depthOfFieldAperture, DEPTH_OF_FIELD_APERTURE_MIN, DEPTH_OF_FIELD_APERTURE_MAX);
         }
 
         @NotNull

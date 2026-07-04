@@ -1,5 +1,8 @@
 package de.keksuccino.panoramica.mixin.mixins.common.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.resource.CrossFrameResourcePool;
 import de.keksuccino.panoramica.capture.NormalScreenshotCaptureManager;
@@ -8,7 +11,9 @@ import de.keksuccino.panoramica.photo.PhotoModeManager;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.state.GameRenderState;
+import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Shadow;
@@ -53,6 +58,35 @@ public class MixinGameRenderer {
     private void after_renderLevel_Panoramica(DeltaTracker deltaTracker, CallbackInfo info) {
         PanoramaCaptureManager.afterRenderLevel();
         PhotoModeManager.endEnvironmentOverrideScope();
+    }
+
+    @WrapOperation(
+            method = "renderLevel",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;getBuffer(Lorg/joml/Matrix4f;)Lcom/mojang/blaze3d/buffers/GpuBufferSlice;"
+            )
+    )
+    private GpuBufferSlice wrap_getLevelProjectionBuffer_Panoramica(ProjectionMatrixBuffer instance, Matrix4f projectionMatrix, Operation<GpuBufferSlice> original) {
+        PhotoModeManager.captureDepthOfFieldProjection(projectionMatrix);
+        return original.call(instance, projectionMatrix);
+    }
+
+    @Inject(
+            method = "renderLevel",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/renderer/LevelRenderer;render(Lcom/mojang/blaze3d/resource/GraphicsResourceAllocator;Lnet/minecraft/client/DeltaTracker;ZLnet/minecraft/client/renderer/state/level/CameraRenderState;Lorg/joml/Matrix4fc;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lorg/joml/Vector4f;Z)V",
+                    shift = At.Shift.AFTER
+            )
+    )
+    private void after_renderLevelWorld_Panoramica(DeltaTracker deltaTracker, CallbackInfo info) {
+        PhotoModeManager.processDepthOfFieldEffect(
+                Minecraft.getInstance(),
+                this.mainRenderTarget,
+                this.resourcePool,
+                this.gameRenderState.levelRenderState.cameraRenderState
+        );
     }
 
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;render()V", shift = At.Shift.AFTER))

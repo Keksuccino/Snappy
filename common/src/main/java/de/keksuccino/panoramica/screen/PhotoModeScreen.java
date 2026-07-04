@@ -75,6 +75,12 @@ public class PhotoModeScreen extends Screen {
     private static final double FOG_INTENSITY_SNAP_RADIUS = 0.05D;
     private static final double FOG_DISTANCE_SNAP_RADIUS = 4.0D;
     private static final double FOG_DISTANCE_STEP = 1.0D;
+    private static final double DEPTH_OF_FIELD_FOCUS_DISTANCE_SNAP_RADIUS = 0.05D;
+    private static final double DEPTH_OF_FIELD_FOCUS_DISTANCE_STEP = 0.01D;
+    private static final double DEPTH_OF_FIELD_FOCAL_LENGTH_SNAP_RADIUS = 1.0D;
+    private static final double DEPTH_OF_FIELD_FOCAL_LENGTH_STEP = 1.0D;
+    private static final double DEPTH_OF_FIELD_APERTURE_SNAP_RADIUS = 0.1D;
+    private static final double DEPTH_OF_FIELD_APERTURE_STEP = 0.1D;
 
     private Tab selectedTab = Tab.GENERAL;
     @Nullable
@@ -100,6 +106,14 @@ public class PhotoModeScreen extends Screen {
     private Button weatherButton;
     @Nullable
     private Button colorizeButton;
+    @Nullable
+    private Button depthOfFieldButton;
+    @Nullable
+    private PhotoModeSlider depthOfFieldFocalLengthSlider;
+    @Nullable
+    private PhotoModeSlider depthOfFieldApertureSlider;
+    @Nullable
+    private PhotoModeSlider depthOfFieldFocusDistanceSlider;
     @Nullable
     private PhotoModeColorButton skyColorButton;
     @Nullable
@@ -321,6 +335,10 @@ public class PhotoModeScreen extends Screen {
         this.timeButton = null;
         this.weatherButton = null;
         this.colorizeButton = null;
+        this.depthOfFieldButton = null;
+        this.depthOfFieldFocalLengthSlider = null;
+        this.depthOfFieldApertureSlider = null;
+        this.depthOfFieldFocusDistanceSlider = null;
         this.skyColorButton = null;
         this.fogColorButton = null;
         this.colorPicker = null;
@@ -502,6 +520,61 @@ public class PhotoModeScreen extends Screen {
         if (active == null) {
             return;
         }
+
+        this.depthOfFieldFocalLengthSlider = this.addRenderableWidget(new PhotoModeSlider(
+                x,
+                y,
+                width,
+                CONTROL_HEIGHT,
+                PhotoModeManager.DEPTH_OF_FIELD_FOCAL_LENGTH_MIN,
+                PhotoModeManager.DEPTH_OF_FIELD_FOCAL_LENGTH_MAX,
+                active.depthOfFieldFocalLength(),
+                PhotoModeManager.DEPTH_OF_FIELD_FOCAL_LENGTH_DEFAULT,
+                DEPTH_OF_FIELD_FOCAL_LENGTH_SNAP_RADIUS,
+                DEPTH_OF_FIELD_FOCAL_LENGTH_STEP,
+                value -> active.setDepthOfFieldFocalLength((float) value),
+                value -> optionMessage("panoramica.photo_mode.dof_focal_length", Component.translatable("panoramica.photo_mode.millimeters", String.format(Locale.ROOT, "%.0f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
+        ));
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.depthOfFieldApertureSlider = this.addRenderableWidget(new PhotoModeSlider(
+                x,
+                y,
+                width,
+                CONTROL_HEIGHT,
+                PhotoModeManager.DEPTH_OF_FIELD_APERTURE_MIN,
+                PhotoModeManager.DEPTH_OF_FIELD_APERTURE_MAX,
+                active.depthOfFieldAperture(),
+                PhotoModeManager.DEPTH_OF_FIELD_APERTURE_DEFAULT,
+                DEPTH_OF_FIELD_APERTURE_SNAP_RADIUS,
+                DEPTH_OF_FIELD_APERTURE_STEP,
+                value -> active.setDepthOfFieldAperture((float) value),
+                value -> optionMessage("panoramica.photo_mode.dof_aperture", Component.translatable("panoramica.photo_mode.aperture", String.format(Locale.ROOT, "%.1f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
+        ));
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.depthOfFieldButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+            active.setDepthOfFieldEnabled(!active.depthOfFieldEnabled());
+            this.updateButtonMessages();
+        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.depth_of_field.desc"))).build());
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.depthOfFieldFocusDistanceSlider = this.addRenderableWidget(new PhotoModeSlider(
+                x,
+                y,
+                width,
+                CONTROL_HEIGHT,
+                PhotoModeManager.DEPTH_OF_FIELD_FOCUS_DISTANCE_MIN,
+                PhotoModeManager.DEPTH_OF_FIELD_FOCUS_DISTANCE_MAX,
+                active.depthOfFieldFocusDistance(),
+                PhotoModeManager.DEPTH_OF_FIELD_FOCUS_DISTANCE_DEFAULT,
+                DEPTH_OF_FIELD_FOCUS_DISTANCE_SNAP_RADIUS,
+                DEPTH_OF_FIELD_FOCUS_DISTANCE_STEP,
+                value -> active.setDepthOfFieldFocusDistance((float) value),
+                value -> optionMessage("panoramica.photo_mode.dof_focus_distance", Component.translatable("panoramica.photo_mode.blocks", String.format(Locale.ROOT, "%.2f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
+        ));
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
         this.addRenderableWidget(new PhotoModeSlider(
                 x,
                 y,
@@ -808,6 +881,18 @@ public class PhotoModeScreen extends Screen {
             PhotoModeColorizePreset preset = active.colorizePreset();
             this.colorizeButton.setMessage(optionMessage("panoramica.photo_mode.colorize", Component.translatable(preset.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
         }
+        if (this.depthOfFieldButton != null) {
+            this.depthOfFieldButton.setMessage(optionMessage("panoramica.photo_mode.depth_of_field", enabledValue(active.depthOfFieldEnabled())));
+        }
+        if (this.depthOfFieldFocalLengthSlider != null) {
+            this.depthOfFieldFocalLengthSlider.active = active.depthOfFieldEnabled();
+        }
+        if (this.depthOfFieldApertureSlider != null) {
+            this.depthOfFieldApertureSlider.active = active.depthOfFieldEnabled();
+        }
+        if (this.depthOfFieldFocusDistanceSlider != null) {
+            this.depthOfFieldFocusDistanceSlider.active = active.depthOfFieldEnabled();
+        }
         if (this.skyColorButton != null) {
             this.skyColorButton.setMessage(optionMessage("panoramica.photo_mode.sky_color", Component.literal(PhotoModeColorPicker.formatHexColor(active.skyColorOverride())).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
         }
@@ -1036,7 +1121,7 @@ public class PhotoModeScreen extends Screen {
     private enum Tab {
         GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 138),
         PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
-        EFFECTS(LENS_ICON, "panoramica.photo_mode.tab.effects", 88),
+        EFFECTS(LENS_ICON, "panoramica.photo_mode.tab.effects", 188),
         ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 213);
 
         private final Identifier icon;
