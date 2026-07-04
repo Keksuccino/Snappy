@@ -8,11 +8,14 @@ import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.capture.NormalScreenshotCaptureManager;
 import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager;
 import de.keksuccino.panoramica.photo.PhotoPoseManager.PoseEntry;
+import de.keksuccino.panoramica.platform.Services;
 import de.keksuccino.panoramica.preview.ScreenshotPreviewManager;
 import de.keksuccino.panoramica.screen.PhotoModeScreen;
 import net.minecraft.client.Camera;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -52,7 +55,9 @@ import org.lwjgl.glfw.GLFW;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public final class PhotoModeManager {
@@ -228,6 +233,17 @@ public final class PhotoModeManager {
             return;
         }
         active.zoomFromScroll(minecraft, scrollY);
+    }
+
+    public static void setConfiguredCameraActionKeyState(@NotNull KeyEvent event, boolean down) {
+        Session active = session;
+        if (active == null) {
+            return;
+        }
+        InputConstants.Key key = InputConstants.getKey(event);
+        if (!key.equals(InputConstants.UNKNOWN)) {
+            active.setBoundInputState(key, down);
+        }
     }
 
     public static void returnCameraToPlayer(@NotNull Minecraft minecraft) {
@@ -591,6 +607,7 @@ public final class PhotoModeManager {
         private PhotoModeWeatherPreset weatherPreset;
         @Nullable
         private Identifier poseId;
+        private final Set<InputConstants.Key> activeBoundInputs = new HashSet<>();
         private final VisualLightningStorm visualLightningStorm = new VisualLightningStorm();
         private long visualGameTimeOffsetTicks;
         private int environmentVisualTicksRemaining;
@@ -648,6 +665,7 @@ public final class PhotoModeManager {
             this.visualLightningStorm.clear(minecraft.level);
             this.visualGameTimeOffsetTicks = 0L;
             this.environmentVisualTicksRemaining = 0;
+            this.activeBoundInputs.clear();
             this.paused = canPause(minecraft);
             this.lastMovementMillis = Util.getMillis();
             requestEnvironmentVisualRefresh(minecraft);
@@ -729,10 +747,10 @@ public final class PhotoModeManager {
             float forwardAxis = axis(minecraft, GLFW.GLFW_KEY_W, GLFW.GLFW_KEY_UP, GLFW.GLFW_KEY_S, GLFW.GLFW_KEY_DOWN);
             float strafeAxis = axis(minecraft, GLFW.GLFW_KEY_D, GLFW.GLFW_KEY_RIGHT, GLFW.GLFW_KEY_A, GLFW.GLFW_KEY_LEFT);
             float verticalAxis = 0.0F;
-            if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_SPACE)) {
+            if (isBoundKeyDown(minecraft, minecraft.options.keyJump)) {
                 verticalAxis += 1.0F;
             }
-            if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL) || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_CONTROL)) {
+            if (isBoundKeyDown(minecraft, minecraft.options.keyShift)) {
                 verticalAxis -= 1.0F;
             }
 
@@ -764,6 +782,14 @@ public final class PhotoModeManager {
             this.lastMovementMillis = Util.getMillis();
         }
 
+        private void setBoundInputState(@NotNull InputConstants.Key key, boolean down) {
+            if (down) {
+                this.activeBoundInputs.add(key);
+            } else {
+                this.activeBoundInputs.remove(key);
+            }
+        }
+
         private static float axis(@NotNull Minecraft minecraft, int positiveKey, int positiveFallbackKey, int negativeKey, int negativeFallbackKey) {
             float axis = 0.0F;
             if (InputConstants.isKeyDown(minecraft.getWindow(), positiveKey) || InputConstants.isKeyDown(minecraft.getWindow(), positiveFallbackKey)) {
@@ -777,13 +803,27 @@ public final class PhotoModeManager {
 
         private float movementSpeed(@NotNull Minecraft minecraft) {
             float speed = CAMERA_SPEED_BLOCKS_PER_SECOND;
-            if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
+            if (isBoundKeyDown(minecraft, minecraft.options.keySprint)) {
                 speed *= CAMERA_FAST_SPEED_MULTIPLIER;
             }
             if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_ALT) || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_ALT)) {
                 speed *= CAMERA_SLOW_SPEED_MULTIPLIER;
             }
             return speed;
+        }
+
+        private boolean isBoundKeyDown(@NotNull Minecraft minecraft, @NotNull KeyMapping keyMapping) {
+            InputConstants.Key key = Services.PLATFORM.getKeyMappingKey(keyMapping);
+            if (key.equals(InputConstants.UNKNOWN)) {
+                return false;
+            }
+            if (key.getType() == InputConstants.Type.KEYSYM) {
+                return InputConstants.isKeyDown(minecraft.getWindow(), key.getValue());
+            }
+            if (key.getType() == InputConstants.Type.MOUSE) {
+                return GLFW.glfwGetMouseButton(minecraft.getWindow().handle(), key.getValue()) == GLFW.GLFW_PRESS;
+            }
+            return this.activeBoundInputs.contains(key) || keyMapping.isDown();
         }
 
         public void rotate(double dx, double dy) {

@@ -176,6 +176,10 @@ public class PhotoModeScreen extends Screen {
 
     @Override
     public boolean keyPressed(@NotNull KeyEvent event) {
+        boolean configuredCameraActionKey = this.isConfiguredCameraActionKey(event);
+        if (configuredCameraActionKey) {
+            PhotoModeManager.setConfiguredCameraActionKeyState(event, true);
+        }
         if (isHideGuiKey(event.key())) {
             this.setPhotoModeUiHidden(!PhotoModeManager.isPhotoModeUiHidden());
             return true;
@@ -195,10 +199,18 @@ public class PhotoModeScreen extends Screen {
             this.rebuildPhotoWidgets();
             return true;
         }
-        if (isCameraMovementKey(event.key())) {
+        if (isCameraMovementKey(event.key()) || configuredCameraActionKey) {
             return true;
         }
         return super.keyPressed(event);
+    }
+
+    @Override
+    public boolean keyReleased(@NotNull KeyEvent event) {
+        if (this.isConfiguredCameraActionKey(event)) {
+            PhotoModeManager.setConfiguredCameraActionKeyState(event, false);
+        }
+        return super.keyReleased(event);
     }
 
     @Override
@@ -678,6 +690,15 @@ public class PhotoModeScreen extends Screen {
                 || key == GLFW.GLFW_KEY_DOWN
                 || key == GLFW.GLFW_KEY_LEFT
                 || key == GLFW.GLFW_KEY_RIGHT;
+    }
+
+    private boolean isConfiguredCameraActionKey(@NotNull KeyEvent event) {
+        if (this.minecraft == null) {
+            return false;
+        }
+        return this.minecraft.options.keyJump.matches(event)
+                || this.minecraft.options.keyShift.matches(event)
+                || this.minecraft.options.keySprint.matches(event);
     }
 
     private static boolean isHideGuiKey(int key) {
