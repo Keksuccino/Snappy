@@ -1,0 +1,45 @@
+{
+    "targets": {
+        "swap": {}
+    },
+    "passes": [
+        {
+            "vertex_shader": "minecraft:core/screenquad",
+            "fragment_shader": "panoramica:post/colorize_blue_orange",
+            "inputs": [
+                {
+                    "sampler_name": "In",
+                    "target": "minecraft:main"
+                }
+            ],
+            "output": "swap",
+            "uniforms": {
+                "BlueOrangeConfig": [
+                    { "name": "RedMatrix", "type": "vec4", "value": [ 1.02, -0.03, -0.05, 0.0 ] },
+                    { "name": "GreenMatrix", "type": "vec4", "value": [ -0.03, 0.94, -0.03, 0.0 ] },
+                    { "name": "BlueMatrix", "type": "vec4", "value": [ 0.08, 0.04, 1.10, -0.015 ] },
+                    { "name": "Adjustments", "type": "vec4", "value": [ 1.08, 1.13, 0.96, 0.94 ] },
+                    { "name": "ShadowTone", "type": "vec4", "value": [ 0.08, 0.11, 0.45, 0.76 ] },
+                    { "name": "MidTone", "type": "vec4", "value": [ 1.09, 0.90, 0.89, 0.26 ] },
+                    { "name": "HighlightTone", "type": "vec4", "value": [ 1.38, 1.06, 0.58, 0.66 ] }
+                ]
+            }
+        },
+        {
+            "vertex_shader": "minecraft:core/screenquad",
+            "fragment_shader": "minecraft:post/blit",
+            "inputs": [
+                {
+                    "sampler_name": "In",
+                    "target": "swap"
+                }
+            ],
+            "output": "minecraft:main",
+            "uniforms": {
+                "BlitConfig": [
+                    { "name": "ColorModulate", "type": "vec4", "value": [ 1.0, 1.0, 1.0, 1.0 ] }
+                ]
+            }
+        }
+    ]
+}

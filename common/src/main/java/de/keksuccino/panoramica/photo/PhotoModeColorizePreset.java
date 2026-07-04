@@ -16,6 +16,7 @@ public enum PhotoModeColorizePreset {
     WARM_GLOW("warm_glow", "panoramica.photo_mode.colorize.warm_glow", "photo_colorize_warm_glow"),
     PINK("pink", "panoramica.photo_mode.colorize.pink", "photo_colorize_pink"),
     SUMMER("summer", "panoramica.photo_mode.colorize.summer", "photo_colorize_summer"),
+    BLUE_ORANGE("blue_orange", "panoramica.photo_mode.colorize.blue_orange", "photo_colorize_blue_orange"),
     VINTAGE("vintage", "panoramica.photo_mode.colorize.vintage", "photo_colorize_vintage");
 
     private final String id;
