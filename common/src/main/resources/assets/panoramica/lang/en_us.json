@@ -169,6 +169,12 @@
   "panoramica.photo_mode.pose.victory": "Victory",
   "panoramica.photo_mode.pose.running": "Running",
   "panoramica.photo_mode.pose.looking": "Looking",
+  "panoramica.photo_mode.player_offset_x": "X Offset: %s",
+  "panoramica.photo_mode.player_offset_y": "Y Offset: %s",
+  "panoramica.photo_mode.player_offset_z": "Z Offset: %s",
+  "panoramica.photo_mode.player_rotation_x": "X Rotation: %s",
+  "panoramica.photo_mode.player_rotation_y": "Y Rotation: %s",
+  "panoramica.photo_mode.player_rotation_z": "Z Rotation: %s",
   "panoramica.photo_mode.time": "Time of Day: %s",
   "panoramica.photo_mode.time.desc": "Changes the rendered sky and lighting without changing the world's real time.",
   "panoramica.photo_mode.time.morning": "Morning",
@@ -202,6 +208,7 @@
   "panoramica.photo_mode.confirm.leave.message": "Close photo mode and return to normal gameplay.",
   "panoramica.photo_mode.confirm.leave.confirm": "Leave",
   "panoramica.photo_mode.screenshot.unavailable": "Photo mode screenshots can only be taken while in a world.",
+  "panoramica.photo_mode.blocks": "%s blocks",
   "panoramica.photo_mode.degrees": "%s°",
   "panoramica.photo_mode.percent": "%s%%"
 }

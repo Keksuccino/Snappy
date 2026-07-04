@@ -25,6 +25,8 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Locale;
+import java.util.function.DoubleConsumer;
+import java.util.function.DoubleFunction;
 
 public class PhotoModeScreen extends Screen {
 
@@ -55,6 +57,12 @@ public class PhotoModeScreen extends Screen {
     private static final double FOV_SNAP_RADIUS = 2.0D;
     private static final double ROLL_SNAP_RADIUS = 5.0D;
     private static final double VIGNETTE_SNAP_RADIUS = 0.05D;
+    private static final double PLAYER_POSITION_OFFSET_MIN = -20.0D;
+    private static final double PLAYER_POSITION_OFFSET_MAX = 20.0D;
+    private static final double PLAYER_POSITION_OFFSET_SNAP_RADIUS = 0.5D;
+    private static final double PLAYER_ROTATION_OFFSET_MIN = -180.0D;
+    private static final double PLAYER_ROTATION_OFFSET_MAX = 180.0D;
+    private static final double PLAYER_ROTATION_OFFSET_SNAP_RADIUS = 5.0D;
 
     private Tab selectedTab = Tab.GENERAL;
     @Nullable
@@ -309,6 +317,84 @@ public class PhotoModeScreen extends Screen {
             active.cyclePose();
             this.updateButtonMessages();
         }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.pose.desc"))).build());
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.addPlayerTransformSlider(
+                x,
+                y,
+                width,
+                PLAYER_POSITION_OFFSET_MIN,
+                PLAYER_POSITION_OFFSET_MAX,
+                active.selfPlayerPositionOffsetX(),
+                PLAYER_POSITION_OFFSET_SNAP_RADIUS,
+                active::setSelfPlayerPositionOffsetX,
+                value -> optionMessage("panoramica.photo_mode.player_offset_x", this.blockValue(value))
+        );
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.addPlayerTransformSlider(
+                x,
+                y,
+                width,
+                PLAYER_POSITION_OFFSET_MIN,
+                PLAYER_POSITION_OFFSET_MAX,
+                active.selfPlayerPositionOffsetY(),
+                PLAYER_POSITION_OFFSET_SNAP_RADIUS,
+                active::setSelfPlayerPositionOffsetY,
+                value -> optionMessage("panoramica.photo_mode.player_offset_y", this.blockValue(value))
+        );
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.addPlayerTransformSlider(
+                x,
+                y,
+                width,
+                PLAYER_POSITION_OFFSET_MIN,
+                PLAYER_POSITION_OFFSET_MAX,
+                active.selfPlayerPositionOffsetZ(),
+                PLAYER_POSITION_OFFSET_SNAP_RADIUS,
+                active::setSelfPlayerPositionOffsetZ,
+                value -> optionMessage("panoramica.photo_mode.player_offset_z", this.blockValue(value))
+        );
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.addPlayerTransformSlider(
+                x,
+                y,
+                width,
+                PLAYER_ROTATION_OFFSET_MIN,
+                PLAYER_ROTATION_OFFSET_MAX,
+                active.selfPlayerRotationOffsetX(),
+                PLAYER_ROTATION_OFFSET_SNAP_RADIUS,
+                active::setSelfPlayerRotationOffsetX,
+                value -> optionMessage("panoramica.photo_mode.player_rotation_x", this.degreeValue(value))
+        );
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.addPlayerTransformSlider(
+                x,
+                y,
+                width,
+                PLAYER_ROTATION_OFFSET_MIN,
+                PLAYER_ROTATION_OFFSET_MAX,
+                active.selfPlayerRotationOffsetY(),
+                PLAYER_ROTATION_OFFSET_SNAP_RADIUS,
+                active::setSelfPlayerRotationOffsetY,
+                value -> optionMessage("panoramica.photo_mode.player_rotation_y", this.degreeValue(value))
+        );
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.addPlayerTransformSlider(
+                x,
+                y,
+                width,
+                PLAYER_ROTATION_OFFSET_MIN,
+                PLAYER_ROTATION_OFFSET_MAX,
+                active.selfPlayerRotationOffsetZ(),
+                PLAYER_ROTATION_OFFSET_SNAP_RADIUS,
+                active::setSelfPlayerRotationOffsetZ,
+                value -> optionMessage("panoramica.photo_mode.player_rotation_z", this.degreeValue(value))
+        );
     }
 
     private void addEffectsControls(int y) {
@@ -398,6 +484,32 @@ public class PhotoModeScreen extends Screen {
             this.confirmation = Confirmation.LEAVE;
             this.rebuildPhotoWidgets();
         }, Component.translatable("panoramica.photo_mode.leave"));
+    }
+
+    private void addPlayerTransformSlider(
+            int x,
+            int y,
+            int width,
+            double minValue,
+            double maxValue,
+            double currentValue,
+            double snapRadius,
+            @NotNull DoubleConsumer valueConsumer,
+            @NotNull DoubleFunction<Component> messageFactory
+    ) {
+        this.addRenderableWidget(new PhotoModeSlider(
+                x,
+                y,
+                width,
+                CONTROL_HEIGHT,
+                minValue,
+                maxValue,
+                currentValue,
+                0.0D,
+                snapRadius,
+                valueConsumer,
+                messageFactory
+        ));
     }
 
     private void addActionButton(@NotNull Component message, int x, int y, int width, @NotNull Button.OnPress onPress, @NotNull Component tooltip) {
@@ -609,9 +721,21 @@ public class PhotoModeScreen extends Screen {
         return Component.translatable(pose == null ? "panoramica.photo_mode.pose.none" : pose.nameKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR));
     }
 
+    @NotNull
+    private Component blockValue(double value) {
+        return Component.translatable("panoramica.photo_mode.blocks", String.format(Locale.ROOT, "%.1f", value))
+                .withStyle(Style.EMPTY.withColor(VALUE_COLOR));
+    }
+
+    @NotNull
+    private Component degreeValue(double value) {
+        return Component.translatable("panoramica.photo_mode.degrees", String.format(Locale.ROOT, "%.0f", value))
+                .withStyle(Style.EMPTY.withColor(VALUE_COLOR));
+    }
+
     private enum Tab {
         GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 113),
-        PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 113),
+        PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
         EFFECTS(LENS_ICON, "panoramica.photo_mode.tab.effects", 63),
         ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 113);
 

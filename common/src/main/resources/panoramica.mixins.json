@@ -3,6 +3,7 @@
   "package": "de.keksuccino.panoramica.mixin.mixins.common",
   "compatibilityLevel": "JAVA_17",
   "client": [
+    "client.MixinAvatarRenderer",
     "client.MixinCamera",
     "client.MixinCubeMap",
     "client.MixinGameRenderer",

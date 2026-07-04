@@ -2,6 +2,8 @@ package de.keksuccino.panoramica.photo;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.capture.NormalScreenshotCaptureManager;
 import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager;
@@ -23,6 +25,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.ARGB;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.Util;
@@ -32,6 +35,7 @@ import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
@@ -62,6 +66,9 @@ public final class PhotoModeManager {
     private static final double SCROLL_ZOOM_SECONDS_PER_NOTCH = 0.08D;
     private static final double MAX_SCROLL_ZOOM_NOTCHES = 4.0D;
     private static final double MAX_FRAME_SECONDS = 0.1D;
+    private static final double SELF_PLAYER_POSITION_OFFSET_RANGE = 20.0D;
+    private static final double SELF_PLAYER_ROTATION_OFFSET_RANGE = 180.0D;
+    private static final double SELF_PLAYER_TRANSFORM_EPSILON = 1.0E-4D;
     private static final int ENVIRONMENT_FAST_FORWARD_TICKS = 40;
     private static final int ENVIRONMENT_FOLLOWUP_TICKS = 5;
     private static final int VISUAL_LIGHTNING_ENTITY_ID_START = Integer.MIN_VALUE + 4096;
@@ -323,8 +330,53 @@ public final class PhotoModeManager {
             return false;
         }
 
-        boolean self = entity.getId() == minecraft.player.getId();
+        boolean self = isSelfPlayerEntity(minecraft, entity);
         return self ? active.hideSelfPlayer() : active.hideOtherPlayers();
+    }
+
+    public static boolean shouldForceRenderSelfPlayerEntity(@NotNull Entity entity) {
+        Session active = session;
+        return active != null && !active.hideSelfPlayer() && isSelfPlayerEntity(Minecraft.getInstance(), entity);
+    }
+
+    public static void applySelfPlayerRenderStateOverrides(@NotNull Entity entity, @NotNull AvatarRenderState state) {
+        Session active = session;
+        if (active == null || !isSelfPlayerEntity(Minecraft.getInstance(), entity)) {
+            return;
+        }
+
+        Vec3 offset = active.selfPlayerPositionOffset();
+        if (hasSelfPlayerTransform(offset)) {
+            state.x += offset.x;
+            state.y += offset.y;
+            state.z += offset.z;
+            state.distanceToCameraSq = active.position().distanceToSqr(state.x, state.y, state.z);
+            state.lightCoords = lightCoordsAt(entity, state.x, state.y, state.z);
+        }
+    }
+
+    public static void applySelfPlayerModelRotation(@NotNull AvatarRenderState state, @NotNull PoseStack poseStack, float entityScale) {
+        Session active = session;
+        Minecraft minecraft = Minecraft.getInstance();
+        if (active == null || minecraft.player == null || state.id != minecraft.player.getId()) {
+            return;
+        }
+
+        Vec3 rotation = active.selfPlayerRotationOffset();
+        if (!hasSelfPlayerTransform(rotation)) {
+            return;
+        }
+
+        float pivotY = entityScale == 0.0F ? 0.0F : state.boundingBoxHeight / 2.0F / entityScale;
+        if (Math.abs(rotation.x) > SELF_PLAYER_TRANSFORM_EPSILON) {
+            poseStack.rotateAround(Axis.XP.rotationDegrees((float) rotation.x), 0.0F, pivotY, 0.0F);
+        }
+        if (Math.abs(rotation.y) > SELF_PLAYER_TRANSFORM_EPSILON) {
+            poseStack.rotateAround(Axis.YP.rotationDegrees((float) rotation.y), 0.0F, pivotY, 0.0F);
+        }
+        if (Math.abs(rotation.z) > SELF_PLAYER_TRANSFORM_EPSILON) {
+            poseStack.rotateAround(Axis.ZP.rotationDegrees((float) rotation.z), 0.0F, pivotY, 0.0F);
+        }
     }
 
     public static void applySelfPose(@NotNull PlayerModel model, @NotNull AvatarRenderState state) {
@@ -420,6 +472,27 @@ public final class PhotoModeManager {
         ), net.minecraft.core.BlockPos.containing(hitLocation));
     }
 
+    private static boolean isSelfPlayerEntity(@NotNull Minecraft minecraft, @NotNull Entity entity) {
+        return minecraft.player != null && entity.getId() == minecraft.player.getId();
+    }
+
+    private static boolean hasSelfPlayerTransform(@NotNull Vec3 transform) {
+        return Math.abs(transform.x) > SELF_PLAYER_TRANSFORM_EPSILON
+                || Math.abs(transform.y) > SELF_PLAYER_TRANSFORM_EPSILON
+                || Math.abs(transform.z) > SELF_PLAYER_TRANSFORM_EPSILON;
+    }
+
+    private static double clampFinite(double value, double minValue, double maxValue) {
+        return Double.isFinite(value) ? Mth.clamp(value, minValue, maxValue) : 0.0D;
+    }
+
+    private static int lightCoordsAt(@NotNull Entity entity, double x, double y, double z) {
+        BlockPos blockPos = BlockPos.containing(x, y, z);
+        int blockLight = entity.isOnFire() ? 15 : entity.level().getBrightness(LightLayer.BLOCK, blockPos);
+        int skyLight = entity.level().getBrightness(LightLayer.SKY, blockPos);
+        return LightCoordsUtil.pack(blockLight, skyLight);
+    }
+
     private static void requestEnvironmentVisualRefresh(@NotNull Minecraft minecraft) {
         Session active = session;
         if (active == null) {
@@ -507,6 +580,8 @@ public final class PhotoModeManager {
         private float roll;
         private float fieldOfView;
         private float vignette;
+        private Vec3 selfPlayerPositionOffset = Vec3.ZERO;
+        private Vec3 selfPlayerRotationOffset = Vec3.ZERO;
         private boolean hideSelfPlayer;
         private boolean hideOtherPlayers;
         private boolean paused;
@@ -561,6 +636,8 @@ public final class PhotoModeManager {
             this.roll = 0.0F;
             this.fieldOfView = minecraft.options.fov().get().floatValue();
             this.vignette = 0.0F;
+            this.selfPlayerPositionOffset = Vec3.ZERO;
+            this.selfPlayerRotationOffset = Vec3.ZERO;
             this.hideSelfPlayer = false;
             this.hideOtherPlayers = false;
             this.photoModeUiHidden = false;
@@ -759,6 +836,88 @@ public final class PhotoModeManager {
 
         public void setVignette(float vignette) {
             this.vignette = Mth.clamp(vignette, 0.0F, 1.0F);
+        }
+
+        @NotNull
+        public Vec3 selfPlayerPositionOffset() {
+            return this.selfPlayerPositionOffset;
+        }
+
+        public double selfPlayerPositionOffsetX() {
+            return this.selfPlayerPositionOffset.x;
+        }
+
+        public void setSelfPlayerPositionOffsetX(double x) {
+            this.selfPlayerPositionOffset = new Vec3(
+                    clampFinite(x, -SELF_PLAYER_POSITION_OFFSET_RANGE, SELF_PLAYER_POSITION_OFFSET_RANGE),
+                    this.selfPlayerPositionOffset.y,
+                    this.selfPlayerPositionOffset.z
+            );
+        }
+
+        public double selfPlayerPositionOffsetY() {
+            return this.selfPlayerPositionOffset.y;
+        }
+
+        public void setSelfPlayerPositionOffsetY(double y) {
+            this.selfPlayerPositionOffset = new Vec3(
+                    this.selfPlayerPositionOffset.x,
+                    clampFinite(y, -SELF_PLAYER_POSITION_OFFSET_RANGE, SELF_PLAYER_POSITION_OFFSET_RANGE),
+                    this.selfPlayerPositionOffset.z
+            );
+        }
+
+        public double selfPlayerPositionOffsetZ() {
+            return this.selfPlayerPositionOffset.z;
+        }
+
+        public void setSelfPlayerPositionOffsetZ(double z) {
+            this.selfPlayerPositionOffset = new Vec3(
+                    this.selfPlayerPositionOffset.x,
+                    this.selfPlayerPositionOffset.y,
+                    clampFinite(z, -SELF_PLAYER_POSITION_OFFSET_RANGE, SELF_PLAYER_POSITION_OFFSET_RANGE)
+            );
+        }
+
+        @NotNull
+        public Vec3 selfPlayerRotationOffset() {
+            return this.selfPlayerRotationOffset;
+        }
+
+        public double selfPlayerRotationOffsetX() {
+            return this.selfPlayerRotationOffset.x;
+        }
+
+        public void setSelfPlayerRotationOffsetX(double x) {
+            this.selfPlayerRotationOffset = new Vec3(
+                    clampFinite(x, -SELF_PLAYER_ROTATION_OFFSET_RANGE, SELF_PLAYER_ROTATION_OFFSET_RANGE),
+                    this.selfPlayerRotationOffset.y,
+                    this.selfPlayerRotationOffset.z
+            );
+        }
+
+        public double selfPlayerRotationOffsetY() {
+            return this.selfPlayerRotationOffset.y;
+        }
+
+        public void setSelfPlayerRotationOffsetY(double y) {
+            this.selfPlayerRotationOffset = new Vec3(
+                    this.selfPlayerRotationOffset.x,
+                    clampFinite(y, -SELF_PLAYER_ROTATION_OFFSET_RANGE, SELF_PLAYER_ROTATION_OFFSET_RANGE),
+                    this.selfPlayerRotationOffset.z
+            );
+        }
+
+        public double selfPlayerRotationOffsetZ() {
+            return this.selfPlayerRotationOffset.z;
+        }
+
+        public void setSelfPlayerRotationOffsetZ(double z) {
+            this.selfPlayerRotationOffset = new Vec3(
+                    this.selfPlayerRotationOffset.x,
+                    this.selfPlayerRotationOffset.y,
+                    clampFinite(z, -SELF_PLAYER_ROTATION_OFFSET_RANGE, SELF_PLAYER_ROTATION_OFFSET_RANGE)
+            );
         }
 
         public boolean hideSelfPlayer() {

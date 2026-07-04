@@ -16,6 +16,8 @@ public class MixinLevelExtractor {
     private void before_isEntityVisible_Panoramica(Entity entity, Frustum frustum, double camX, double camY, double camZ, CallbackInfoReturnable<Boolean> info) {
         if (PhotoModeManager.shouldHidePlayerEntity(entity)) {
             info.setReturnValue(false);
+        } else if (PhotoModeManager.shouldForceRenderSelfPlayerEntity(entity)) {
+            info.setReturnValue(true);
         }
     }
 
