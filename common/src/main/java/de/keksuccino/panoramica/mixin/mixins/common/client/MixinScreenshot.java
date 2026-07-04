@@ -8,6 +8,7 @@ import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager;
 import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager.CaptureContext;
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.capture.NormalScreenshotCaptureManager;
+import de.keksuccino.panoramica.photo.PhotoModeManager;
 import de.keksuccino.panoramica.preview.ScreenshotPreviewManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -40,6 +41,11 @@ public class MixinScreenshot {
         Consumer<Component> effectiveCallback = callback;
         if (!Panoramica.getOptions().areScreenshotChatMessagesEnabled()) {
             effectiveCallback = (Consumer<Component>) message -> minecraft.execute(() -> ScreenshotPreviewManager.acceptDebugChatMessage(message));
+        }
+
+        if (PhotoModeManager.isActive()) {
+            PhotoModeManager.requestScreenshot(minecraft, workDir, target);
+            return;
         }
 
         if (Panoramica.getOptions().shouldHideHudInNormalScreenshots()) {

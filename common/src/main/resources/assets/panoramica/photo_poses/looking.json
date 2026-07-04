@@ -1,0 +1,20 @@
+{
+  "name": "panoramica.photo_mode.pose.looking",
+  "parts": {
+    "head": {
+      "x": -8.0
+    },
+    "right_arm": {
+      "x": -108.0,
+      "y": -24.0,
+      "z": 72.0
+    },
+    "left_arm": {
+      "x": 18.0,
+      "z": -5.0
+    },
+    "body": {
+      "y": 4.0
+    }
+  }
+}

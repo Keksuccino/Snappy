@@ -10,6 +10,7 @@
     "client.MixinGuiRenderer",
     "client.MixinHud",
     "client.MixinKeyMapping_Category",
+    "client.MixinLightmapRenderStateExtractor",
     "client.MixinMinecraft",
     "client.MixinMouseHandler",
     "client.MixinPanorama",
@@ -17,7 +18,12 @@
     "client.MixinScreenshot",
     "client.MixinTitleScreen",
     "client.AccessorMixinGameRenderer",
-    "client.AccessorMixinLevelRenderer"
+    "client.AccessorMixinLevelRenderer",
+    "client.MixinClientClockManager",
+    "client.MixinClientLevelData",
+    "client.MixinLevel",
+    "client.MixinLevelExtractor",
+    "client.MixinPlayerModel"
   ],
   "mixins": [
   ],

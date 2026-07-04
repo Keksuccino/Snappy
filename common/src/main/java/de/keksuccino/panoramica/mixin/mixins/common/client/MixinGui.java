@@ -4,11 +4,14 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import de.keksuccino.panoramica.capture.NormalScreenshotCaptureManager;
+import de.keksuccino.panoramica.photo.PhotoModeManager;
 import de.keksuccino.panoramica.preview.ScreenshotPreviewManager;
 import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.Hud;
+import net.minecraft.client.gui.components.toasts.ToastManager;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Final;
@@ -22,25 +25,58 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinGui {
 
     @Shadow @Final private GuiRenderState guiRenderState;
+    @Shadow @Final private Minecraft minecraft;
 
     @Inject(method = "extractRenderState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/state/gui/GuiRenderState;reset()V", shift = At.Shift.AFTER))
     private void after_resetGuiRenderState_Panoramica(DeltaTracker deltaTracker, boolean shouldRenderLevel, boolean resourcesLoaded, CallbackInfo info) {
-        if (NormalScreenshotCaptureManager.shouldForceHideHud()) {
+        if (NormalScreenshotCaptureManager.shouldForceHideHud() || PhotoModeManager.shouldHideHud()) {
             this.guiRenderState.isHudHidden = true;
         }
     }
 
     @WrapOperation(method = "extractRenderState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Hud;extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/DeltaTracker;)V"))
     private void wrap_extractHud_Panoramica(Hud instance, GuiGraphicsExtractor graphics, DeltaTracker deltaTracker, Operation<Void> original) {
-        if (!NormalScreenshotCaptureManager.shouldForceHideHud()) {
+        if (!PhotoModeManager.shouldHideAllNonPhotoGui()) {
             original.call(instance, graphics, deltaTracker);
         }
     }
 
     @WrapOperation(method = "extractRenderState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Hud;extractSavingIndicator(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/DeltaTracker;)V"))
     private void wrap_extractSavingIndicator_Panoramica(Hud instance, GuiGraphicsExtractor graphics, DeltaTracker deltaTracker, Operation<Void> original) {
-        if (!NormalScreenshotCaptureManager.shouldForceHideHud()) {
+        if (!PhotoModeManager.shouldHideAllNonPhotoGui()) {
             original.call(instance, graphics, deltaTracker);
+        }
+    }
+
+    @Inject(method = "extractRenderState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;extractRenderStateWithTooltipAndSubtitles(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V", shift = At.Shift.BEFORE))
+    private void before_extractScreen_Panoramica(
+            DeltaTracker deltaTracker,
+            boolean shouldRenderLevel,
+            boolean resourcesLoaded,
+            CallbackInfo info,
+            @Local @NotNull GuiGraphicsExtractor graphics
+    ) {
+        PhotoModeManager.extractVignette(graphics, this.minecraft.getWindow().getGuiScaledWidth(), this.minecraft.getWindow().getGuiScaledHeight());
+    }
+
+    @WrapOperation(method = "extractRenderState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/toasts/ToastManager;extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;)V"))
+    private void wrap_extractToastRenderState_Panoramica(ToastManager instance, GuiGraphicsExtractor graphics, Operation<Void> original) {
+        if (!PhotoModeManager.shouldHideAllNonPhotoGui()) {
+            original.call(instance, graphics);
+        }
+    }
+
+    @WrapOperation(method = "extractRenderState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Hud;extractDebugOverlay(Lnet/minecraft/client/gui/GuiGraphicsExtractor;)V"))
+    private void wrap_extractDebugOverlay_Panoramica(Hud instance, GuiGraphicsExtractor graphics, Operation<Void> original) {
+        if (!PhotoModeManager.shouldHideAllNonPhotoGui()) {
+            original.call(instance, graphics);
+        }
+    }
+
+    @WrapOperation(method = "extractRenderState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Hud;extractDeferredSubtitles()V"))
+    private void wrap_extractDeferredSubtitles_Panoramica(Hud instance, Operation<Void> original) {
+        if (!PhotoModeManager.shouldHideAllNonPhotoGui()) {
+            original.call(instance);
         }
     }
 
@@ -52,7 +88,9 @@ public class MixinGui {
             CallbackInfo info,
             @Local @NotNull GuiGraphicsExtractor graphics
     ) {
-        ScreenshotPreviewManager.extractRenderState(graphics, shouldRenderLevel);
+        if (!PhotoModeManager.shouldHideAllNonPhotoGui()) {
+            ScreenshotPreviewManager.extractRenderState(graphics, shouldRenderLevel);
+        }
     }
 
 }

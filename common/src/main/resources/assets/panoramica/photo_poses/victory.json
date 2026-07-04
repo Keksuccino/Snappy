@@ -1,0 +1,26 @@
+{
+  "name": "panoramica.photo_mode.pose.victory",
+  "parts": {
+    "head": {
+      "x": -6.0
+    },
+    "right_arm": {
+      "x": -145.0,
+      "y": 8.0,
+      "z": 25.0
+    },
+    "left_arm": {
+      "x": -142.0,
+      "y": -8.0,
+      "z": -25.0
+    },
+    "right_leg": {
+      "x": -6.0,
+      "z": 4.0
+    },
+    "left_leg": {
+      "x": 6.0,
+      "z": -4.0
+    }
+  }
+}

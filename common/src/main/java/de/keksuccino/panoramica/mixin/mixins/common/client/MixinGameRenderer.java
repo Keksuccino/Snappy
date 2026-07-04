@@ -2,6 +2,7 @@ package de.keksuccino.panoramica.mixin.mixins.common.client;
 
 import de.keksuccino.panoramica.capture.NormalScreenshotCaptureManager;
 import de.keksuccino.panoramica.capture.PanoramaCaptureManager;
+import de.keksuccino.panoramica.photo.PhotoModeManager;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.state.GameRenderState;
@@ -27,9 +28,26 @@ public class MixinGameRenderer {
         PanoramaCaptureManager.overrideWindowRenderState(this.gameRenderState.windowRenderState);
     }
 
+    @Inject(method = "extract", at = @At("HEAD"))
+    private void before_extract_Panoramica(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo info) {
+        PhotoModeManager.beginEnvironmentOverrideScope();
+    }
+
+    @Inject(method = "extract", at = @At("TAIL"))
+    private void after_extract_Panoramica(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo info) {
+        PhotoModeManager.afterExtractRenderState(this.gameRenderState);
+        PhotoModeManager.endEnvironmentOverrideScope();
+    }
+
+    @Inject(method = "renderLevel", at = @At("HEAD"))
+    private void before_renderLevel_Panoramica(DeltaTracker deltaTracker, CallbackInfo info) {
+        PhotoModeManager.beginEnvironmentOverrideScope();
+    }
+
     @Inject(method = "renderLevel", at = @At("TAIL"))
     private void after_renderLevel_Panoramica(DeltaTracker deltaTracker, CallbackInfo info) {
         PanoramaCaptureManager.afterRenderLevel();
+        PhotoModeManager.endEnvironmentOverrideScope();
     }
 
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;render()V", shift = At.Shift.AFTER))

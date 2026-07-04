@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import de.keksuccino.panoramica.capture.NormalScreenshotCaptureManager;
 import de.keksuccino.panoramica.capture.PanoramaCaptureManager;
+import de.keksuccino.panoramica.photo.PhotoModeManager;
 import de.keksuccino.panoramica.preview.ScreenshotPreviewManager;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -11,6 +12,10 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.PacketProcessor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -20,9 +25,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Minecraft.class)
 public class MixinMinecraft {
 
+    @Shadow public HitResult hitResult;
+    @Shadow public Entity crosshairPickEntity;
+
     @Inject(method = "tick", at = @At("TAIL"))
     private void after_tick_Panoramica(CallbackInfo info) {
         PanoramaCaptureManager.clientTick((Minecraft) (Object) this);
+        PhotoModeManager.clientTick((Minecraft) (Object) this);
         ScreenshotPreviewManager.clientTick();
     }
 
@@ -76,7 +85,19 @@ public class MixinMinecraft {
     @Inject(method = "close", at = @At("HEAD"))
     private void before_close_Panoramica(CallbackInfo info) {
         NormalScreenshotCaptureManager.close();
+        PhotoModeManager.close();
         ScreenshotPreviewManager.close();
+    }
+
+    @Inject(method = "pick", at = @At("TAIL"))
+    private void after_pick_Panoramica(float partialTicks, CallbackInfo info) {
+        HitResult photoHitResult = PhotoModeManager.pick((Minecraft) (Object) this);
+        if (photoHitResult == null) {
+            return;
+        }
+
+        this.hitResult = photoHitResult;
+        this.crosshairPickEntity = photoHitResult instanceof EntityHitResult entityHitResult ? entityHitResult.getEntity() : null;
     }
 
     @Inject(method = "showDebugChat", at = @At("HEAD"))
