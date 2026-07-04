@@ -529,9 +529,7 @@ public final class PhotoModeManager {
 
         PhotoPose pose = active.activePose();
         if (pose != null) {
-            if (active.hasPoseMakerPose()) {
-                model.resetPose();
-            }
+            model.resetPose();
             pose.apply(PhotoPose.PlayerParts.fromModel(model));
         }
     }
@@ -1296,10 +1294,6 @@ public final class PhotoModeManager {
 
         public void setPoseMakerPose(@Nullable PhotoPose poseMakerPose) {
             this.poseMakerPose = poseMakerPose;
-        }
-
-        private boolean hasPoseMakerPose() {
-            return this.poseMakerPose != null;
         }
 
         private int overrideSkyColor(int sampledSkyColor) {

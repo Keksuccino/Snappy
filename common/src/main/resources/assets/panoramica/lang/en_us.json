@@ -183,7 +183,7 @@
   "panoramica.photo_mode.colorize.vintage": "Vintage",
   "panoramica.photo_mode.hide_self": "Self-Player: %s",
   "panoramica.photo_mode.hide_others": "Other Players: %s",
-  "panoramica.photo_mode.pose": "Player Body Pose: %s",
+  "panoramica.photo_mode.pose": "Player Pose: %s",
   "panoramica.photo_mode.pose.desc": "Select a pose for your player.",
   "panoramica.photo_mode.pose.none": "None",
   "panoramica.photo_mode.pose.chill": "Chill",
