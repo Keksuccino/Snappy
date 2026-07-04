@@ -19,6 +19,8 @@ import java.util.Locale;
 public final class PhotoPoseExporter {
 
     private static final String JSON_EXTENSION = ".json";
+    private static final String JSON_FILE_FILTER_PATTERN = "*" + JSON_EXTENSION;
+    private static final String JSON_UTI_FILTER_PATTERN = "*.public.json";
 
     private PhotoPoseExporter() {
     }
@@ -48,24 +50,63 @@ public final class PhotoPoseExporter {
     }
 
     @Nullable
+    public static PhotoPose loadWithNativeDialog(@NotNull Minecraft minecraft) {
+        @Nullable Path selectedPath = chooseOpenPath(minecraft);
+        if (selectedPath == null) {
+            minecraft.showDebugChat(Component.translatable("panoramica.photo_mode.pose_maker.load.cancelled"));
+            return null;
+        }
+
+        try {
+            PhotoPose pose = PhotoPoseManager.fromJsonString(Files.readString(selectedPath, StandardCharsets.UTF_8));
+            minecraft.showDebugChat(Component.translatable("panoramica.photo_mode.pose_maker.load.success", selectedPath.toAbsolutePath().toString()));
+            return pose;
+        } catch (Exception ex) {
+            Panoramica.getLogger().warn("[PANORAMICA] Could not load photo pose '{}'.", selectedPath, ex);
+            minecraft.showDebugChat(Component.translatable("panoramica.photo_mode.pose_maker.load.failure", ex.getMessage()));
+            return null;
+        }
+    }
+
+    @Nullable
     private static Path chooseSavePath(@NotNull Minecraft minecraft, @NotNull PhotoPose pose) {
         String defaultPath = minecraft.gameDirectory.toPath()
                 .resolve(suggestedFileName(pose.nameKey()))
                 .toAbsolutePath()
                 .toString();
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            PointerBuffer filters = stack.mallocPointer(1);
-            filters.put(stack.UTF8("*" + JSON_EXTENSION));
-            filters.flip();
-
             @Nullable String selected = TinyFileDialogs.tinyfd_saveFileDialog(
                     Component.translatable("panoramica.photo_mode.pose_maker.save_dialog").getString(),
                     defaultPath,
-                    filters,
+                    jsonFilterPatterns(stack),
                     Component.translatable("panoramica.photo_mode.pose_maker.json_files").getString()
             );
             return selected == null || selected.isBlank() ? null : Path.of(selected);
         }
+    }
+
+    @Nullable
+    private static Path chooseOpenPath(@NotNull Minecraft minecraft) {
+        String defaultPath = minecraft.gameDirectory.toPath().toAbsolutePath().toString();
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            @Nullable String selected = TinyFileDialogs.tinyfd_openFileDialog(
+                    Component.translatable("panoramica.photo_mode.pose_maker.load_dialog").getString(),
+                    defaultPath,
+                    jsonFilterPatterns(stack),
+                    Component.translatable("panoramica.photo_mode.pose_maker.json_files").getString(),
+                    false
+            );
+            return selected == null || selected.isBlank() ? null : Path.of(selected);
+        }
+    }
+
+    @NotNull
+    private static PointerBuffer jsonFilterPatterns(@NotNull MemoryStack stack) {
+        PointerBuffer filters = stack.mallocPointer(2);
+        filters.put(stack.UTF8(JSON_FILE_FILTER_PATTERN));
+        filters.put(stack.UTF8(JSON_UTI_FILTER_PATTERN));
+        filters.flip();
+        return filters;
     }
 
     @NotNull

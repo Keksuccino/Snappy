@@ -925,10 +925,13 @@ public class PhotoModeScreen extends Screen {
         }
 
         int buttonY = this.poseMakerPanelY + this.poseMakerPanelHeight - PANEL_PADDING - CONTROL_HEIGHT;
-        int resetButtonY = buttonY - POSE_MAKER_BUTTON_GAP - CONTROL_HEIGHT;
+        int secondaryButtonY = buttonY - POSE_MAKER_BUTTON_GAP - CONTROL_HEIGHT;
         int buttonWidth = (contentWidth - POSE_MAKER_BUTTON_GAP) / 2;
         this.addRenderableWidget(Button.builder(Component.translatable("panoramica.photo_mode.pose_maker.reset"), button -> this.resetPoseMakerSliders())
-                .bounds(contentX, resetButtonY, contentWidth, CONTROL_HEIGHT)
+                .bounds(contentX, secondaryButtonY, buttonWidth, CONTROL_HEIGHT)
+                .build());
+        this.addRenderableWidget(Button.builder(Component.translatable("panoramica.photo_mode.pose_maker.load"), button -> this.loadPoseMakerPose())
+                .bounds(contentX + buttonWidth + POSE_MAKER_BUTTON_GAP, secondaryButtonY, contentWidth - buttonWidth - POSE_MAKER_BUTTON_GAP, CONTROL_HEIGHT)
                 .build());
         this.addRenderableWidget(Button.builder(Component.translatable("panoramica.photo_mode.pose_maker.save"), button -> {
             if (this.minecraft != null) {
@@ -1356,6 +1359,30 @@ public class PhotoModeScreen extends Screen {
         this.rebuildPhotoWidgets();
     }
 
+    private void loadPoseMakerPose() {
+        if (this.minecraft == null) {
+            return;
+        }
+        PhotoPose pose = PhotoPoseExporter.loadWithNativeDialog(this.minecraft);
+        if (pose == null) {
+            return;
+        }
+        this.applyPoseToPoseMaker(pose);
+        this.syncPoseMakerPreview();
+        this.rebuildPhotoWidgets();
+    }
+
+    private void applyPoseToPoseMaker(@NotNull PhotoPose pose) {
+        this.poseMakerNameKey = pose.nameKey();
+        this.poseMakerModelRotation.set(pose.modelRotation());
+        for (PhotoPose.BodyPart part : PhotoPose.BodyPart.values()) {
+            PoseMakerRotation rotation = this.poseMakerPartRotations.get(part);
+            if (rotation != null) {
+                rotation.set(pose.rotations().getOrDefault(part, PhotoPose.PartRotation.ZERO));
+            }
+        }
+    }
+
     @NotNull
     private PhotoPose createPoseMakerPose() {
         Map<PhotoPose.BodyPart, PhotoPose.PartRotation> rotations = PhotoPose.emptyRotationMap();
@@ -1556,6 +1583,12 @@ public class PhotoModeScreen extends Screen {
                 case Y -> this.y = clamped;
                 case Z -> this.z = clamped;
             }
+        }
+
+        private void set(@NotNull PhotoPose.PartRotation rotation) {
+            this.set(PoseMakerAxis.X, rotation.xDegrees());
+            this.set(PoseMakerAxis.Y, rotation.yDegrees());
+            this.set(PoseMakerAxis.Z, rotation.zDegrees());
         }
 
         private void reset() {

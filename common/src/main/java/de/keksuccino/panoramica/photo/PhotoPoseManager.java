@@ -87,11 +87,7 @@ public final class PhotoPoseManager {
         for (Map.Entry<Identifier, Resource> entry : resources.entrySet()) {
             Identifier resourceId = entry.getKey();
             try (Reader reader = entry.getValue().openAsReader()) {
-                JsonElement rootElement = JsonParser.parseReader(reader);
-                if (!rootElement.isJsonObject()) {
-                    throw new IllegalArgumentException("Root must be an object.");
-                }
-                loadedPoses.add(new PoseEntry(toPoseId(resourceId), parse(rootElement.getAsJsonObject())));
+                loadedPoses.add(new PoseEntry(toPoseId(resourceId), parseRoot(JsonParser.parseReader(reader))));
             } catch (Exception ex) {
                 Panoramica.getLogger().warn("[PANORAMICA] Could not load photo pose '{}'.", resourceId, ex);
             }
@@ -111,6 +107,19 @@ public final class PhotoPoseManager {
             path = path.substring(0, path.length() - ".json".length());
         }
         return Identifier.fromNamespaceAndPath(resourceId.getNamespace(), path);
+    }
+
+    @NotNull
+    public static PhotoPose fromJsonString(@NotNull String json) {
+        return parseRoot(JsonParser.parseString(json));
+    }
+
+    @NotNull
+    private static PhotoPose parseRoot(@NotNull JsonElement rootElement) {
+        if (!rootElement.isJsonObject()) {
+            throw new IllegalArgumentException("Root must be an object.");
+        }
+        return parse(rootElement.getAsJsonObject());
     }
 
     @NotNull
