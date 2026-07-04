@@ -42,6 +42,7 @@ public class PhotoModeScreen extends Screen {
     private static final int SCREEN_MARGIN = 12;
     private static final int ACTION_GAP = 4;
     private static final int ACTION_ROW_GAP = 5;
+    private static final int COLOR_PICKER_GAP = 6;
     private static final int ACTION_BUTTON_TEXT_PADDING = 16;
     private static final int ACTION_TAKE_PHOTO_MIN_WIDTH = 76;
     private static final int ACTION_RETURN_TO_PLAYER_MIN_WIDTH = 116;
@@ -64,6 +65,9 @@ public class PhotoModeScreen extends Screen {
     private static final double PLAYER_ROTATION_OFFSET_MIN = -180.0D;
     private static final double PLAYER_ROTATION_OFFSET_MAX = 180.0D;
     private static final double PLAYER_ROTATION_OFFSET_SNAP_RADIUS = 5.0D;
+    private static final double FOG_INTENSITY_SNAP_RADIUS = 0.05D;
+    private static final double FOG_DISTANCE_SNAP_RADIUS = 4.0D;
+    private static final double FOG_DISTANCE_STEP = 1.0D;
 
     private Tab selectedTab = Tab.GENERAL;
     @Nullable
@@ -86,6 +90,11 @@ public class PhotoModeScreen extends Screen {
     private Button timeButton;
     @Nullable
     private Button weatherButton;
+    @Nullable
+    private PhotoModeColorButton fogColorButton;
+    @Nullable
+    private PhotoModeColorPicker colorPicker;
+    private boolean fogColorPickerOpen;
 
     public PhotoModeScreen() {
         super(Component.translatable("panoramica.photo_mode.title"));
@@ -124,6 +133,9 @@ public class PhotoModeScreen extends Screen {
         }
 
         this.renderPanel(graphics);
+        if (this.colorPicker != null) {
+            this.colorPicker.extractRenderState(graphics, this.font, mouseX, mouseY);
+        }
         super.extractRenderState(graphics, mouseX, mouseY, a);
     }
 
@@ -135,6 +147,11 @@ public class PhotoModeScreen extends Screen {
                 this.clearFocus();
                 this.rotatingView = true;
             }
+            return true;
+        }
+        if (this.colorPicker != null && this.colorPicker.mouseClicked(event, doubleClick)) {
+            this.clearFocus();
+            this.updateButtonMessages();
             return true;
         }
         if (super.mouseClicked(event, doubleClick)) {
@@ -150,6 +167,10 @@ public class PhotoModeScreen extends Screen {
 
     @Override
     public boolean mouseDragged(@NotNull MouseButtonEvent event, double dx, double dy) {
+        if (this.colorPicker != null && this.colorPicker.mouseDragged(event, dx, dy)) {
+            this.updateButtonMessages();
+            return true;
+        }
         if (this.rotatingView && event.button() == 0) {
             PhotoModeManager.rotateFromMouseDrag(dx, dy);
             return true;
@@ -161,6 +182,10 @@ public class PhotoModeScreen extends Screen {
     public boolean mouseReleased(@NotNull MouseButtonEvent event) {
         if (event.button() == 0) {
             this.rotatingView = false;
+        }
+        if (this.colorPicker != null && this.colorPicker.mouseReleased(event)) {
+            this.updateButtonMessages();
+            return true;
         }
         return super.mouseReleased(event);
     }
@@ -192,6 +217,11 @@ public class PhotoModeScreen extends Screen {
             if (event.isEscape()) {
                 this.setPhotoModeUiHidden(false);
             }
+            return true;
+        }
+        if (event.isEscape() && this.fogColorPickerOpen) {
+            this.fogColorPickerOpen = false;
+            this.rebuildPhotoWidgets();
             return true;
         }
         if (event.isEscape()) {
@@ -230,11 +260,13 @@ public class PhotoModeScreen extends Screen {
 
     private void rebuildPhotoWidgets() {
         this.clearWidgets();
+        this.clearControlReferences();
         this.updatePanelBounds();
         if (PhotoModeManager.isPhotoModeUiHidden()) {
             return;
         }
         if (this.confirmation != null) {
+            this.fogColorPickerOpen = false;
             this.addConfirmationWidgets();
             return;
         }
@@ -244,6 +276,7 @@ public class PhotoModeScreen extends Screen {
         for (Tab tab : Tab.values()) {
             TexturedIconButton button = this.addRenderableWidget(new TexturedIconButton(tab.message(), ignored -> {
                 this.selectedTab = tab;
+                this.fogColorPickerOpen = false;
                 this.rebuildPhotoWidgets();
             }, tab.icon()));
             button.setPosition(x, y);
@@ -260,6 +293,18 @@ public class PhotoModeScreen extends Screen {
         }
         this.addActionButtons();
         this.updateButtonMessages();
+    }
+
+    private void clearControlReferences() {
+        this.pauseButton = null;
+        this.gridButton = null;
+        this.hideSelfButton = null;
+        this.hideOthersButton = null;
+        this.poseButton = null;
+        this.timeButton = null;
+        this.weatherButton = null;
+        this.fogColorButton = null;
+        this.colorPicker = null;
     }
 
     private void addGeneralControls(int y) {
@@ -460,6 +505,68 @@ public class PhotoModeScreen extends Screen {
             active.setWeatherPreset(active.weatherPreset().next());
             this.updateButtonMessages();
         }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.weather.desc"))).build());
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.addRenderableWidget(new PhotoModeSlider(
+                x,
+                y,
+                width,
+                CONTROL_HEIGHT,
+                0.0D,
+                1.0D,
+                active.fogIntensity(),
+                0.0D,
+                FOG_INTENSITY_SNAP_RADIUS,
+                value -> active.setFogIntensity((float) value),
+                value -> optionMessage("panoramica.photo_mode.fog_intensity", Component.translatable("panoramica.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
+        ));
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.addRenderableWidget(new PhotoModeSlider(
+                x,
+                y,
+                width,
+                CONTROL_HEIGHT,
+                PhotoModeManager.PHOTO_FOG_MIN_DISTANCE,
+                PhotoModeManager.PHOTO_FOG_MAX_DISTANCE,
+                active.fogDistance(),
+                PhotoModeManager.PHOTO_FOG_DEFAULT_DISTANCE,
+                FOG_DISTANCE_SNAP_RADIUS,
+                FOG_DISTANCE_STEP,
+                value -> active.setFogDistance((float) value),
+                value -> optionMessage("panoramica.photo_mode.fog_distance", this.blockValue(value))
+        ));
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.fogColorButton = this.addRenderableWidget(new PhotoModeColorButton(
+                x,
+                y,
+                width,
+                CONTROL_HEIGHT,
+                Component.empty(),
+                button -> {
+                    this.fogColorPickerOpen = !this.fogColorPickerOpen;
+                    this.rebuildPhotoWidgets();
+                },
+                active::fogColor
+        ));
+        if (this.fogColorPickerOpen) {
+            this.colorPicker = new PhotoModeColorPicker(
+                    Component.translatable("panoramica.photo_mode.fog_color_picker"),
+                    active::fogColor,
+                    active::setFogColor
+            );
+            this.updateColorPickerPosition();
+            this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> {
+                this.fogColorPickerOpen = false;
+                this.rebuildPhotoWidgets();
+            }).bounds(
+                    this.colorPicker.doneButtonX(),
+                    this.colorPicker.doneButtonY(),
+                    this.colorPicker.doneButtonWidth(),
+                    this.colorPicker.doneButtonHeight()
+            ).build());
+        }
     }
 
     private void addActionButtons() {
@@ -490,16 +597,19 @@ public class PhotoModeScreen extends Screen {
         this.addActionButton(returnToPlayerMessage, x, y, returnToPlayerWidth, button -> PhotoModeManager.returnCameraToPlayer(Minecraft.getInstance()), Component.translatable("panoramica.photo_mode.return_to_player.desc"));
         x += returnToPlayerWidth + ACTION_GAP;
         this.addActionButton(hideGuiMessage, x, y, hideGuiWidth, button -> {
+            this.fogColorPickerOpen = false;
             this.confirmation = Confirmation.HIDE_GUI;
             this.rebuildPhotoWidgets();
         }, Component.translatable("panoramica.photo_mode.hide_gui.desc"));
         x += hideGuiWidth + ACTION_GAP;
         this.addActionButton(resetMessage, x, y, resetWidth, button -> {
+            this.fogColorPickerOpen = false;
             this.confirmation = Confirmation.RESET;
             this.rebuildPhotoWidgets();
         }, resetMessage);
         x += resetWidth + ACTION_GAP;
         this.addActionButton(leaveMessage, x, y, leaveWidth, button -> {
+            this.fogColorPickerOpen = false;
             this.confirmation = Confirmation.LEAVE;
             this.rebuildPhotoWidgets();
         }, Component.translatable("panoramica.photo_mode.leave"));
@@ -599,6 +709,9 @@ public class PhotoModeScreen extends Screen {
             PhotoModeWeatherPreset preset = active.weatherPreset();
             this.weatherButton.setMessage(optionMessage("panoramica.photo_mode.weather", Component.translatable(preset.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
         }
+        if (this.fogColorButton != null) {
+            this.fogColorButton.setMessage(optionMessage("panoramica.photo_mode.fog_color", Component.literal(PhotoModeColorPicker.formatHexColor(active.fogColor())).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
+        }
     }
 
     private void renderGrid(@NotNull GuiGraphicsExtractor graphics) {
@@ -636,6 +749,15 @@ public class PhotoModeScreen extends Screen {
         this.panelHeight = Math.min(availablePanelHeight, this.confirmation != null ? 118 : this.selectedTab.panelHeight());
         this.panelX = Math.max(SCREEN_MARGIN, this.width - PANEL_WIDTH - SCREEN_MARGIN);
         this.panelY = Math.max(SCREEN_MARGIN, this.height - this.panelHeight - SCREEN_MARGIN - actionRowReserve);
+    }
+
+    private void updateColorPickerPosition() {
+        if (this.colorPicker == null) {
+            return;
+        }
+        int x = Math.max(SCREEN_MARGIN, this.panelX - PhotoModeColorPicker.WIDTH - COLOR_PICKER_GAP);
+        int y = Math.max(SCREEN_MARGIN, Math.min(this.panelY, this.height - SCREEN_MARGIN - PhotoModeColorPicker.HEIGHT));
+        this.colorPicker.setPosition(x, y);
     }
 
     private int actionY() {
@@ -676,6 +798,9 @@ public class PhotoModeScreen extends Screen {
         if (insidePanel || this.confirmation != null) {
             return insidePanel;
         }
+        if (this.colorPicker != null && this.colorPicker.contains(mouseX, mouseY)) {
+            return true;
+        }
         int actionY = this.actionY();
         int actionX = this.actionX();
         return mouseX >= actionX && mouseX <= actionX + this.actionRowWidth() && mouseY >= actionY && mouseY <= actionY + CONTROL_HEIGHT;
@@ -705,6 +830,9 @@ public class PhotoModeScreen extends Screen {
     private void setPhotoModeUiHidden(boolean hidden) {
         this.confirmation = null;
         this.rotatingView = false;
+        if (hidden) {
+            this.fogColorPickerOpen = false;
+        }
         PhotoModeManager.setPhotoModeUiHidden(hidden);
         this.rebuildPhotoWidgets();
     }
@@ -760,7 +888,7 @@ public class PhotoModeScreen extends Screen {
         GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 113),
         PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
         EFFECTS(LENS_ICON, "panoramica.photo_mode.tab.effects", 63),
-        ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 113);
+        ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 188);
 
         private final Identifier icon;
         private final String labelKey;

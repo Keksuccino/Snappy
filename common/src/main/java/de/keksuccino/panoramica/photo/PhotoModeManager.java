@@ -20,6 +20,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.fog.FogData;
 import net.minecraft.client.renderer.state.GameRenderState;
 import net.minecraft.client.renderer.state.level.LevelRenderState;
 import net.minecraft.core.BlockPos;
@@ -74,6 +75,10 @@ public final class PhotoModeManager {
     private static final double SELF_PLAYER_POSITION_OFFSET_RANGE = 5.0D;
     private static final double SELF_PLAYER_ROTATION_OFFSET_RANGE = 180.0D;
     private static final double SELF_PLAYER_TRANSFORM_EPSILON = 1.0E-4D;
+    public static final double PHOTO_FOG_MIN_DISTANCE = 8.0D;
+    public static final double PHOTO_FOG_MAX_DISTANCE = 512.0D;
+    public static final double PHOTO_FOG_DEFAULT_DISTANCE = 64.0D;
+    public static final int PHOTO_FOG_DEFAULT_COLOR = ARGB.color(168, 184, 196);
     private static final int ENVIRONMENT_FAST_FORWARD_TICKS = 40;
     private static final int ENVIRONMENT_FOLLOWUP_TICKS = 5;
     private static final int VISUAL_LIGHTNING_ENTITY_ID_START = Integer.MIN_VALUE + 4096;
@@ -291,6 +296,36 @@ public final class PhotoModeManager {
     public static long overrideGameTime(long original) {
         Session active = session;
         return active != null && environmentOverrideScope ? original + active.visualGameTimeOffsetTicks : original;
+    }
+
+    public static void applyFogOverrides(@NotNull FogData fog, int renderDistanceInChunks) {
+        Session active = session;
+        if (active == null) {
+            return;
+        }
+
+        float intensity = active.fogIntensity();
+        if (intensity > 0.0F) {
+            int color = active.fogColor();
+            fog.color.set(ARGB.redFloat(color), ARGB.greenFloat(color), ARGB.blueFloat(color), 1.0F);
+        }
+
+        if (intensity <= 0.0F) {
+            return;
+        }
+
+        float renderDistanceBlocks = Math.max(1.0F, renderDistanceInChunks * 16.0F);
+        double maxDistance = Math.max(PHOTO_FOG_MIN_DISTANCE, Math.min(PHOTO_FOG_MAX_DISTANCE, renderDistanceBlocks));
+        float end = (float) Mth.clamp(active.fogDistance(), PHOTO_FOG_MIN_DISTANCE, maxDistance);
+        float start = Math.max(-8.0F, end * (1.0F - intensity));
+        if (end <= start) {
+            end = start + 1.0F;
+        }
+
+        fog.environmentalStart = start;
+        fog.environmentalEnd = end;
+        fog.skyEnd = Math.min(fog.skyEnd, end);
+        fog.cloudEnd = Math.min(fog.cloudEnd, end);
     }
 
     public static boolean shouldSuppressEnvironmentRefreshSound(@NotNull SoundSource source) {
@@ -605,6 +640,9 @@ public final class PhotoModeManager {
         private boolean gridEnabled;
         private PhotoModeTimePreset timePreset;
         private PhotoModeWeatherPreset weatherPreset;
+        private float fogIntensity;
+        private float fogDistance = (float) PHOTO_FOG_DEFAULT_DISTANCE;
+        private int fogColor = PHOTO_FOG_DEFAULT_COLOR;
         @Nullable
         private Identifier poseId;
         private final Set<InputConstants.Key> activeBoundInputs = new HashSet<>();
@@ -662,6 +700,9 @@ public final class PhotoModeManager {
             this.poseId = null;
             this.timePreset = defaultTimePreset(minecraft);
             this.weatherPreset = defaultWeatherPreset(minecraft);
+            this.fogIntensity = 0.0F;
+            this.fogDistance = (float) PHOTO_FOG_DEFAULT_DISTANCE;
+            this.fogColor = PHOTO_FOG_DEFAULT_COLOR;
             this.visualLightningStorm.clear(minecraft.level);
             this.visualGameTimeOffsetTicks = 0L;
             this.environmentVisualTicksRemaining = 0;
@@ -1023,6 +1064,30 @@ public final class PhotoModeManager {
                 this.visualLightningStorm.clear(Minecraft.getInstance().level);
                 requestEnvironmentVisualRefresh(Minecraft.getInstance());
             }
+        }
+
+        public float fogIntensity() {
+            return this.fogIntensity;
+        }
+
+        public void setFogIntensity(float fogIntensity) {
+            this.fogIntensity = Mth.clamp(fogIntensity, 0.0F, 1.0F);
+        }
+
+        public float fogDistance() {
+            return this.fogDistance;
+        }
+
+        public void setFogDistance(float fogDistance) {
+            this.fogDistance = (float) Mth.clamp(fogDistance, PHOTO_FOG_MIN_DISTANCE, PHOTO_FOG_MAX_DISTANCE);
+        }
+
+        public int fogColor() {
+            return this.fogColor;
+        }
+
+        public void setFogColor(int fogColor) {
+            this.fogColor = ARGB.opaque(fogColor);
         }
 
         private void advanceVisualGameTime(long ticks) {
