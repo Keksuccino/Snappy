@@ -149,6 +149,7 @@
   "panoramica.photo_mode.unavailable": "Photo mode can only be used while in a world.",
   "panoramica.photo_mode.tab.general": "General",
   "panoramica.photo_mode.tab.player": "Player",
+  "panoramica.photo_mode.tab.lens": "Lens",
   "panoramica.photo_mode.tab.effects": "Effects",
   "panoramica.photo_mode.tab.environment": "Environment",
   "panoramica.photo_mode.pause": "Game: %s",

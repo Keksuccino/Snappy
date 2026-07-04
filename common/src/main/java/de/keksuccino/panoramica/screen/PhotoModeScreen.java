@@ -38,6 +38,7 @@ public class PhotoModeScreen extends Screen {
     private static final Identifier GENERAL_ICON = PanoramicaButtons.SCREENSHOT_BROWSER_ICON;
     private static final Identifier PLAYER_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/player_head_icon_15x15.png");
     private static final Identifier LENS_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/lens_icon_15x15.png");
+    private static final Identifier EFFECTS_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/effects_icon_15x15.png");
     private static final Identifier GLOBE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/globe_icon_15x15.png");
     private static final int PANEL_WIDTH = 236;
     private static final int PANEL_PADDING = 8;
@@ -319,6 +320,7 @@ public class PhotoModeScreen extends Screen {
         switch (this.selectedTab) {
             case GENERAL -> this.addGeneralControls(y);
             case PLAYER -> this.addPlayerControls(y);
+            case LENS -> this.addLensControls(y);
             case EFFECTS -> this.addEffectsControls(y);
             case ENVIRONMENT -> this.addEnvironmentControls(y);
         }
@@ -513,7 +515,7 @@ public class PhotoModeScreen extends Screen {
         );
     }
 
-    private void addEffectsControls(int y) {
+    private void addLensControls(int y) {
         int x = this.panelX + PANEL_PADDING;
         int width = this.controlWidth();
         PhotoModeManager.Session active = PhotoModeManager.session();
@@ -573,7 +575,15 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setDepthOfFieldFocusDistance((float) value),
                 value -> optionMessage("panoramica.photo_mode.dof_focus_distance", Component.translatable("panoramica.photo_mode.blocks", String.format(Locale.ROOT, "%.2f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
-        y += CONTROL_HEIGHT + CONTROL_GAP;
+    }
+
+    private void addEffectsControls(int y) {
+        int x = this.panelX + PANEL_PADDING;
+        int width = this.controlWidth();
+        PhotoModeManager.Session active = PhotoModeManager.session();
+        if (active == null) {
+            return;
+        }
 
         this.addRenderableWidget(new PhotoModeSlider(
                 x,
@@ -1121,7 +1131,8 @@ public class PhotoModeScreen extends Screen {
     private enum Tab {
         GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 138),
         PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
-        EFFECTS(LENS_ICON, "panoramica.photo_mode.tab.effects", 188),
+        LENS(LENS_ICON, "panoramica.photo_mode.tab.lens", 138),
+        EFFECTS(EFFECTS_ICON, "panoramica.photo_mode.tab.effects", 88),
         ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 213);
 
         private final Identifier icon;
