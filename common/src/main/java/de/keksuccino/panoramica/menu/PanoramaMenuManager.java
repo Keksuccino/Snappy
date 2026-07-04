@@ -28,12 +28,17 @@ public final class PanoramaMenuManager {
     private static final float PARALLAX_X_ROTATION_RANGE = 3.0F;
     private static final float PARALLAX_Y_ROTATION_RANGE = 5.0F;
     private static final float PARALLAX_SMOOTHING = 0.12F;
+    private static final long PARALLAX_SPIN_RESUME_DELAY_MS = 1_000L;
+    private static final double PARALLAX_MOUSE_MOVEMENT_EPSILON = 0.001D;
 
     private static List<Path> cachedPanoramas = List.of();
     private static long lastScanMillis;
     private static boolean scanDirty = true;
     private static float parallaxXRotationOffset;
     private static float parallaxYRotationOffset;
+    private static double lastParallaxMouseX = Double.NaN;
+    private static double lastParallaxMouseY = Double.NaN;
+    private static long lastParallaxMouseMoveMillis;
     @Nullable
     private static Path registeredFolder;
     @Nullable
@@ -98,10 +103,25 @@ public final class PanoramaMenuManager {
         int width = Math.max(1, window.getScreenWidth());
         int height = Math.max(1, window.getScreenHeight());
 
-        float mouseX = normalizeMousePosition(minecraft.mouseHandler.xpos(), width);
-        float mouseY = normalizeMousePosition(minecraft.mouseHandler.ypos(), height);
+        double rawMouseX = minecraft.mouseHandler.xpos();
+        double rawMouseY = minecraft.mouseHandler.ypos();
+        updateParallaxMouseMovement(rawMouseX, rawMouseY);
+
+        float mouseX = normalizeMousePosition(rawMouseX, width);
+        float mouseY = normalizeMousePosition(rawMouseY, height);
         parallaxXRotationOffset = Mth.lerp(PARALLAX_SMOOTHING, parallaxXRotationOffset, mouseY * PARALLAX_X_ROTATION_RANGE);
         parallaxYRotationOffset = Mth.lerp(PARALLAX_SMOOTHING, parallaxYRotationOffset, mouseX * PARALLAX_Y_ROTATION_RANGE);
+    }
+
+    public static boolean shouldSpinMenuPanorama() {
+        if (!Panoramica.getOptions().isMenuPanoramaParallaxEnabled()) {
+            resetMenuParallax();
+            return true;
+        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+        updateParallaxMouseMovement(minecraft.mouseHandler.xpos(), minecraft.mouseHandler.ypos());
+        return Util.getMillis() - lastParallaxMouseMoveMillis >= PARALLAX_SPIN_RESUME_DELAY_MS;
     }
 
     public static float applyMenuParallaxXRotation(float rotXInDegrees) {
@@ -202,9 +222,23 @@ public final class PanoramaMenuManager {
         return Mth.clamp((float) ((position / size) * 2.0D - 1.0D), -1.0F, 1.0F);
     }
 
+    private static void updateParallaxMouseMovement(double mouseX, double mouseY) {
+        if (!Double.isNaN(lastParallaxMouseX) && !Double.isNaN(lastParallaxMouseY)
+                && (Math.abs(mouseX - lastParallaxMouseX) > PARALLAX_MOUSE_MOVEMENT_EPSILON
+                || Math.abs(mouseY - lastParallaxMouseY) > PARALLAX_MOUSE_MOVEMENT_EPSILON)) {
+            lastParallaxMouseMoveMillis = Util.getMillis();
+        }
+
+        lastParallaxMouseX = mouseX;
+        lastParallaxMouseY = mouseY;
+    }
+
     private static void resetMenuParallax() {
         parallaxXRotationOffset = 0.0F;
         parallaxYRotationOffset = 0.0F;
+        lastParallaxMouseX = Double.NaN;
+        lastParallaxMouseY = Double.NaN;
+        lastParallaxMouseMoveMillis = 0L;
     }
 
     private static long lastModifiedMillis(@NotNull Path path) {
