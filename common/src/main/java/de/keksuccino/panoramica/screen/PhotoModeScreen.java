@@ -1,5 +1,6 @@
 package de.keksuccino.panoramica.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.photo.PhotoModeManager;
 import de.keksuccino.panoramica.photo.PhotoModeTimePreset;
@@ -58,6 +59,7 @@ public class PhotoModeScreen extends Screen {
     private static final int SECTION_BACKGROUND_COLOR = ARGB.color(82, 24, 28, 34);
     private static final int GRID_LINE_COLOR = ARGB.color(112, 255, 255, 255);
     private static final int VALUE_COLOR = 0xFFFFAA00;
+    private static final int NO_HOVER_MOUSE_POSITION = -1;
     private static final double FOV_SNAP_RADIUS = 2.0D;
     private static final double ROLL_SNAP_RADIUS = 5.0D;
     private static final double VIGNETTE_SNAP_RADIUS = 0.05D;
@@ -76,6 +78,7 @@ public class PhotoModeScreen extends Screen {
     @Nullable
     private Confirmation confirmation;
     private boolean rotatingView;
+    private boolean cameraCursorGrabbed;
     private int panelX;
     private int panelY;
     private int panelHeight;
@@ -140,19 +143,21 @@ public class PhotoModeScreen extends Screen {
 
         this.updateButtonMessages();
         this.renderPanel(graphics);
+        int hoverMouseX = this.hoverMouseX(mouseX);
+        int hoverMouseY = this.hoverMouseY(mouseY);
         if (this.colorPicker != null) {
-            this.colorPicker.extractRenderState(graphics, this.font, mouseX, mouseY);
+            this.colorPicker.extractRenderState(graphics, this.font, hoverMouseX, hoverMouseY);
         }
-        super.extractRenderState(graphics, mouseX, mouseY, a);
+        super.extractRenderState(graphics, hoverMouseX, hoverMouseY, a);
     }
 
     @Override
     public boolean mouseClicked(@NotNull MouseButtonEvent event, boolean doubleClick) {
-        this.rotatingView = false;
+        this.stopRotatingView();
         if (PhotoModeManager.isPhotoModeUiHidden()) {
             if (event.button() == 0) {
                 this.clearFocus();
-                this.rotatingView = true;
+                this.startRotatingView();
             }
             return true;
         }
@@ -166,7 +171,7 @@ public class PhotoModeScreen extends Screen {
         }
         if (event.button() == 0 && !this.isInsidePhotoModeUi(event.x(), event.y())) {
             this.clearFocus();
-            this.rotatingView = true;
+            this.startRotatingView();
             return true;
         }
         return true;
@@ -188,7 +193,7 @@ public class PhotoModeScreen extends Screen {
     @Override
     public boolean mouseReleased(@NotNull MouseButtonEvent event) {
         if (event.button() == 0) {
-            this.rotatingView = false;
+            this.stopRotatingView();
         }
         if (this.colorPicker != null && this.colorPicker.mouseReleased(event)) {
             this.updateButtonMessages();
@@ -262,6 +267,7 @@ public class PhotoModeScreen extends Screen {
 
     @Override
     public void removed() {
+        this.stopRotatingView();
         PhotoModeManager.close();
     }
 
@@ -898,12 +904,50 @@ public class PhotoModeScreen extends Screen {
 
     private void setPhotoModeUiHidden(boolean hidden) {
         this.confirmation = null;
-        this.rotatingView = false;
+        this.stopRotatingView();
         if (hidden) {
             this.closeColorPicker();
         }
         PhotoModeManager.setPhotoModeUiHidden(hidden);
         this.rebuildPhotoWidgets();
+    }
+
+    private void startRotatingView() {
+        this.rotatingView = true;
+        this.setCameraCursorGrabbed(true);
+    }
+
+    private void stopRotatingView() {
+        this.rotatingView = false;
+        this.setCameraCursorGrabbed(false);
+    }
+
+    private void setCameraCursorGrabbed(boolean grabbed) {
+        if (this.cameraCursorGrabbed == grabbed || this.minecraft == null) {
+            return;
+        }
+        if (grabbed && !this.minecraft.isWindowActive()) {
+            return;
+        }
+
+        this.cameraCursorGrabbed = grabbed;
+        double centerX = this.minecraft.getWindow().getScreenWidth() / 2.0D;
+        double centerY = this.minecraft.getWindow().getScreenHeight() / 2.0D;
+        this.minecraft.mouseHandler.setIgnoreFirstMove();
+        InputConstants.grabOrReleaseMouse(
+                this.minecraft.getWindow(),
+                grabbed ? InputConstants.CURSOR_DISABLED : InputConstants.CURSOR_NORMAL,
+                centerX,
+                centerY
+        );
+    }
+
+    private int hoverMouseX(int mouseX) {
+        return this.cameraCursorGrabbed ? NO_HOVER_MOUSE_POSITION : mouseX;
+    }
+
+    private int hoverMouseY(int mouseY) {
+        return this.cameraCursorGrabbed ? NO_HOVER_MOUSE_POSITION : mouseY;
     }
 
     private void closeColorPicker() {
