@@ -272,6 +272,15 @@ public class PhotoModeScreen extends Screen {
 
     @Override
     public boolean keyPressed(@NotNull KeyEvent event) {
+        if (this.isPoseMakerNameKeyBoxFocused()) {
+            if (event.isEscape()) {
+                this.clearFocus();
+            } else {
+                super.keyPressed(event);
+            }
+            return true;
+        }
+
         boolean configuredCameraControlKey = this.isConfiguredCameraControlKey(event);
         if (configuredCameraControlKey) {
             PhotoModeManager.setConfiguredCameraControlKeyState(event, true);
@@ -916,7 +925,11 @@ public class PhotoModeScreen extends Screen {
         }
 
         int buttonY = this.poseMakerPanelY + this.poseMakerPanelHeight - PANEL_PADDING - CONTROL_HEIGHT;
+        int resetButtonY = buttonY - POSE_MAKER_BUTTON_GAP - CONTROL_HEIGHT;
         int buttonWidth = (contentWidth - POSE_MAKER_BUTTON_GAP) / 2;
+        this.addRenderableWidget(Button.builder(Component.translatable("panoramica.photo_mode.pose_maker.reset"), button -> this.resetPoseMakerSliders())
+                .bounds(contentX, resetButtonY, contentWidth, CONTROL_HEIGHT)
+                .build());
         this.addRenderableWidget(Button.builder(Component.translatable("panoramica.photo_mode.pose_maker.save"), button -> {
             if (this.minecraft != null) {
                 PhotoPoseExporter.saveWithNativeDialog(this.minecraft, this.createPoseMakerPose());
@@ -1162,6 +1175,8 @@ public class PhotoModeScreen extends Screen {
                 + CONTROL_GAP
                 + sliderHeight
                 + CONTROL_GAP
+                + CONTROL_HEIGHT
+                + POSE_MAKER_BUTTON_GAP
                 + CONTROL_HEIGHT;
     }
 
@@ -1271,6 +1286,10 @@ public class PhotoModeScreen extends Screen {
         return key == GLFW.GLFW_KEY_G;
     }
 
+    private boolean isPoseMakerNameKeyBoxFocused() {
+        return this.poseMakerNameKeyBox != null && this.poseMakerNameKeyBox.isFocused();
+    }
+
     @Nullable
     private static Integer emptyColor() {
         return null;
@@ -1326,6 +1345,15 @@ public class PhotoModeScreen extends Screen {
         if (active != null) {
             active.setPoseMakerPose(null);
         }
+    }
+
+    private void resetPoseMakerSliders() {
+        this.poseMakerModelRotation.reset();
+        for (PoseMakerRotation rotation : this.poseMakerPartRotations.values()) {
+            rotation.reset();
+        }
+        this.syncPoseMakerPreview();
+        this.rebuildPhotoWidgets();
     }
 
     @NotNull
@@ -1528,6 +1556,12 @@ public class PhotoModeScreen extends Screen {
                 case Y -> this.y = clamped;
                 case Z -> this.z = clamped;
             }
+        }
+
+        private void reset() {
+            this.x = 0.0D;
+            this.y = 0.0D;
+            this.z = 0.0D;
         }
 
         @NotNull
