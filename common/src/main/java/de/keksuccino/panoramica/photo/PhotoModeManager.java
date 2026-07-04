@@ -267,6 +267,11 @@ public final class PhotoModeManager {
         return active == null ? original : active.fieldOfView();
     }
 
+    public static float overrideBrightness(float original) {
+        Session active = session;
+        return active == null ? original : active.brightness();
+    }
+
     @Nullable
     public static CameraState cameraState() {
         Session active = session;
@@ -654,6 +659,7 @@ public final class PhotoModeManager {
         private float pitch;
         private float roll;
         private float fieldOfView;
+        private float brightness;
         private float vignette;
         private Vec3 selfPlayerPositionOffset = Vec3.ZERO;
         private Vec3 selfPlayerRotationOffset = Vec3.ZERO;
@@ -685,6 +691,7 @@ public final class PhotoModeManager {
                 float yaw,
                 float pitch,
                 float fieldOfView,
+                float brightness,
                 boolean paused,
                 @NotNull PhotoModeTimePreset timePreset,
                 @NotNull PhotoModeWeatherPreset weatherPreset,
@@ -694,6 +701,7 @@ public final class PhotoModeManager {
             this.yaw = yaw;
             this.pitch = pitch;
             this.fieldOfView = Mth.clamp(fieldOfView, 30.0F, 110.0F);
+            this.brightness = Mth.clamp(brightness, 0.0F, 1.0F);
             this.paused = paused;
             this.timePreset = timePreset;
             this.weatherPreset = weatherPreset;
@@ -709,6 +717,7 @@ public final class PhotoModeManager {
                     start.yaw(),
                     start.pitch(),
                     minecraft.options.fov().get().floatValue(),
+                    minecraft.options.gamma().get().floatValue(),
                     canPause(minecraft),
                     defaultTimePreset(minecraft),
                     defaultWeatherPreset(minecraft),
@@ -724,6 +733,7 @@ public final class PhotoModeManager {
             this.skyColorOverride = null;
             this.roll = 0.0F;
             this.fieldOfView = minecraft.options.fov().get().floatValue();
+            this.brightness = minecraft.options.gamma().get().floatValue();
             this.vignette = 0.0F;
             this.selfPlayerPositionOffset = Vec3.ZERO;
             this.selfPlayerRotationOffset = Vec3.ZERO;
@@ -944,6 +954,14 @@ public final class PhotoModeManager {
 
         public void setFieldOfView(float fieldOfView) {
             this.fieldOfView = Mth.clamp(fieldOfView, 30.0F, 110.0F);
+        }
+
+        public float brightness() {
+            return this.brightness;
+        }
+
+        public void setBrightness(float brightness) {
+            this.brightness = Mth.clamp(brightness, 0.0F, 1.0F);
         }
 
         public float vignette() {

@@ -158,6 +158,7 @@
   "panoramica.photo_mode.pause.unavailable_server": "Photo mode pausing is unavailable because you are on a server.",
   "panoramica.photo_mode.fov": "Field of View: %s",
   "panoramica.photo_mode.roll": "View Roll: %s",
+  "panoramica.photo_mode.brightness": "Brightness: %s",
   "panoramica.photo_mode.grid": "Grid [G]: %s",
   "panoramica.photo_mode.grid.desc": "Shows a translucent rule-of-thirds grid over the photo view.",
   "panoramica.photo_mode.vignette": "Vignette: %s",

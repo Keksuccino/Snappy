@@ -1,5 +1,6 @@
 package de.keksuccino.panoramica.mixin.mixins.common.client;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import de.keksuccino.panoramica.photo.PhotoModeManager;
 import net.minecraft.client.renderer.LightmapRenderStateExtractor;
 import net.minecraft.client.renderer.state.LightmapRenderState;
@@ -19,6 +20,11 @@ public class MixinLightmapRenderStateExtractor {
         if (PhotoModeManager.isActive()) {
             this.needsUpdate = true;
         }
+    }
+
+    @ModifyExpressionValue(method = "extract", at = @At(value = "INVOKE", target = "Ljava/lang/Double;floatValue()F", ordinal = 0))
+    private float modify_brightnessOption_Panoramica(float original) {
+        return PhotoModeManager.overrideBrightness(original);
     }
 
 }

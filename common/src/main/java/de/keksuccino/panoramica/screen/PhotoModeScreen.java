@@ -62,6 +62,7 @@ public class PhotoModeScreen extends Screen {
     private static final int NO_HOVER_MOUSE_POSITION = -1;
     private static final double FOV_SNAP_RADIUS = 2.0D;
     private static final double ROLL_SNAP_RADIUS = 5.0D;
+    private static final double BRIGHTNESS_SNAP_RADIUS = 0.05D;
     private static final double VIGNETTE_SNAP_RADIUS = 0.05D;
     private static final double PLAYER_POSITION_OFFSET_MIN = -5.0D;
     private static final double PLAYER_POSITION_OFFSET_MAX = 5.0D;
@@ -356,6 +357,21 @@ public class PhotoModeScreen extends Screen {
                 ROLL_SNAP_RADIUS,
                 value -> active.setRoll((float) value),
                 value -> optionMessage("panoramica.photo_mode.roll", Component.translatable("panoramica.photo_mode.degrees", String.format(Locale.ROOT, "%.0f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
+        ));
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.addRenderableWidget(new PhotoModeSlider(
+                x,
+                y,
+                width,
+                CONTROL_HEIGHT,
+                0.0D,
+                1.0D,
+                active.brightness(),
+                Minecraft.getInstance().options.gamma().get().doubleValue(),
+                BRIGHTNESS_SNAP_RADIUS,
+                value -> active.setBrightness((float) value),
+                value -> optionMessage("panoramica.photo_mode.brightness", Component.translatable("panoramica.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
         y += CONTROL_HEIGHT + CONTROL_GAP;
 
@@ -1002,7 +1018,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     private enum Tab {
-        GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 113),
+        GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 138),
         PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
         EFFECTS(LENS_ICON, "panoramica.photo_mode.tab.effects", 63),
         ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 213);
