@@ -28,9 +28,10 @@ import java.util.Locale;
 
 public class PhotoModeScreen extends Screen {
 
-    private static final Identifier CAMERA_ICON = PanoramicaButtons.SCREENSHOT_BROWSER_ICON;
+    private static final Identifier GENERAL_ICON = PanoramicaButtons.SCREENSHOT_BROWSER_ICON;
+    private static final Identifier PLAYER_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/player_head_icon_15x15.png");
     private static final Identifier LENS_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/lens_icon_15x15.png");
-    private static final Identifier CLOCK_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/clock_icon_15x15.png");
+    private static final Identifier GLOBE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/globe_icon_15x15.png");
     private static final int PANEL_WIDTH = 236;
     private static final int PANEL_PADDING = 8;
     private static final int CONTROL_HEIGHT = 20;
@@ -42,18 +43,20 @@ public class PhotoModeScreen extends Screen {
     private static final int ACTION_BUTTON_TEXT_PADDING = 16;
     private static final int ACTION_TAKE_PHOTO_MIN_WIDTH = 76;
     private static final int ACTION_RETURN_TO_PLAYER_MIN_WIDTH = 116;
+    private static final int ACTION_HIDE_GUI_MIN_WIDTH = 72;
     private static final int ACTION_RESET_MIN_WIDTH = 58;
     private static final int ACTION_LEAVE_MIN_WIDTH = 64;
     private static final int PANEL_BACKGROUND_COLOR = ARGB.color(174, 0, 0, 0);
     private static final int PANEL_ACCENT_COLOR = ARGB.color(255, 255, 209, 102);
     private static final int PANEL_BORDER_COLOR = ARGB.color(210, 116, 128, 142);
     private static final int SECTION_BACKGROUND_COLOR = ARGB.color(82, 24, 28, 34);
+    private static final int GRID_LINE_COLOR = ARGB.color(112, 255, 255, 255);
     private static final int VALUE_COLOR = 0xFFFFAA00;
     private static final double FOV_SNAP_RADIUS = 2.0D;
     private static final double ROLL_SNAP_RADIUS = 5.0D;
     private static final double VIGNETTE_SNAP_RADIUS = 0.05D;
 
-    private Tab selectedTab = Tab.CAMERA;
+    private Tab selectedTab = Tab.GENERAL;
     @Nullable
     private Confirmation confirmation;
     private boolean rotatingView;
@@ -62,6 +65,8 @@ public class PhotoModeScreen extends Screen {
     private int panelHeight;
     @Nullable
     private Button pauseButton;
+    @Nullable
+    private Button gridButton;
     @Nullable
     private Button hideSelfButton;
     @Nullable
@@ -102,6 +107,9 @@ public class PhotoModeScreen extends Screen {
         if (this.minecraft != null) {
             PhotoModeManager.updateMovement(this.minecraft);
         }
+        if (PhotoModeManager.shouldRenderPhotoModeGrid()) {
+            this.renderGrid(graphics);
+        }
         if (PhotoModeManager.shouldHidePhotoModeUi()) {
             return;
         }
@@ -113,6 +121,13 @@ public class PhotoModeScreen extends Screen {
     @Override
     public boolean mouseClicked(@NotNull MouseButtonEvent event, boolean doubleClick) {
         this.rotatingView = false;
+        if (PhotoModeManager.isPhotoModeUiHidden()) {
+            if (event.button() == 0) {
+                this.clearFocus();
+                this.rotatingView = true;
+            }
+            return true;
+        }
         if (super.mouseClicked(event, doubleClick)) {
             return true;
         }
@@ -143,7 +158,7 @@ public class PhotoModeScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
-        if (super.mouseScrolled(x, y, scrollX, scrollY)) {
+        if (!PhotoModeManager.isPhotoModeUiHidden() && super.mouseScrolled(x, y, scrollX, scrollY)) {
             return true;
         }
         PhotoModeManager.zoomFromScroll(Minecraft.getInstance(), scrollY);
@@ -152,6 +167,20 @@ public class PhotoModeScreen extends Screen {
 
     @Override
     public boolean keyPressed(@NotNull KeyEvent event) {
+        if (isHideGuiKey(event.key())) {
+            this.setPhotoModeUiHidden(!PhotoModeManager.isPhotoModeUiHidden());
+            return true;
+        }
+        if (isGridKey(event.key())) {
+            this.toggleGrid();
+            return true;
+        }
+        if (PhotoModeManager.isPhotoModeUiHidden()) {
+            if (event.isEscape()) {
+                this.setPhotoModeUiHidden(false);
+            }
+            return true;
+        }
         if (event.isEscape()) {
             this.confirmation = Confirmation.LEAVE;
             this.rebuildPhotoWidgets();
@@ -181,6 +210,9 @@ public class PhotoModeScreen extends Screen {
     private void rebuildPhotoWidgets() {
         this.clearWidgets();
         this.updatePanelBounds();
+        if (PhotoModeManager.isPhotoModeUiHidden()) {
+            return;
+        }
         if (this.confirmation != null) {
             this.addConfirmationWidgets();
             return;
@@ -200,15 +232,16 @@ public class PhotoModeScreen extends Screen {
 
         y += TexturedIconButton.DEFAULT_BUTTON_SIZE + CONTROL_GAP + 2;
         switch (this.selectedTab) {
-            case CAMERA -> this.addCameraControls(y);
-            case LENS -> this.addLensControls(y);
+            case GENERAL -> this.addGeneralControls(y);
+            case PLAYER -> this.addPlayerControls(y);
+            case EFFECTS -> this.addEffectsControls(y);
             case ENVIRONMENT -> this.addEnvironmentControls(y);
         }
         this.addActionButtons();
         this.updateButtonMessages();
     }
 
-    private void addCameraControls(int y) {
+    private void addGeneralControls(int y) {
         int x = this.panelX + PANEL_PADDING;
         int width = this.controlWidth();
         PhotoModeManager.Session active = PhotoModeManager.session();
@@ -246,6 +279,20 @@ public class PhotoModeScreen extends Screen {
         ));
         y += CONTROL_HEIGHT + CONTROL_GAP;
 
+        this.gridButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+            active.setGridEnabled(!active.gridEnabled());
+            this.updateButtonMessages();
+        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.grid.desc"))).build());
+    }
+
+    private void addPlayerControls(int y) {
+        int x = this.panelX + PANEL_PADDING;
+        int width = this.controlWidth();
+        PhotoModeManager.Session active = PhotoModeManager.session();
+        if (active == null) {
+            return;
+        }
+
         this.hideSelfButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
             active.setHideSelfPlayer(!active.hideSelfPlayer());
             this.updateButtonMessages();
@@ -264,7 +311,7 @@ public class PhotoModeScreen extends Screen {
         }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.pose.desc"))).build());
     }
 
-    private void addLensControls(int y) {
+    private void addEffectsControls(int y) {
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active == null) {
             return;
@@ -313,19 +360,22 @@ public class PhotoModeScreen extends Screen {
     private void addActionButtons() {
         Component takePhotoMessage = Component.translatable("panoramica.photo_mode.take_photo");
         Component returnToPlayerMessage = Component.translatable("panoramica.photo_mode.return_to_player");
+        Component hideGuiMessage = Component.translatable("panoramica.photo_mode.hide_gui");
         Component resetMessage = Component.translatable("panoramica.photo_mode.reset");
         Component leaveMessage = Component.translatable("panoramica.photo_mode.leave_short");
         int rowWidth = this.actionRowWidth();
         int takePhotoWidth = this.actionButtonWidth(takePhotoMessage, ACTION_TAKE_PHOTO_MIN_WIDTH);
         int returnToPlayerWidth = this.actionButtonWidth(returnToPlayerMessage, ACTION_RETURN_TO_PLAYER_MIN_WIDTH);
+        int hideGuiWidth = this.actionButtonWidth(hideGuiMessage, ACTION_HIDE_GUI_MIN_WIDTH);
         int resetWidth = this.actionButtonWidth(resetMessage, ACTION_RESET_MIN_WIDTH);
         int leaveWidth = this.actionButtonWidth(leaveMessage, ACTION_LEAVE_MIN_WIDTH);
-        int preferredWidth = takePhotoWidth + returnToPlayerWidth + resetWidth + leaveWidth + ACTION_GAP * 3;
+        int preferredWidth = takePhotoWidth + returnToPlayerWidth + hideGuiWidth + resetWidth + leaveWidth + ACTION_GAP * 4;
         if (rowWidth < preferredWidth) {
-            takePhotoWidth = Math.max(1, (rowWidth - ACTION_GAP * 3) / 4);
+            takePhotoWidth = Math.max(1, (rowWidth - ACTION_GAP * 4) / 5);
             returnToPlayerWidth = takePhotoWidth;
+            hideGuiWidth = takePhotoWidth;
             resetWidth = takePhotoWidth;
-            leaveWidth = rowWidth - takePhotoWidth * 3 - ACTION_GAP * 3;
+            leaveWidth = rowWidth - takePhotoWidth * 4 - ACTION_GAP * 4;
         }
 
         int x = this.actionX();
@@ -334,6 +384,11 @@ public class PhotoModeScreen extends Screen {
         x += takePhotoWidth + ACTION_GAP;
         this.addActionButton(returnToPlayerMessage, x, y, returnToPlayerWidth, button -> PhotoModeManager.returnCameraToPlayer(Minecraft.getInstance()), Component.translatable("panoramica.photo_mode.return_to_player.desc"));
         x += returnToPlayerWidth + ACTION_GAP;
+        this.addActionButton(hideGuiMessage, x, y, hideGuiWidth, button -> {
+            this.confirmation = Confirmation.HIDE_GUI;
+            this.rebuildPhotoWidgets();
+        }, Component.translatable("panoramica.photo_mode.hide_gui.desc"));
+        x += hideGuiWidth + ACTION_GAP;
         this.addActionButton(resetMessage, x, y, resetWidth, button -> {
             this.confirmation = Confirmation.RESET;
             this.rebuildPhotoWidgets();
@@ -362,6 +417,8 @@ public class PhotoModeScreen extends Screen {
             if (pending == Confirmation.RESET) {
                 PhotoModeManager.resetToDefaults(Minecraft.getInstance());
                 this.rebuildPhotoWidgets();
+            } else if (pending == Confirmation.HIDE_GUI) {
+                this.setPhotoModeUiHidden(true);
             } else {
                 PhotoModeManager.close();
                 Minecraft.getInstance().gui.setScreen(null);
@@ -389,6 +446,9 @@ public class PhotoModeScreen extends Screen {
                     ? "panoramica.photo_mode.pause.desc"
                     : "panoramica.photo_mode.pause.unavailable_server")));
         }
+        if (this.gridButton != null) {
+            this.gridButton.setMessage(optionMessage("panoramica.photo_mode.grid", enabledValue(active.gridEnabled())));
+        }
         if (this.hideSelfButton != null) {
             this.hideSelfButton.setMessage(optionMessage("panoramica.photo_mode.hide_self", visibilityValue(!active.hideSelfPlayer())));
         }
@@ -405,6 +465,15 @@ public class PhotoModeScreen extends Screen {
         if (this.weatherButton != null) {
             PhotoModeWeatherPreset preset = active.weatherPreset();
             this.weatherButton.setMessage(optionMessage("panoramica.photo_mode.weather", Component.translatable(preset.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
+        }
+    }
+
+    private void renderGrid(@NotNull GuiGraphicsExtractor graphics) {
+        for (int line = 1; line < 3; line++) {
+            int x = Math.round(this.width * line / 3.0F);
+            int y = Math.round(this.height * line / 3.0F);
+            graphics.fill(x, 0, x + 1, this.height, GRID_LINE_COLOR);
+            graphics.fill(0, y, this.width, y + 1, GRID_LINE_COLOR);
         }
     }
 
@@ -452,9 +521,10 @@ public class PhotoModeScreen extends Screen {
     private int preferredActionRowWidth() {
         return this.actionButtonWidth(Component.translatable("panoramica.photo_mode.take_photo"), ACTION_TAKE_PHOTO_MIN_WIDTH)
                 + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.return_to_player"), ACTION_RETURN_TO_PLAYER_MIN_WIDTH)
+                + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.hide_gui"), ACTION_HIDE_GUI_MIN_WIDTH)
                 + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.reset"), ACTION_RESET_MIN_WIDTH)
                 + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.leave_short"), ACTION_LEAVE_MIN_WIDTH)
-                + ACTION_GAP * 3;
+                + ACTION_GAP * 4;
     }
 
     private int actionButtonWidth(@NotNull Component message, int minWidth) {
@@ -466,6 +536,9 @@ public class PhotoModeScreen extends Screen {
     }
 
     private boolean isInsidePhotoModeUi(double mouseX, double mouseY) {
+        if (PhotoModeManager.isPhotoModeUiHidden()) {
+            return false;
+        }
         boolean insidePanel = mouseX >= this.panelX && mouseX <= this.panelX + PANEL_WIDTH && mouseY >= this.panelY && mouseY <= this.panelY + this.panelHeight;
         if (insidePanel || this.confirmation != null) {
             return insidePanel;
@@ -486,6 +559,30 @@ public class PhotoModeScreen extends Screen {
                 || key == GLFW.GLFW_KEY_RIGHT;
     }
 
+    private static boolean isHideGuiKey(int key) {
+        return key == GLFW.GLFW_KEY_H;
+    }
+
+    private static boolean isGridKey(int key) {
+        return key == GLFW.GLFW_KEY_G;
+    }
+
+    private void setPhotoModeUiHidden(boolean hidden) {
+        this.confirmation = null;
+        this.rotatingView = false;
+        PhotoModeManager.setPhotoModeUiHidden(hidden);
+        this.rebuildPhotoWidgets();
+    }
+
+    private void toggleGrid() {
+        PhotoModeManager.Session active = PhotoModeManager.session();
+        if (active == null) {
+            return;
+        }
+        active.setGridEnabled(!active.gridEnabled());
+        this.updateButtonMessages();
+    }
+
     @NotNull
     private static Component optionMessage(@NotNull String key, @NotNull Component value) {
         return Component.translatable(key, value);
@@ -498,6 +595,12 @@ public class PhotoModeScreen extends Screen {
     }
 
     @NotNull
+    private static Component enabledValue(boolean enabled) {
+        return Component.translatable(enabled ? "panoramica.photo_mode.enabled" : "panoramica.photo_mode.disabled")
+                .withStyle(Style.EMPTY.withColor(enabled ? ChatFormatting.GREEN : ChatFormatting.RED));
+    }
+
+    @NotNull
     private Component poseValue(@Nullable Identifier poseId) {
         if (poseId == null) {
             return Component.translatable("panoramica.photo_mode.pose.none").withStyle(Style.EMPTY.withColor(VALUE_COLOR));
@@ -507,9 +610,10 @@ public class PhotoModeScreen extends Screen {
     }
 
     private enum Tab {
-        CAMERA(CAMERA_ICON, "panoramica.photo_mode.tab.camera", 163),
-        LENS(LENS_ICON, "panoramica.photo_mode.tab.lens", 63),
-        ENVIRONMENT(CLOCK_ICON, "panoramica.photo_mode.tab.environment", 113);
+        GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 113),
+        PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 113),
+        EFFECTS(LENS_ICON, "panoramica.photo_mode.tab.effects", 63),
+        ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 113);
 
         private final Identifier icon;
         private final String labelKey;
@@ -537,6 +641,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     private enum Confirmation {
+        HIDE_GUI("panoramica.photo_mode.confirm.hide_gui.title", "panoramica.photo_mode.confirm.hide_gui.message", "panoramica.photo_mode.confirm.hide_gui.confirm"),
         RESET("panoramica.photo_mode.confirm.reset.title", "panoramica.photo_mode.confirm.reset.message", "panoramica.photo_mode.confirm.reset.confirm"),
         LEAVE("panoramica.photo_mode.confirm.leave.title", "panoramica.photo_mode.confirm.leave.message", "panoramica.photo_mode.confirm.leave.confirm");
 

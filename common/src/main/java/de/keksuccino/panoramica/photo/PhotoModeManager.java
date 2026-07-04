@@ -135,7 +135,25 @@ public final class PhotoModeManager {
     }
 
     public static boolean shouldHidePhotoModeUi() {
-        return NormalScreenshotCaptureManager.shouldForceHideHud();
+        Session active = session;
+        return NormalScreenshotCaptureManager.shouldForceHideHud() || active != null && active.photoModeUiHidden();
+    }
+
+    public static boolean shouldRenderPhotoModeGrid() {
+        Session active = session;
+        return active != null && active.gridEnabled() && !NormalScreenshotCaptureManager.shouldForceHideHud();
+    }
+
+    public static boolean isPhotoModeUiHidden() {
+        Session active = session;
+        return active != null && active.photoModeUiHidden();
+    }
+
+    public static void setPhotoModeUiHidden(boolean hidden) {
+        Session active = session;
+        if (active != null) {
+            active.setPhotoModeUiHidden(hidden);
+        }
     }
 
     public static boolean isPauseScreen(@NotNull Minecraft minecraft) {
@@ -270,7 +288,7 @@ public final class PhotoModeManager {
 
     public static void extractVignette(@NotNull GuiGraphicsExtractor graphics, int width, int height) {
         Session active = session;
-        if (active == null || active.vignette() <= 0.0F || shouldHidePhotoModeUi()) {
+        if (active == null || active.vignette() <= 0.0F) {
             return;
         }
 
@@ -492,6 +510,8 @@ public final class PhotoModeManager {
         private boolean hideSelfPlayer;
         private boolean hideOtherPlayers;
         private boolean paused;
+        private boolean photoModeUiHidden;
+        private boolean gridEnabled;
         private PhotoModeTimePreset timePreset;
         private PhotoModeWeatherPreset weatherPreset;
         @Nullable
@@ -543,6 +563,8 @@ public final class PhotoModeManager {
             this.vignette = 0.0F;
             this.hideSelfPlayer = false;
             this.hideOtherPlayers = false;
+            this.photoModeUiHidden = false;
+            this.gridEnabled = false;
             this.poseId = null;
             this.timePreset = defaultTimePreset(minecraft);
             this.weatherPreset = defaultWeatherPreset(minecraft);
@@ -761,6 +783,22 @@ public final class PhotoModeManager {
 
         public void setPaused(boolean paused) {
             this.paused = paused;
+        }
+
+        public boolean photoModeUiHidden() {
+            return this.photoModeUiHidden;
+        }
+
+        public void setPhotoModeUiHidden(boolean photoModeUiHidden) {
+            this.photoModeUiHidden = photoModeUiHidden;
+        }
+
+        public boolean gridEnabled() {
+            return this.gridEnabled;
+        }
+
+        public void setGridEnabled(boolean gridEnabled) {
+            this.gridEnabled = gridEnabled;
         }
 
         @NotNull
