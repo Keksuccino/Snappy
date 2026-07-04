@@ -66,7 +66,7 @@ public final class PhotoModeManager {
     private static final double SCROLL_ZOOM_SECONDS_PER_NOTCH = 0.08D;
     private static final double MAX_SCROLL_ZOOM_NOTCHES = 4.0D;
     private static final double MAX_FRAME_SECONDS = 0.1D;
-    private static final double SELF_PLAYER_POSITION_OFFSET_RANGE = 20.0D;
+    private static final double SELF_PLAYER_POSITION_OFFSET_RANGE = 5.0D;
     private static final double SELF_PLAYER_ROTATION_OFFSET_RANGE = 180.0D;
     private static final double SELF_PLAYER_TRANSFORM_EPSILON = 1.0E-4D;
     private static final int ENVIRONMENT_FAST_FORWARD_TICKS = 40;

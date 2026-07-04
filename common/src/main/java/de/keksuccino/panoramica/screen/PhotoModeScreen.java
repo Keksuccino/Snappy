@@ -57,9 +57,10 @@ public class PhotoModeScreen extends Screen {
     private static final double FOV_SNAP_RADIUS = 2.0D;
     private static final double ROLL_SNAP_RADIUS = 5.0D;
     private static final double VIGNETTE_SNAP_RADIUS = 0.05D;
-    private static final double PLAYER_POSITION_OFFSET_MIN = -20.0D;
-    private static final double PLAYER_POSITION_OFFSET_MAX = 20.0D;
-    private static final double PLAYER_POSITION_OFFSET_SNAP_RADIUS = 0.5D;
+    private static final double PLAYER_POSITION_OFFSET_MIN = -5.0D;
+    private static final double PLAYER_POSITION_OFFSET_MAX = 5.0D;
+    private static final double PLAYER_POSITION_OFFSET_SNAP_RADIUS = 0.08D;
+    private static final double PLAYER_POSITION_OFFSET_STEP = 0.01D;
     private static final double PLAYER_ROTATION_OFFSET_MIN = -180.0D;
     private static final double PLAYER_ROTATION_OFFSET_MAX = 180.0D;
     private static final double PLAYER_ROTATION_OFFSET_SNAP_RADIUS = 5.0D;
@@ -327,6 +328,7 @@ public class PhotoModeScreen extends Screen {
                 PLAYER_POSITION_OFFSET_MAX,
                 active.selfPlayerPositionOffsetX(),
                 PLAYER_POSITION_OFFSET_SNAP_RADIUS,
+                PLAYER_POSITION_OFFSET_STEP,
                 active::setSelfPlayerPositionOffsetX,
                 value -> optionMessage("panoramica.photo_mode.player_offset_x", this.blockValue(value))
         );
@@ -340,6 +342,7 @@ public class PhotoModeScreen extends Screen {
                 PLAYER_POSITION_OFFSET_MAX,
                 active.selfPlayerPositionOffsetY(),
                 PLAYER_POSITION_OFFSET_SNAP_RADIUS,
+                PLAYER_POSITION_OFFSET_STEP,
                 active::setSelfPlayerPositionOffsetY,
                 value -> optionMessage("panoramica.photo_mode.player_offset_y", this.blockValue(value))
         );
@@ -353,6 +356,7 @@ public class PhotoModeScreen extends Screen {
                 PLAYER_POSITION_OFFSET_MAX,
                 active.selfPlayerPositionOffsetZ(),
                 PLAYER_POSITION_OFFSET_SNAP_RADIUS,
+                PLAYER_POSITION_OFFSET_STEP,
                 active::setSelfPlayerPositionOffsetZ,
                 value -> optionMessage("panoramica.photo_mode.player_offset_z", this.blockValue(value))
         );
@@ -366,6 +370,7 @@ public class PhotoModeScreen extends Screen {
                 PLAYER_ROTATION_OFFSET_MAX,
                 active.selfPlayerRotationOffsetX(),
                 PLAYER_ROTATION_OFFSET_SNAP_RADIUS,
+                0.0D,
                 active::setSelfPlayerRotationOffsetX,
                 value -> optionMessage("panoramica.photo_mode.player_rotation_x", this.degreeValue(value))
         );
@@ -379,6 +384,7 @@ public class PhotoModeScreen extends Screen {
                 PLAYER_ROTATION_OFFSET_MAX,
                 active.selfPlayerRotationOffsetY(),
                 PLAYER_ROTATION_OFFSET_SNAP_RADIUS,
+                0.0D,
                 active::setSelfPlayerRotationOffsetY,
                 value -> optionMessage("panoramica.photo_mode.player_rotation_y", this.degreeValue(value))
         );
@@ -392,6 +398,7 @@ public class PhotoModeScreen extends Screen {
                 PLAYER_ROTATION_OFFSET_MAX,
                 active.selfPlayerRotationOffsetZ(),
                 PLAYER_ROTATION_OFFSET_SNAP_RADIUS,
+                0.0D,
                 active::setSelfPlayerRotationOffsetZ,
                 value -> optionMessage("panoramica.photo_mode.player_rotation_z", this.degreeValue(value))
         );
@@ -494,6 +501,7 @@ public class PhotoModeScreen extends Screen {
             double maxValue,
             double currentValue,
             double snapRadius,
+            double actualStep,
             @NotNull DoubleConsumer valueConsumer,
             @NotNull DoubleFunction<Component> messageFactory
     ) {
@@ -507,6 +515,7 @@ public class PhotoModeScreen extends Screen {
                 currentValue,
                 0.0D,
                 snapRadius,
+                actualStep,
                 valueConsumer,
                 messageFactory
         ));
@@ -723,7 +732,7 @@ public class PhotoModeScreen extends Screen {
 
     @NotNull
     private Component blockValue(double value) {
-        return Component.translatable("panoramica.photo_mode.blocks", String.format(Locale.ROOT, "%.1f", value))
+        return Component.translatable("panoramica.photo_mode.blocks", String.format(Locale.ROOT, "%.2f", value))
                 .withStyle(Style.EMPTY.withColor(VALUE_COLOR));
     }
 
