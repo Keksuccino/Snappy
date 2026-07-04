@@ -17,7 +17,7 @@ layout(std140) uniform DepthOfFieldConfig {
     vec4 Depth;
 };
 
-const int SAMPLE_COUNT = 64;
+const int SAMPLE_COUNT = 12;
 const float GOLDEN_ANGLE = 2.39996323;
 const float TAU = 6.28318531;
 const float SENSOR_HEIGHT_METERS = 0.024;
@@ -44,17 +44,8 @@ float circleOfConfusion(float distanceFromLens) {
     return clamp(cocMeters / SENSOR_HEIGHT_METERS * OutSize.y * Depth.z, 0.0, Lens.w);
 }
 
-float luminance(vec3 color) {
-    return dot(color, vec3(0.2126, 0.7152, 0.0722));
-}
-
 float interleavedGradientNoise(vec2 pixel) {
     return fract(52.9829189 * fract(dot(pixel, vec2(0.06711056, 0.00583715))));
-}
-
-float diskCoverage(float coc, float tapRadius, float diskRadius) {
-    float feather = mix(1.35, 2.65, diskRadius);
-    return smoothstep(tapRadius - feather, tapRadius + feather, coc);
 }
 
 void main() {
@@ -62,38 +53,36 @@ void main() {
     vec4 centerColor = texture(ColorSampler, texCoord);
     float centerDistance = viewDistance(texCoord);
     float centerCoc = circleOfConfusion(centerDistance);
+    float resolveAmount = smoothstep(0.85, 3.75, centerCoc);
 
-    float centerWeight = mix(1.0, 0.34, smoothstep(1.0, Lens.w, centerCoc));
-    vec3 colorSum = centerColor.rgb * centerWeight;
-    float weightSum = centerWeight;
-    float blurPresence = smoothstep(0.10, 1.20, centerCoc);
-    float rotation = interleavedGradientNoise(floor(texCoord * OutSize)) * TAU;
+    if (resolveAmount <= EPSILON) {
+        fragColor = centerColor;
+        return;
+    }
+
+    float resolveRadius = mix(0.70, 1.90, smoothstep(2.0, Lens.w, centerCoc));
+    float rotation = interleavedGradientNoise(floor(texCoord * OutSize) + vec2(19.0, 7.0)) * TAU;
+    vec3 colorSum = centerColor.rgb * 1.65;
+    float weightSum = 1.65;
 
     for (int i = 0; i < SAMPLE_COUNT; i++) {
         float sampleIndex = float(i) + 0.5;
         float diskRadius = sqrt(sampleIndex / float(SAMPLE_COUNT));
         float angle = sampleIndex * GOLDEN_ANGLE + rotation;
         vec2 direction = vec2(cos(angle), sin(angle));
-        float tapRadius = diskRadius * Lens.w;
-        vec2 sampleUv = clamp(texCoord + direction * tapRadius * texel, texel * 0.5, 1.0 - texel * 0.5);
-
-        float sampleDistance = viewDistance(sampleUv);
-        float sampleCoc = circleOfConfusion(sampleDistance);
-        float foreground = smoothstep(0.02, 0.25, centerDistance - sampleDistance);
-        float backgroundWeight = diskCoverage(centerCoc, tapRadius, diskRadius) * blurPresence;
-        float foregroundWeight = diskCoverage(sampleCoc, tapRadius, diskRadius) * smoothstep(0.10, 1.20, sampleCoc) * foreground;
-        float weight = max(backgroundWeight, foregroundWeight);
-        weight *= mix(1.0, Depth.w, foreground);
+        vec2 sampleUv = clamp(texCoord + direction * resolveRadius * diskRadius * texel, texel * 0.5, 1.0 - texel * 0.5);
+        float sampleCoc = circleOfConfusion(viewDistance(sampleUv));
+        float cocSimilarity = 1.0 - smoothstep(1.75, 7.0, abs(sampleCoc - centerCoc));
+        float sampleBlur = smoothstep(0.65, 2.50, sampleCoc);
+        float spatialWeight = exp(-diskRadius * diskRadius * 2.15);
+        float weight = spatialWeight * cocSimilarity * sampleBlur;
 
         if (weight > EPSILON) {
-            vec4 sampleColor = texture(ColorSampler, sampleUv);
-            float highlight = smoothstep(0.78, 1.15, luminance(sampleColor.rgb));
-            weight *= mix(1.0, 1.07, highlight * smoothstep(4.0, Lens.w, sampleCoc));
-            colorSum += sampleColor.rgb * weight;
+            colorSum += texture(ColorSampler, sampleUv).rgb * weight;
             weightSum += weight;
         }
     }
 
-    vec3 dofColor = colorSum / max(weightSum, EPSILON);
-    fragColor = vec4(dofColor, centerColor.a);
+    vec3 resolvedColor = colorSum / max(weightSum, EPSILON);
+    fragColor = vec4(mix(centerColor.rgb, resolvedColor, resolveAmount * 0.86), centerColor.a);
 }

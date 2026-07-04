@@ -521,6 +521,12 @@ public class PhotoModeScreen extends Screen {
             return;
         }
 
+        this.depthOfFieldButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+            active.setDepthOfFieldEnabled(!active.depthOfFieldEnabled());
+            this.updateButtonMessages();
+        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.depth_of_field.desc"))).build());
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
         this.depthOfFieldFocalLengthSlider = this.addRenderableWidget(new PhotoModeSlider(
                 x,
                 y,
@@ -551,12 +557,6 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setDepthOfFieldAperture((float) value),
                 value -> optionMessage("panoramica.photo_mode.dof_aperture", Component.translatable("panoramica.photo_mode.aperture", String.format(Locale.ROOT, "%.1f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
-        y += CONTROL_HEIGHT + CONTROL_GAP;
-
-        this.depthOfFieldButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
-            active.setDepthOfFieldEnabled(!active.depthOfFieldEnabled());
-            this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.depth_of_field.desc"))).build());
         y += CONTROL_HEIGHT + CONTROL_GAP;
 
         this.depthOfFieldFocusDistanceSlider = this.addRenderableWidget(new PhotoModeSlider(

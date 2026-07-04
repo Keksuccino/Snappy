@@ -40,8 +40,10 @@ import java.util.OptionalDouble;
 final class PhotoModeDepthOfFieldRenderer {
 
     private static final Identifier DOF_PIPELINE_ID = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "pipeline/photo_depth_of_field");
+    private static final Identifier RESOLVE_PIPELINE_ID = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "pipeline/photo_depth_of_field_resolve");
     private static final Identifier COPY_PIPELINE_ID = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "pipeline/photo_depth_of_field_copy");
     private static final Identifier DOF_SHADER_ID = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "post/depth_of_field");
+    private static final Identifier RESOLVE_SHADER_ID = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "post/depth_of_field_resolve");
     private static final Identifier COPY_SHADER_ID = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "post/copy");
     private static final Identifier SCREEN_QUAD_SHADER_ID = Identifier.withDefaultNamespace("core/screenquad");
     private static final int SAMPLER_INFO_SIZE = new Std140SizeCalculator().putVec2().putVec2().putVec2().get();
@@ -54,6 +56,17 @@ final class PhotoModeDepthOfFieldRenderer {
             .withLocation(DOF_PIPELINE_ID)
             .withVertexShader(SCREEN_QUAD_SHADER_ID)
             .withFragmentShader(DOF_SHADER_ID)
+            .withBindGroupLayout(BindGroupLayout.builder()
+                    .withSampler("ColorSampler")
+                    .withSampler("DepthSampler")
+                    .withUniform("SamplerInfo", UniformType.UNIFORM_BUFFER)
+                    .withUniform("DepthOfFieldConfig", UniformType.UNIFORM_BUFFER)
+                    .build())
+            .build();
+    private static final RenderPipeline RESOLVE_PIPELINE = RenderPipeline.builder(RenderPipelines.POST_PROCESSING_SNIPPET)
+            .withLocation(RESOLVE_PIPELINE_ID)
+            .withVertexShader(SCREEN_QUAD_SHADER_ID)
+            .withFragmentShader(RESOLVE_SHADER_ID)
             .withBindGroupLayout(BindGroupLayout.builder()
                     .withSampler("ColorSampler")
                     .withSampler("DepthSampler")
@@ -103,16 +116,26 @@ final class PhotoModeDepthOfFieldRenderer {
                 "panoramica depth of field",
                 new RenderTargetDescriptor(mainRenderTarget.width, mainRenderTarget.height, false, CLEAR_COLOR, GpuFormat.RGBA8_UNORM)
         );
+        ResourceHandle<RenderTarget> resolveTarget = frame.createInternal(
+                "panoramica depth of field resolve",
+                new RenderTargetDescriptor(mainRenderTarget.width, mainRenderTarget.height, false, CLEAR_COLOR, GpuFormat.RGBA8_UNORM)
+        );
 
         FramePass dofPass = frame.addPass("panoramica_depth_of_field");
         dofPass.reads(main);
         ResourceHandle<RenderTarget> dofOutput = dofPass.readsAndWrites(dofTarget);
         dofPass.executes(() -> drawDepthOfFieldPass(renderResources, main.get(), dofOutput.get()));
 
+        FramePass resolvePass = frame.addPass("panoramica_depth_of_field_resolve");
+        resolvePass.reads(main);
+        resolvePass.reads(dofOutput);
+        ResourceHandle<RenderTarget> resolveOutput = resolvePass.readsAndWrites(resolveTarget);
+        resolvePass.executes(() -> drawResolvePass(renderResources, dofOutput.get(), main.get(), resolveOutput.get()));
+
         FramePass copyPass = frame.addPass("panoramica_depth_of_field_copy");
-        copyPass.reads(dofOutput);
+        copyPass.reads(resolveOutput);
         ResourceHandle<RenderTarget> mainOutput = copyPass.readsAndWrites(main);
-        copyPass.executes(() -> drawCopyPass(renderResources, dofOutput.get(), mainOutput.get()));
+        copyPass.executes(() -> drawCopyPass(renderResources, resolveOutput.get(), mainOutput.get()));
 
         try {
             frame.execute(resourceAllocator);
@@ -131,6 +154,7 @@ final class PhotoModeDepthOfFieldRenderer {
 
     private static boolean ensurePipelinesAvailable() {
         return RenderSystem.getDevice().precompilePipeline(DOF_PIPELINE).isValid()
+                && RenderSystem.getDevice().precompilePipeline(RESOLVE_PIPELINE).isValid()
                 && RenderSystem.getDevice().precompilePipeline(COPY_PIPELINE).isValid();
     }
 
@@ -189,6 +213,44 @@ final class PhotoModeDepthOfFieldRenderer {
                 OptionalDouble.empty()
         )) {
             renderPass.setPipeline(DOF_PIPELINE);
+            RenderSystem.bindDefaultUniforms(renderPass);
+            renderPass.setUniform("SamplerInfo", renderResources.samplerInfoBuffer.currentBuffer());
+            renderPass.setUniform("DepthOfFieldConfig", renderResources.dofConfigBuffer.currentBuffer());
+            renderPass.bindTexture("ColorSampler", sourceColor, samplerCache.getClampToEdge(FilterMode.LINEAR));
+            renderPass.bindTexture("DepthSampler", sourceDepth, samplerCache.getClampToEdge(FilterMode.NEAREST));
+            renderPass.draw(3, 1, 0, 0);
+        } finally {
+            RenderSystem.restoreProjectionMatrix();
+        }
+    }
+
+    private static void drawResolvePass(
+            @NotNull Resources renderResources,
+            @NotNull RenderTarget source,
+            @NotNull RenderTarget depthSource,
+            @NotNull RenderTarget output
+    ) {
+        GpuTextureView sourceColor = source.getColorTextureView();
+        GpuTextureView sourceDepth = depthSource.getDepthTextureView();
+        GpuTextureView outputColor = output.getColorTextureView();
+        if (sourceColor == null || sourceDepth == null || outputColor == null) {
+            return;
+        }
+
+        POST_PROJECTION.setSize(output.width, output.height);
+        GpuBufferSlice projectionBuffer = renderResources.postProjectionMatrixBuffer.getBuffer(POST_PROJECTION);
+        RenderSystem.backupProjectionMatrix();
+        RenderSystem.setProjectionMatrix(projectionBuffer, ProjectionType.ORTHOGRAPHIC);
+        CommandEncoder commandEncoder = RenderSystem.getDevice().createCommandEncoder();
+        SamplerCache samplerCache = RenderSystem.getSamplerCache();
+        try (RenderPass renderPass = commandEncoder.createRenderPass(
+                () -> "Panoramica photo depth of field resolve",
+                outputColor,
+                Optional.empty(),
+                null,
+                OptionalDouble.empty()
+        )) {
+            renderPass.setPipeline(RESOLVE_PIPELINE);
             RenderSystem.bindDefaultUniforms(renderPass);
             renderPass.setUniform("SamplerInfo", renderResources.samplerInfoBuffer.currentBuffer());
             renderPass.setUniform("DepthOfFieldConfig", renderResources.dofConfigBuffer.currentBuffer());
