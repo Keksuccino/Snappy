@@ -39,11 +39,19 @@ public class PhotoModeScreen extends Screen {
     private static final int SCREEN_MARGIN = 12;
     private static final int ACTION_GAP = 4;
     private static final int ACTION_ROW_GAP = 5;
+    private static final int ACTION_BUTTON_TEXT_PADDING = 16;
+    private static final int ACTION_TAKE_PHOTO_MIN_WIDTH = 76;
+    private static final int ACTION_RETURN_TO_PLAYER_MIN_WIDTH = 116;
+    private static final int ACTION_RESET_MIN_WIDTH = 58;
+    private static final int ACTION_LEAVE_MIN_WIDTH = 64;
     private static final int PANEL_BACKGROUND_COLOR = ARGB.color(174, 0, 0, 0);
     private static final int PANEL_ACCENT_COLOR = ARGB.color(255, 255, 209, 102);
     private static final int PANEL_BORDER_COLOR = ARGB.color(210, 116, 128, 142);
     private static final int SECTION_BACKGROUND_COLOR = ARGB.color(82, 24, 28, 34);
     private static final int VALUE_COLOR = 0xFFFFAA00;
+    private static final double FOV_SNAP_RADIUS = 2.0D;
+    private static final double ROLL_SNAP_RADIUS = 5.0D;
+    private static final double VIGNETTE_SNAP_RADIUS = 0.05D;
 
     private Tab selectedTab = Tab.CAMERA;
     @Nullable
@@ -134,6 +142,15 @@ public class PhotoModeScreen extends Screen {
     }
 
     @Override
+    public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
+        if (super.mouseScrolled(x, y, scrollX, scrollY)) {
+            return true;
+        }
+        PhotoModeManager.zoomFromScroll(Minecraft.getInstance(), scrollY);
+        return true;
+    }
+
+    @Override
     public boolean keyPressed(@NotNull KeyEvent event) {
         if (event.isEscape()) {
             this.confirmation = Confirmation.LEAVE;
@@ -199,12 +216,6 @@ public class PhotoModeScreen extends Screen {
             return;
         }
 
-        this.pauseButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
-            PhotoModeManager.togglePaused(Minecraft.getInstance());
-            this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.pause.desc"))).build());
-        y += CONTROL_HEIGHT + CONTROL_GAP;
-
         this.addRenderableWidget(new PhotoModeSlider(
                 x,
                 y,
@@ -213,6 +224,8 @@ public class PhotoModeScreen extends Screen {
                 30.0D,
                 110.0D,
                 active.fieldOfView(),
+                Minecraft.getInstance().options.fov().get().doubleValue(),
+                FOV_SNAP_RADIUS,
                 value -> active.setFieldOfView((float) value),
                 value -> optionMessage("panoramica.photo_mode.fov", Component.literal(String.format(Locale.ROOT, "%.0f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
@@ -226,6 +239,8 @@ public class PhotoModeScreen extends Screen {
                 -180.0D,
                 180.0D,
                 active.roll(),
+                0.0D,
+                ROLL_SNAP_RADIUS,
                 value -> active.setRoll((float) value),
                 value -> optionMessage("panoramica.photo_mode.roll", Component.translatable("panoramica.photo_mode.degrees", String.format(Locale.ROOT, "%.0f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
@@ -262,6 +277,8 @@ public class PhotoModeScreen extends Screen {
                 0.0D,
                 1.0D,
                 active.vignette(),
+                0.0D,
+                VIGNETTE_SNAP_RADIUS,
                 value -> active.setVignette((float) value),
                 value -> optionMessage("panoramica.photo_mode.vignette", Component.translatable("panoramica.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
@@ -274,6 +291,12 @@ public class PhotoModeScreen extends Screen {
         if (active == null) {
             return;
         }
+
+        this.pauseButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+            PhotoModeManager.togglePaused(Minecraft.getInstance());
+            this.updateButtonMessages();
+        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.pause.desc"))).build());
+        y += CONTROL_HEIGHT + CONTROL_GAP;
 
         this.timeButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
             active.setTimePreset(active.timePreset().next());
@@ -288,24 +311,45 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void addActionButtons() {
-        int x = this.panelX;
+        Component takePhotoMessage = Component.translatable("panoramica.photo_mode.take_photo");
+        Component returnToPlayerMessage = Component.translatable("panoramica.photo_mode.return_to_player");
+        Component resetMessage = Component.translatable("panoramica.photo_mode.reset");
+        Component leaveMessage = Component.translatable("panoramica.photo_mode.leave_short");
+        int rowWidth = this.actionRowWidth();
+        int takePhotoWidth = this.actionButtonWidth(takePhotoMessage, ACTION_TAKE_PHOTO_MIN_WIDTH);
+        int returnToPlayerWidth = this.actionButtonWidth(returnToPlayerMessage, ACTION_RETURN_TO_PLAYER_MIN_WIDTH);
+        int resetWidth = this.actionButtonWidth(resetMessage, ACTION_RESET_MIN_WIDTH);
+        int leaveWidth = this.actionButtonWidth(leaveMessage, ACTION_LEAVE_MIN_WIDTH);
+        int preferredWidth = takePhotoWidth + returnToPlayerWidth + resetWidth + leaveWidth + ACTION_GAP * 3;
+        if (rowWidth < preferredWidth) {
+            takePhotoWidth = Math.max(1, (rowWidth - ACTION_GAP * 3) / 4);
+            returnToPlayerWidth = takePhotoWidth;
+            resetWidth = takePhotoWidth;
+            leaveWidth = rowWidth - takePhotoWidth * 3 - ACTION_GAP * 3;
+        }
+
+        int x = this.actionX();
         int y = this.actionY();
-        int buttonWidth = (this.actionRowWidth() - ACTION_GAP * 2) / 3;
-        this.addRenderableWidget(Button.builder(Component.translatable("panoramica.photo_mode.take_photo"), button -> PhotoModeManager.requestScreenshot(Minecraft.getInstance()))
-                .bounds(x, y, buttonWidth, CONTROL_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.take_photo")))
-                .build());
-        x += buttonWidth + ACTION_GAP;
-        this.addRenderableWidget(Button.builder(Component.translatable("panoramica.photo_mode.reset"), button -> {
+        this.addActionButton(takePhotoMessage, x, y, takePhotoWidth, button -> PhotoModeManager.requestScreenshot(Minecraft.getInstance()), takePhotoMessage);
+        x += takePhotoWidth + ACTION_GAP;
+        this.addActionButton(returnToPlayerMessage, x, y, returnToPlayerWidth, button -> PhotoModeManager.returnCameraToPlayer(Minecraft.getInstance()), Component.translatable("panoramica.photo_mode.return_to_player.desc"));
+        x += returnToPlayerWidth + ACTION_GAP;
+        this.addActionButton(resetMessage, x, y, resetWidth, button -> {
             this.confirmation = Confirmation.RESET;
             this.rebuildPhotoWidgets();
-        }).bounds(x, y, buttonWidth, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.reset"))).build());
-        x += buttonWidth + ACTION_GAP;
-        int leaveWidth = this.actionRowWidth() - buttonWidth * 2 - ACTION_GAP * 2;
-        this.addRenderableWidget(Button.builder(Component.translatable("panoramica.photo_mode.leave_short"), button -> {
+        }, resetMessage);
+        x += resetWidth + ACTION_GAP;
+        this.addActionButton(leaveMessage, x, y, leaveWidth, button -> {
             this.confirmation = Confirmation.LEAVE;
             this.rebuildPhotoWidgets();
-        }).bounds(x, y, leaveWidth, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.leave"))).build());
+        }, Component.translatable("panoramica.photo_mode.leave"));
+    }
+
+    private void addActionButton(@NotNull Component message, int x, int y, int width, @NotNull Button.OnPress onPress, @NotNull Component tooltip) {
+        this.addRenderableWidget(Button.builder(message, onPress)
+                .bounds(x, y, width, CONTROL_HEIGHT)
+                .tooltip(Tooltip.create(tooltip))
+                .build());
     }
 
     private void addConfirmationWidgets() {
@@ -396,8 +440,25 @@ public class PhotoModeScreen extends Screen {
         return this.panelY + this.panelHeight + ACTION_ROW_GAP;
     }
 
+    private int actionX() {
+        return Math.max(SCREEN_MARGIN, this.panelX + PANEL_WIDTH - this.actionRowWidth());
+    }
+
     private int actionRowWidth() {
-        return PANEL_WIDTH;
+        int availableWidth = Math.max(PANEL_WIDTH, this.width - SCREEN_MARGIN * 2);
+        return Math.min(this.preferredActionRowWidth(), availableWidth);
+    }
+
+    private int preferredActionRowWidth() {
+        return this.actionButtonWidth(Component.translatable("panoramica.photo_mode.take_photo"), ACTION_TAKE_PHOTO_MIN_WIDTH)
+                + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.return_to_player"), ACTION_RETURN_TO_PLAYER_MIN_WIDTH)
+                + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.reset"), ACTION_RESET_MIN_WIDTH)
+                + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.leave_short"), ACTION_LEAVE_MIN_WIDTH)
+                + ACTION_GAP * 3;
+    }
+
+    private int actionButtonWidth(@NotNull Component message, int minWidth) {
+        return Math.max(minWidth, this.font.width(message) + ACTION_BUTTON_TEXT_PADDING);
     }
 
     private int controlWidth() {
@@ -410,7 +471,8 @@ public class PhotoModeScreen extends Screen {
             return insidePanel;
         }
         int actionY = this.actionY();
-        return mouseX >= this.panelX && mouseX <= this.panelX + this.actionRowWidth() && mouseY >= actionY && mouseY <= actionY + CONTROL_HEIGHT;
+        int actionX = this.actionX();
+        return mouseX >= actionX && mouseX <= actionX + this.actionRowWidth() && mouseY >= actionY && mouseY <= actionY + CONTROL_HEIGHT;
     }
 
     private static boolean isCameraMovementKey(int key) {
@@ -445,9 +507,9 @@ public class PhotoModeScreen extends Screen {
     }
 
     private enum Tab {
-        CAMERA(CAMERA_ICON, "panoramica.photo_mode.tab.camera", 188),
+        CAMERA(CAMERA_ICON, "panoramica.photo_mode.tab.camera", 163),
         LENS(LENS_ICON, "panoramica.photo_mode.tab.lens", 63),
-        ENVIRONMENT(CLOCK_ICON, "panoramica.photo_mode.tab.environment", 88);
+        ENVIRONMENT(CLOCK_ICON, "panoramica.photo_mode.tab.environment", 113);
 
         private final Identifier icon;
         private final String labelKey;

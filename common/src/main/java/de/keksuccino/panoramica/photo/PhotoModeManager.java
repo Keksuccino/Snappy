@@ -31,6 +31,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
@@ -49,6 +50,9 @@ public final class PhotoModeManager {
     private static final float CAMERA_FAST_SPEED_MULTIPLIER = 3.0F;
     private static final float CAMERA_SLOW_SPEED_MULTIPLIER = 0.35F;
     private static final float MOUSE_ROTATION_SENSITIVITY = 0.16F;
+    private static final double INITIAL_CAMERA_DISTANCE = 3.0D;
+    private static final double SCROLL_ZOOM_SECONDS_PER_NOTCH = 0.08D;
+    private static final double MAX_SCROLL_ZOOM_NOTCHES = 4.0D;
     private static final double MAX_FRAME_SECONDS = 0.1D;
     private static final int ENVIRONMENT_FAST_FORWARD_TICKS = 40;
     private static final int ENVIRONMENT_FOLLOWUP_TICKS = 5;
@@ -155,6 +159,22 @@ public final class PhotoModeManager {
             return;
         }
         active.rotate(dx, dy);
+    }
+
+    public static void zoomFromScroll(@NotNull Minecraft minecraft, double scrollY) {
+        Session active = session;
+        if (active == null) {
+            return;
+        }
+        active.zoomFromScroll(minecraft, scrollY);
+    }
+
+    public static void returnCameraToPlayer(@NotNull Minecraft minecraft) {
+        Session active = session;
+        if (active == null || minecraft.player == null) {
+            return;
+        }
+        active.returnToPlayer(minecraft.player);
     }
 
     public static float overrideFieldOfView(float original) {
@@ -465,13 +485,11 @@ public final class PhotoModeManager {
 
         @NotNull
         private static Session create(@NotNull Minecraft minecraft) {
-            Vec3 startPosition = minecraft.gameRenderer.mainCamera().isInitialized()
-                    ? minecraft.gameRenderer.mainCamera().position()
-                    : minecraft.player.getEyePosition(1.0F);
+            CameraStart start = CameraStart.facingPlayer(minecraft.player);
             return new Session(
-                    startPosition,
-                    minecraft.player.getYRot(),
-                    minecraft.player.getXRot(),
+                    start.position(),
+                    start.yaw(),
+                    start.pitch(),
                     minecraft.options.fov().get().floatValue(),
                     canPause(minecraft),
                     defaultTimePreset(minecraft),
@@ -480,11 +498,8 @@ public final class PhotoModeManager {
         }
 
         private void reset(@NotNull Minecraft minecraft) {
-            Vec3 startPosition = minecraft.player == null ? this.position : minecraft.player.getEyePosition(1.0F);
-            this.position = startPosition;
             if (minecraft.player != null) {
-                this.yaw = minecraft.player.getYRot();
-                this.pitch = minecraft.player.getXRot();
+                this.returnToPlayer(minecraft.player);
             }
             this.roll = 0.0F;
             this.fieldOfView = minecraft.options.fov().get().floatValue();
@@ -499,6 +514,29 @@ public final class PhotoModeManager {
             this.paused = canPause(minecraft);
             this.lastMovementMillis = Util.getMillis();
             requestEnvironmentVisualRefresh(minecraft);
+        }
+
+        private void returnToPlayer(@NotNull Player player) {
+            CameraStart start = CameraStart.facingPlayer(player);
+            this.position = start.position();
+            this.yaw = start.yaw();
+            this.pitch = start.pitch();
+            this.lastMovementMillis = Util.getMillis();
+        }
+
+        private record CameraStart(@NotNull Vec3 position, float yaw, float pitch) {
+
+            @NotNull
+            private static CameraStart facingPlayer(@NotNull Player player) {
+                Vec3 target = player.position().add(0.0D, player.getBbHeight() * 0.78D, 0.0D);
+                Vec3 playerForward = Vec3.directionFromRotation(0.0F, player.getVisualRotationYInDegrees()).normalize();
+                Vec3 position = player.position()
+                        .add(0.0D, player.getEyeHeight(), 0.0D)
+                        .add(playerForward.scale(INITIAL_CAMERA_DISTANCE));
+                Vec2 rotation = target.subtract(position).rotation();
+                return new CameraStart(position, rotation.y, rotation.x);
+            }
+
         }
 
         @NotNull
@@ -557,14 +595,6 @@ public final class PhotoModeManager {
                 return;
             }
 
-            float speed = CAMERA_SPEED_BLOCKS_PER_SECOND;
-            if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
-                speed *= CAMERA_FAST_SPEED_MULTIPLIER;
-            }
-            if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_ALT) || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_ALT)) {
-                speed *= CAMERA_SLOW_SPEED_MULTIPLIER;
-            }
-
             Vec3 forward = this.forwardVector();
             Vec3 right = new Vec3(-forward.z, 0.0D, forward.x);
             if (right.lengthSqr() < 1.0E-7D) {
@@ -577,7 +607,16 @@ public final class PhotoModeManager {
             if (movement.lengthSqr() > 1.0D) {
                 movement = movement.normalize();
             }
-            this.position = this.position.add(movement.scale(speed * deltaSeconds));
+            this.position = this.position.add(movement.scale(this.movementSpeed(minecraft) * deltaSeconds));
+        }
+
+        public void zoomFromScroll(@NotNull Minecraft minecraft, double scrollY) {
+            if (!Double.isFinite(scrollY) || scrollY == 0.0D) {
+                return;
+            }
+            double notches = Mth.clamp(scrollY, -MAX_SCROLL_ZOOM_NOTCHES, MAX_SCROLL_ZOOM_NOTCHES);
+            this.position = this.position.add(this.forwardVector().scale(this.movementSpeed(minecraft) * SCROLL_ZOOM_SECONDS_PER_NOTCH * notches));
+            this.lastMovementMillis = Util.getMillis();
         }
 
         private static float axis(@NotNull Minecraft minecraft, int positiveKey, int positiveFallbackKey, int negativeKey, int negativeFallbackKey) {
@@ -589,6 +628,17 @@ public final class PhotoModeManager {
                 axis -= 1.0F;
             }
             return axis;
+        }
+
+        private float movementSpeed(@NotNull Minecraft minecraft) {
+            float speed = CAMERA_SPEED_BLOCKS_PER_SECOND;
+            if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
+                speed *= CAMERA_FAST_SPEED_MULTIPLIER;
+            }
+            if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_ALT) || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_ALT)) {
+                speed *= CAMERA_SLOW_SPEED_MULTIPLIER;
+            }
+            return speed;
         }
 
         public void rotate(double dx, double dy) {
