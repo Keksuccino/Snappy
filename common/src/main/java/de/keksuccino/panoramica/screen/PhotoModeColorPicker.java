@@ -11,20 +11,23 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
-import java.util.function.IntConsumer;
+import java.util.function.Consumer;
 import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
 public final class PhotoModeColorPicker {
 
     public static final int WIDTH = 176;
-    public static final int HEIGHT = 136;
+    public static final int HEIGHT = 160;
+    public static final String EMPTY_HEX_COLOR = "-----";
     private static final int PADDING = 8;
     private static final int HEADER_HEIGHT = 17;
     private static final int PREVIEW_SIZE = 22;
     private static final int TRACK_HEIGHT = 10;
     private static final int TRACK_GAP = 15;
     private static final int TRACK_LABEL_WIDTH = 11;
-    private static final int DONE_BUTTON_HEIGHT = 20;
+    private static final int FOOTER_BUTTON_HEIGHT = 20;
+    private static final int FOOTER_BUTTON_GAP = 4;
     private static final int PANEL_BACKGROUND_COLOR = ARGB.color(184, 0, 0, 0);
     private static final int PANEL_BORDER_COLOR = ARGB.color(210, 116, 128, 142);
     private static final int PANEL_ACCENT_COLOR = ARGB.color(255, 255, 209, 102);
@@ -36,20 +39,32 @@ public final class PhotoModeColorPicker {
     private static final float CHANNEL_EPSILON = 1.0E-4F;
 
     private final Component title;
-    private final IntSupplier colorSupplier;
-    private final IntConsumer colorConsumer;
+    private final Supplier<@Nullable Integer> colorSupplier;
+    private final IntSupplier editColorSupplier;
+    private final Supplier<@Nullable Integer> defaultColorSupplier;
+    private final Consumer<@Nullable Integer> colorConsumer;
     private int x;
     private int y;
-    private int syncedColor = Integer.MIN_VALUE;
+    private boolean syncedColorInitialized;
+    private boolean syncedEmpty;
+    private int syncedColor;
     private float hue;
     private float saturation;
     private float brightness;
     @Nullable
     private Channel draggingChannel;
 
-    public PhotoModeColorPicker(@NotNull Component title, @NotNull IntSupplier colorSupplier, @NotNull IntConsumer colorConsumer) {
+    public PhotoModeColorPicker(
+            @NotNull Component title,
+            @NotNull Supplier<@Nullable Integer> colorSupplier,
+            @NotNull IntSupplier editColorSupplier,
+            @NotNull Supplier<@Nullable Integer> defaultColorSupplier,
+            @NotNull Consumer<@Nullable Integer> colorConsumer
+    ) {
         this.title = title;
         this.colorSupplier = colorSupplier;
+        this.editColorSupplier = editColorSupplier;
+        this.defaultColorSupplier = defaultColorSupplier;
         this.colorConsumer = colorConsumer;
         this.syncFromSupplier();
     }
@@ -68,7 +83,7 @@ public final class PhotoModeColorPicker {
     }
 
     public int doneButtonY() {
-        return this.y + HEIGHT - PADDING - DONE_BUTTON_HEIGHT;
+        return this.y + HEIGHT - PADDING - FOOTER_BUTTON_HEIGHT;
     }
 
     public int doneButtonWidth() {
@@ -76,7 +91,23 @@ public final class PhotoModeColorPicker {
     }
 
     public int doneButtonHeight() {
-        return DONE_BUTTON_HEIGHT;
+        return FOOTER_BUTTON_HEIGHT;
+    }
+
+    public int resetButtonX() {
+        return this.x + PADDING;
+    }
+
+    public int resetButtonY() {
+        return this.doneButtonY() - FOOTER_BUTTON_GAP - FOOTER_BUTTON_HEIGHT;
+    }
+
+    public int resetButtonWidth() {
+        return WIDTH - PADDING * 2;
+    }
+
+    public int resetButtonHeight() {
+        return FOOTER_BUTTON_HEIGHT;
     }
 
     public boolean mouseClicked(@NotNull MouseButtonEvent event, boolean doubleClick) {
@@ -112,6 +143,11 @@ public final class PhotoModeColorPicker {
         return true;
     }
 
+    public void resetToDefault() {
+        this.colorConsumer.accept(opaqueOrNull(this.defaultColorSupplier.get()));
+        this.syncFromSupplier();
+    }
+
     public void extractRenderState(@NotNull GuiGraphicsExtractor graphics, @NotNull Font font, int mouseX, int mouseY) {
         this.syncFromSupplier();
         if (this.channelAt(mouseX, mouseY) != null || this.draggingChannel != null) {
@@ -124,13 +160,11 @@ public final class PhotoModeColorPicker {
 
         int contentX = this.x + PADDING;
         int previewY = this.y + PADDING + HEADER_HEIGHT;
-        int previewColor = this.currentColor();
-        graphics.fill(contentX, previewY, contentX + PREVIEW_SIZE, previewY + PREVIEW_SIZE, previewColor);
-        graphics.outline(contentX, previewY, PREVIEW_SIZE, PREVIEW_SIZE, PREVIEW_BORDER_COLOR);
+        this.renderSwatch(graphics, contentX, previewY, PREVIEW_SIZE, this.currentValue());
 
         int hexX = contentX + PREVIEW_SIZE + 8;
         int hexY = previewY + 7;
-        graphics.text(font, Component.literal(formatHexColor(previewColor)), hexX, hexY, 0xFFFFFFFF);
+        graphics.text(font, Component.literal(formatHexColor(this.currentValue())), hexX, hexY, 0xFFFFFFFF);
 
         int tracksY = previewY + PREVIEW_SIZE + 11;
         this.renderTrack(graphics, font, Channel.HUE, tracksY);
@@ -139,22 +173,29 @@ public final class PhotoModeColorPicker {
     }
 
     @NotNull
-    public static String formatHexColor(int color) {
+    public static String formatHexColor(@Nullable Integer color) {
+        if (color == null) {
+            return EMPTY_HEX_COLOR;
+        }
         return String.format(Locale.ROOT, "#%06X", color & 0xFFFFFF);
     }
 
     private void syncFromSupplier() {
-        int color = ARGB.opaque(this.colorSupplier.getAsInt());
-        if (color == this.syncedColor) {
+        @Nullable Integer suppliedColor = opaqueOrNull(this.colorSupplier.get());
+        int color = suppliedColor == null ? ARGB.opaque(this.editColorSupplier.getAsInt()) : suppliedColor;
+        boolean empty = suppliedColor == null;
+        if (this.syncedColorInitialized && this.syncedEmpty == empty && this.syncedColor == color) {
             return;
         }
 
         Hsv hsv = Hsv.fromRgb(color);
-        if (this.syncedColor == Integer.MIN_VALUE || hsv.saturation() > CHANNEL_EPSILON && hsv.brightness() > CHANNEL_EPSILON) {
+        if (!this.syncedColorInitialized || empty || hsv.saturation() > CHANNEL_EPSILON && hsv.brightness() > CHANNEL_EPSILON) {
             this.hue = hsv.hue();
         }
         this.saturation = hsv.saturation();
         this.brightness = hsv.brightness();
+        this.syncedColorInitialized = true;
+        this.syncedEmpty = empty;
         this.syncedColor = color;
     }
 
@@ -166,6 +207,8 @@ public final class PhotoModeColorPicker {
             case BRIGHTNESS -> this.brightness = (float) normalized;
         }
         int color = this.currentColor();
+        this.syncedColorInitialized = true;
+        this.syncedEmpty = false;
         this.syncedColor = color;
         this.colorConsumer.accept(color);
     }
@@ -207,6 +250,19 @@ public final class PhotoModeColorPicker {
         graphics.fill(markerX - 1, y - 1, markerX + 2, y + TRACK_HEIGHT + 1, TRACK_MARKER_LIGHT);
     }
 
+    private void renderSwatch(@NotNull GuiGraphicsExtractor graphics, int x, int y, int size, @Nullable Integer color) {
+        graphics.fill(x - 1, y - 1, x + size + 1, y + size + 1, TRACK_BORDER_COLOR);
+        if (color == null) {
+            graphics.fill(x, y, x + size, y + size, SECTION_BACKGROUND_COLOR);
+            for (int offset = 0; offset < size; offset++) {
+                graphics.fill(x + offset, y + size - 1 - offset, x + offset + 1, y + size - offset, PANEL_ACCENT_COLOR);
+            }
+        } else {
+            graphics.fill(x, y, x + size, y + size, ARGB.opaque(color));
+        }
+        graphics.outline(x, y, size, size, PREVIEW_BORDER_COLOR);
+    }
+
     private int trackColor(@NotNull Channel channel, float value) {
         return switch (channel) {
             case HUE -> Mth.hsvToArgb(this.hueForRender(value), 1.0F, 1.0F, 255);
@@ -217,6 +273,16 @@ public final class PhotoModeColorPicker {
 
     private int currentColor() {
         return Mth.hsvToArgb(this.hueForRender(this.hue), this.saturation, this.brightness, 255);
+    }
+
+    @Nullable
+    private Integer currentValue() {
+        return this.syncedEmpty ? null : this.currentColor();
+    }
+
+    @Nullable
+    private static Integer opaqueOrNull(@Nullable Integer color) {
+        return color == null ? null : ARGB.opaque(color);
     }
 
     private float hueForRender(float value) {

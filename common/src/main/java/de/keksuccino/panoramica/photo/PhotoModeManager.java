@@ -33,6 +33,7 @@ import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.Util;
+import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EntitySelector;
@@ -78,7 +79,8 @@ public final class PhotoModeManager {
     public static final double PHOTO_FOG_MIN_DISTANCE = 8.0D;
     public static final double PHOTO_FOG_MAX_DISTANCE = 512.0D;
     public static final double PHOTO_FOG_DEFAULT_DISTANCE = 64.0D;
-    public static final int PHOTO_FOG_DEFAULT_COLOR = ARGB.color(168, 184, 196);
+    private static final int PHOTO_FOG_FALLBACK_COLOR = ARGB.color(168, 184, 196);
+    private static final int PHOTO_SKY_FALLBACK_COLOR = ARGB.color(120, 169, 255);
     private static final int ENVIRONMENT_FAST_FORWARD_TICKS = 40;
     private static final int ENVIRONMENT_FOLLOWUP_TICKS = 5;
     private static final int VISUAL_LIGHTNING_ENTITY_ID_START = Integer.MIN_VALUE + 4096;
@@ -102,6 +104,7 @@ public final class PhotoModeManager {
     private static Session session;
     private static boolean environmentOverrideScope;
     private static boolean suppressEnvironmentRefreshSounds;
+    private static boolean suppressSkyColorOverride;
     private static int nextVisualLightningEntityId = VISUAL_LIGHTNING_ENTITY_ID_START;
 
     private PhotoModeManager() {
@@ -304,9 +307,10 @@ public final class PhotoModeManager {
             return;
         }
 
+        active.sampleFogColor(fog);
         float intensity = active.fogIntensity();
-        if (intensity > 0.0F) {
-            int color = active.fogColor();
+        @Nullable Integer color = active.fogColorOverride();
+        if (intensity > 0.0F && color != null) {
             fog.color.set(ARGB.redFloat(color), ARGB.greenFloat(color), ARGB.blueFloat(color), 1.0F);
         }
 
@@ -342,6 +346,11 @@ public final class PhotoModeManager {
         levelRenderState.weatherRenderState.intensity = active.weatherPreset().rainLevel();
         levelRenderState.skyRenderState.rainBrightness = 1.0F - active.weatherPreset().rainLevel();
         gameRenderState.lightmapRenderState.needsUpdate = true;
+    }
+
+    public static int overrideSkyColor(int sampledSkyColor) {
+        Session active = session;
+        return active == null || suppressSkyColorOverride ? sampledSkyColor : active.overrideSkyColor(sampledSkyColor);
     }
 
     public static void extractVignette(@NotNull GuiGraphicsExtractor graphics, int width, int height) {
@@ -620,6 +629,21 @@ public final class PhotoModeManager {
         camera.attributeProbe().tick(level, active == null ? camera.position() : active.position());
     }
 
+    private static int sampleSkyColor(@NotNull Minecraft minecraft, @NotNull Vec3 position) {
+        ClientLevel level = minecraft.level;
+        if (level == null) {
+            return PHOTO_SKY_FALLBACK_COLOR;
+        }
+
+        boolean previousSuppressSkyColorOverride = suppressSkyColorOverride;
+        suppressSkyColorOverride = true;
+        try {
+            return ARGB.opaque(level.environmentAttributes().getValue(EnvironmentAttributes.SKY_COLOR, position, null));
+        } finally {
+            suppressSkyColorOverride = previousSuppressSkyColorOverride;
+        }
+    }
+
     public record CameraState(@NotNull Vec3 position, float yaw, float pitch, float roll) {
     }
 
@@ -642,7 +666,12 @@ public final class PhotoModeManager {
         private PhotoModeWeatherPreset weatherPreset;
         private float fogIntensity;
         private float fogDistance = (float) PHOTO_FOG_DEFAULT_DISTANCE;
-        private int fogColor = PHOTO_FOG_DEFAULT_COLOR;
+        private int sampledFogColor = PHOTO_FOG_FALLBACK_COLOR;
+        @Nullable
+        private Integer fogColorOverride;
+        private int sampledSkyColor = PHOTO_SKY_FALLBACK_COLOR;
+        @Nullable
+        private Integer skyColorOverride;
         @Nullable
         private Identifier poseId;
         private final Set<InputConstants.Key> activeBoundInputs = new HashSet<>();
@@ -658,7 +687,8 @@ public final class PhotoModeManager {
                 float fieldOfView,
                 boolean paused,
                 @NotNull PhotoModeTimePreset timePreset,
-                @NotNull PhotoModeWeatherPreset weatherPreset
+                @NotNull PhotoModeWeatherPreset weatherPreset,
+                int sampledSkyColor
         ) {
             this.position = position;
             this.yaw = yaw;
@@ -667,6 +697,7 @@ public final class PhotoModeManager {
             this.paused = paused;
             this.timePreset = timePreset;
             this.weatherPreset = weatherPreset;
+            this.sampledSkyColor = ARGB.opaque(sampledSkyColor);
             this.lastMovementMillis = Util.getMillis();
         }
 
@@ -680,7 +711,8 @@ public final class PhotoModeManager {
                     minecraft.options.fov().get().floatValue(),
                     canPause(minecraft),
                     defaultTimePreset(minecraft),
-                    defaultWeatherPreset(minecraft)
+                    defaultWeatherPreset(minecraft),
+                    sampleSkyColor(minecraft, start.position())
             );
         }
 
@@ -688,6 +720,8 @@ public final class PhotoModeManager {
             if (minecraft.player != null) {
                 this.returnToPlayer(minecraft.player);
             }
+            this.sampledSkyColor = sampleSkyColor(minecraft, this.position);
+            this.skyColorOverride = null;
             this.roll = 0.0F;
             this.fieldOfView = minecraft.options.fov().get().floatValue();
             this.vignette = 0.0F;
@@ -702,7 +736,8 @@ public final class PhotoModeManager {
             this.weatherPreset = defaultWeatherPreset(minecraft);
             this.fogIntensity = 0.0F;
             this.fogDistance = (float) PHOTO_FOG_DEFAULT_DISTANCE;
-            this.fogColor = PHOTO_FOG_DEFAULT_COLOR;
+            this.sampledFogColor = PHOTO_FOG_FALLBACK_COLOR;
+            this.fogColorOverride = null;
             this.visualLightningStorm.clear(minecraft.level);
             this.visualGameTimeOffsetTicks = 0L;
             this.environmentVisualTicksRemaining = 0;
@@ -1083,11 +1118,38 @@ public final class PhotoModeManager {
         }
 
         public int fogColor() {
-            return this.fogColor;
+            return this.fogColorOverride == null ? this.sampledFogColor : this.fogColorOverride;
         }
 
-        public void setFogColor(int fogColor) {
-            this.fogColor = ARGB.opaque(fogColor);
+        @Nullable
+        public Integer fogColorOverride() {
+            return this.fogColorOverride;
+        }
+
+        public void setFogColor(@Nullable Integer fogColor) {
+            this.fogColorOverride = fogColor == null ? null : ARGB.opaque(fogColor);
+        }
+
+        public int skyColor() {
+            return this.skyColorOverride == null ? this.sampledSkyColor : this.skyColorOverride;
+        }
+
+        @Nullable
+        public Integer skyColorOverride() {
+            return this.skyColorOverride;
+        }
+
+        public void setSkyColor(@Nullable Integer skyColor) {
+            this.skyColorOverride = skyColor == null ? null : ARGB.opaque(skyColor);
+        }
+
+        private int overrideSkyColor(int sampledSkyColor) {
+            this.sampledSkyColor = ARGB.opaque(sampledSkyColor);
+            return this.skyColor();
+        }
+
+        private void sampleFogColor(@NotNull FogData fog) {
+            this.sampledFogColor = ARGB.colorFromFloat(1.0F, fog.color.x(), fog.color.y(), fog.color.z());
         }
 
         private void advanceVisualGameTime(long ticks) {

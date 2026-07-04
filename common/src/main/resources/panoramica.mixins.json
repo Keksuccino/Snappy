@@ -23,6 +23,7 @@
     "client.AccessorMixinLevelRenderer",
     "client.MixinClientClockManager",
     "client.MixinClientLevelData",
+    "client.MixinEnvironmentAttributeProbe",
     "client.MixinLevel",
     "client.MixinLevelExtractor",
     "client.MixinPlayerModel"
