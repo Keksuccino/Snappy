@@ -105,6 +105,12 @@ public final class PanoramaMenuManager {
 
         double rawMouseX = minecraft.mouseHandler.xpos();
         double rawMouseY = minecraft.mouseHandler.ypos();
+        if (!isMouseInsideWindow(window, rawMouseX, rawMouseY)) {
+            settleMenuParallax();
+            resetParallaxMouseTracking();
+            return;
+        }
+
         updateParallaxMouseMovement(rawMouseX, rawMouseY);
 
         float mouseX = normalizeMousePosition(rawMouseX, width);
@@ -120,7 +126,15 @@ public final class PanoramaMenuManager {
         }
 
         Minecraft minecraft = Minecraft.getInstance();
-        updateParallaxMouseMovement(minecraft.mouseHandler.xpos(), minecraft.mouseHandler.ypos());
+        Window window = minecraft.getWindow();
+        double rawMouseX = minecraft.mouseHandler.xpos();
+        double rawMouseY = minecraft.mouseHandler.ypos();
+        if (!isMouseInsideWindow(window, rawMouseX, rawMouseY)) {
+            resetParallaxMouseTracking();
+            return true;
+        }
+
+        updateParallaxMouseMovement(rawMouseX, rawMouseY);
         return Util.getMillis() - lastParallaxMouseMoveMillis >= PARALLAX_SPIN_RESUME_DELAY_MS;
     }
 
@@ -222,6 +236,10 @@ public final class PanoramaMenuManager {
         return Mth.clamp((float) ((position / size) * 2.0D - 1.0D), -1.0F, 1.0F);
     }
 
+    private static boolean isMouseInsideWindow(@NotNull Window window, double mouseX, double mouseY) {
+        return mouseX >= 0.0D && mouseY >= 0.0D && mouseX < window.getScreenWidth() && mouseY < window.getScreenHeight();
+    }
+
     private static void updateParallaxMouseMovement(double mouseX, double mouseY) {
         if (!Double.isNaN(lastParallaxMouseX) && !Double.isNaN(lastParallaxMouseY)
                 && (Math.abs(mouseX - lastParallaxMouseX) > PARALLAX_MOUSE_MOVEMENT_EPSILON
@@ -233,12 +251,21 @@ public final class PanoramaMenuManager {
         lastParallaxMouseY = mouseY;
     }
 
-    private static void resetMenuParallax() {
-        parallaxXRotationOffset = 0.0F;
-        parallaxYRotationOffset = 0.0F;
+    private static void settleMenuParallax() {
+        parallaxXRotationOffset = Mth.lerp(PARALLAX_SMOOTHING, parallaxXRotationOffset, 0.0F);
+        parallaxYRotationOffset = Mth.lerp(PARALLAX_SMOOTHING, parallaxYRotationOffset, 0.0F);
+    }
+
+    private static void resetParallaxMouseTracking() {
         lastParallaxMouseX = Double.NaN;
         lastParallaxMouseY = Double.NaN;
         lastParallaxMouseMoveMillis = 0L;
+    }
+
+    private static void resetMenuParallax() {
+        parallaxXRotationOffset = 0.0F;
+        parallaxYRotationOffset = 0.0F;
+        resetParallaxMouseTracking();
     }
 
     private static long lastModifiedMillis(@NotNull Path path) {
