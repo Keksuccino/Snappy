@@ -2,6 +2,7 @@ package de.keksuccino.panoramica.photo;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import de.keksuccino.panoramica.Panoramica;
@@ -18,6 +19,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.renderer.LevelTargetBundle;
+import net.minecraft.client.renderer.PostChain;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.fog.FogData;
@@ -384,6 +387,28 @@ public final class PhotoModeManager {
         );
     }
 
+    @SuppressWarnings("deprecation")
+    public static void processColorizeEffect(
+            @NotNull Minecraft minecraft,
+            @NotNull RenderTarget mainRenderTarget,
+            @NotNull GraphicsResourceAllocator resourceAllocator
+    ) {
+        Session active = session;
+        if (active == null || minecraft.level == null) {
+            return;
+        }
+
+        @Nullable Identifier postEffectId = active.colorizePreset().postEffectId();
+        if (postEffectId == null) {
+            return;
+        }
+
+        PostChain postChain = minecraft.getShaderManager().getPostChain(postEffectId, LevelTargetBundle.MAIN_TARGETS);
+        if (postChain != null) {
+            postChain.process(mainRenderTarget, resourceAllocator);
+        }
+    }
+
     public static boolean shouldHidePlayerEntity(@NotNull Entity entity) {
         Session active = session;
         if (active == null || !(entity instanceof Player)) {
@@ -661,6 +686,7 @@ public final class PhotoModeManager {
         private float fieldOfView;
         private float brightness;
         private float vignette;
+        private PhotoModeColorizePreset colorizePreset = PhotoModeColorizePreset.NONE;
         private Vec3 selfPlayerPositionOffset = Vec3.ZERO;
         private Vec3 selfPlayerRotationOffset = Vec3.ZERO;
         private boolean hideSelfPlayer;
@@ -735,6 +761,7 @@ public final class PhotoModeManager {
             this.fieldOfView = minecraft.options.fov().get().floatValue();
             this.brightness = minecraft.options.gamma().get().floatValue();
             this.vignette = 0.0F;
+            this.colorizePreset = PhotoModeColorizePreset.NONE;
             this.selfPlayerPositionOffset = Vec3.ZERO;
             this.selfPlayerRotationOffset = Vec3.ZERO;
             this.hideSelfPlayer = false;
@@ -970,6 +997,15 @@ public final class PhotoModeManager {
 
         public void setVignette(float vignette) {
             this.vignette = Mth.clamp(vignette, 0.0F, 1.0F);
+        }
+
+        @NotNull
+        public PhotoModeColorizePreset colorizePreset() {
+            return this.colorizePreset;
+        }
+
+        public void setColorizePreset(@NotNull PhotoModeColorizePreset colorizePreset) {
+            this.colorizePreset = colorizePreset;
         }
 
         @NotNull

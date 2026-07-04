@@ -1,9 +1,12 @@
 package de.keksuccino.panoramica.mixin.mixins.common.client;
 
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.resource.CrossFrameResourcePool;
 import de.keksuccino.panoramica.capture.NormalScreenshotCaptureManager;
 import de.keksuccino.panoramica.capture.PanoramaCaptureManager;
 import de.keksuccino.panoramica.photo.PhotoModeManager;
 import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.state.GameRenderState;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,6 +20,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinGameRenderer {
 
     @Shadow @Final private GameRenderState gameRenderState;
+    @Shadow @Final private RenderTarget mainRenderTarget;
+    @Shadow @Final private CrossFrameResourcePool resourcePool;
 
     @Inject(method = "render", at = @At("HEAD"))
     private void before_render_Panoramica(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo info) {
@@ -55,6 +60,11 @@ public class MixinGameRenderer {
         if (!PanoramaCaptureManager.isRenderCaptureActive()) {
             NormalScreenshotCaptureManager.captureQueuedScreenshots();
         }
+    }
+
+    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/fog/FogRenderer;endFrame()V"))
+    private void before_renderEndFrame_Panoramica(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo info) {
+        PhotoModeManager.processColorizeEffect(Minecraft.getInstance(), this.mainRenderTarget, this.resourcePool);
     }
 
     @Inject(method = "render", at = @At("TAIL"))

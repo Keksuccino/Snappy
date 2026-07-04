@@ -2,6 +2,7 @@ package de.keksuccino.panoramica.screen;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import de.keksuccino.panoramica.Panoramica;
+import de.keksuccino.panoramica.photo.PhotoModeColorizePreset;
 import de.keksuccino.panoramica.photo.PhotoModeManager;
 import de.keksuccino.panoramica.photo.PhotoModeTimePreset;
 import de.keksuccino.panoramica.photo.PhotoModeWeatherPreset;
@@ -97,6 +98,8 @@ public class PhotoModeScreen extends Screen {
     private Button timeButton;
     @Nullable
     private Button weatherButton;
+    @Nullable
+    private Button colorizeButton;
     @Nullable
     private PhotoModeColorButton skyColorButton;
     @Nullable
@@ -317,6 +320,7 @@ public class PhotoModeScreen extends Screen {
         this.poseButton = null;
         this.timeButton = null;
         this.weatherButton = null;
+        this.colorizeButton = null;
         this.skyColorButton = null;
         this.fogColorButton = null;
         this.colorPicker = null;
@@ -492,14 +496,16 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void addEffectsControls(int y) {
+        int x = this.panelX + PANEL_PADDING;
+        int width = this.controlWidth();
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active == null) {
             return;
         }
         this.addRenderableWidget(new PhotoModeSlider(
-                this.panelX + PANEL_PADDING,
+                x,
                 y,
-                this.controlWidth(),
+                width,
                 CONTROL_HEIGHT,
                 0.0D,
                 1.0D,
@@ -509,6 +515,12 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setVignette((float) value),
                 value -> optionMessage("panoramica.photo_mode.vignette", Component.translatable("panoramica.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.colorizeButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+            active.setColorizePreset(active.colorizePreset().next());
+            this.updateButtonMessages();
+        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.colorize.desc"))).build());
     }
 
     private void addEnvironmentControls(int y) {
@@ -792,6 +804,10 @@ public class PhotoModeScreen extends Screen {
             PhotoModeWeatherPreset preset = active.weatherPreset();
             this.weatherButton.setMessage(optionMessage("panoramica.photo_mode.weather", Component.translatable(preset.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
         }
+        if (this.colorizeButton != null) {
+            PhotoModeColorizePreset preset = active.colorizePreset();
+            this.colorizeButton.setMessage(optionMessage("panoramica.photo_mode.colorize", Component.translatable(preset.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
+        }
         if (this.skyColorButton != null) {
             this.skyColorButton.setMessage(optionMessage("panoramica.photo_mode.sky_color", Component.literal(PhotoModeColorPicker.formatHexColor(active.skyColorOverride())).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
         }
@@ -1020,7 +1036,7 @@ public class PhotoModeScreen extends Screen {
     private enum Tab {
         GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 138),
         PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
-        EFFECTS(LENS_ICON, "panoramica.photo_mode.tab.effects", 63),
+        EFFECTS(LENS_ICON, "panoramica.photo_mode.tab.effects", 88),
         ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 213);
 
         private final Identifier icon;
