@@ -7,12 +7,14 @@ import de.keksuccino.panoramica.photo.PhotoModeManager;
 import de.keksuccino.panoramica.photo.PhotoModeTimePreset;
 import de.keksuccino.panoramica.photo.PhotoModeWeatherPreset;
 import de.keksuccino.panoramica.photo.PhotoPose;
+import de.keksuccino.panoramica.photo.PhotoPoseExporter;
 import de.keksuccino.panoramica.photo.PhotoPoseManager;
 import de.keksuccino.panoramica.util.rendering.RenderingUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -22,11 +24,15 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
+import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.EnumMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleFunction;
@@ -55,6 +61,15 @@ public class PhotoModeScreen extends Screen {
     private static final int ACTION_HIDE_GUI_MIN_WIDTH = 72;
     private static final int ACTION_RESET_MIN_WIDTH = 58;
     private static final int ACTION_LEAVE_MIN_WIDTH = 64;
+    private static final int POSE_MAKER_MIN_COLUMN_WIDTH = 108;
+    private static final int POSE_MAKER_MAX_COLUMN_WIDTH = 162;
+    private static final int POSE_MAKER_COLUMN_GAP = 6;
+    private static final int POSE_MAKER_MIN_COLUMNS = 2;
+    private static final int POSE_MAKER_MAX_COLUMNS = 4;
+    private static final int POSE_MAKER_HEADER_HEIGHT = 14;
+    private static final int POSE_MAKER_NAME_LABEL_HEIGHT = 10;
+    private static final int POSE_MAKER_BUTTON_GAP = 5;
+    private static final int POSE_MAKER_SPACE_PRESS_COUNT = 5;
     private static final int PANEL_BACKGROUND_COLOR = ARGB.color(174, 0, 0, 0);
     private static final int PANEL_ACCENT_COLOR = ARGB.color(255, 255, 209, 102);
     private static final int PANEL_BORDER_COLOR = ARGB.color(210, 116, 128, 142);
@@ -82,6 +97,12 @@ public class PhotoModeScreen extends Screen {
     private static final double DEPTH_OF_FIELD_FOCAL_LENGTH_STEP = 1.0D;
     private static final double DEPTH_OF_FIELD_APERTURE_SNAP_RADIUS = 0.1D;
     private static final double DEPTH_OF_FIELD_APERTURE_STEP = 0.1D;
+    private static final double POSE_MAKER_ROTATION_MIN = -180.0D;
+    private static final double POSE_MAKER_ROTATION_MAX = 180.0D;
+    private static final double POSE_MAKER_ROTATION_SNAP_RADIUS = 5.0D;
+    private static final double POSE_MAKER_ROTATION_STEP = 1.0D;
+    private static final long POSE_MAKER_SPACE_SEQUENCE_MILLIS = 900L;
+    private static final String DEFAULT_POSE_MAKER_NAME_KEY = "panoramica.photo_mode.pose.custom";
 
     private Tab selectedTab = Tab.GENERAL;
     @Nullable
@@ -91,6 +112,17 @@ public class PhotoModeScreen extends Screen {
     private int panelX;
     private int panelY;
     private int panelHeight;
+    private boolean poseMakerOpen;
+    private int poseMakerPanelX;
+    private int poseMakerPanelY;
+    private int poseMakerPanelWidth;
+    private int poseMakerPanelHeight;
+    private int poseMakerColumns;
+    private int poseMakerSpacePresses;
+    private long poseMakerFirstSpacePressMillis;
+    private String poseMakerNameKey = DEFAULT_POSE_MAKER_NAME_KEY;
+    private final PoseMakerRotation poseMakerModelRotation = new PoseMakerRotation();
+    private final Map<PhotoPose.BodyPart, PoseMakerRotation> poseMakerPartRotations = new EnumMap<>(PhotoPose.BodyPart.class);
     @Nullable
     private Button pauseButton;
     @Nullable
@@ -123,9 +155,14 @@ public class PhotoModeScreen extends Screen {
     private PhotoModeColorPicker colorPicker;
     @Nullable
     private ColorPickerTarget colorPickerTarget;
+    @Nullable
+    private EditBox poseMakerNameKeyBox;
 
     public PhotoModeScreen() {
         super(Component.translatable("panoramica.photo_mode.title"));
+        for (PhotoPose.BodyPart part : PhotoPose.BodyPart.values()) {
+            this.poseMakerPartRotations.put(part, new PoseMakerRotation());
+        }
     }
 
     @Override
@@ -162,6 +199,9 @@ public class PhotoModeScreen extends Screen {
 
         this.updateButtonMessages();
         this.renderPanel(graphics);
+        if (this.poseMakerOpen) {
+            this.renderPoseMakerPanel(graphics);
+        }
         int hoverMouseX = this.hoverMouseX(mouseX);
         int hoverMouseY = this.hoverMouseY(mouseY);
         if (this.colorPicker != null) {
@@ -236,6 +276,10 @@ public class PhotoModeScreen extends Screen {
         if (configuredCameraControlKey) {
             PhotoModeManager.setConfiguredCameraControlKeyState(event, true);
         }
+        if (event.key() == GLFW.GLFW_KEY_SPACE && this.registerPoseMakerSpacePress()) {
+            this.togglePoseMaker();
+            return true;
+        }
         if (isHideGuiKey(event.key())) {
             this.setPhotoModeUiHidden(!PhotoModeManager.isPhotoModeUiHidden());
             return true;
@@ -287,6 +331,7 @@ public class PhotoModeScreen extends Screen {
     @Override
     public void removed() {
         this.stopRotatingView();
+        this.clearPoseMakerPreview();
         PhotoModeManager.close();
     }
 
@@ -294,8 +339,12 @@ public class PhotoModeScreen extends Screen {
         this.clearWidgets();
         this.clearControlReferences();
         this.updatePanelBounds();
+        this.updatePoseMakerPanelBounds();
         if (PhotoModeManager.isPhotoModeUiHidden()) {
             return;
+        }
+        if (this.poseMakerOpen) {
+            this.addPoseMakerWidgets();
         }
         if (this.confirmation != null) {
             this.closeColorPicker();
@@ -344,6 +393,7 @@ public class PhotoModeScreen extends Screen {
         this.skyColorButton = null;
         this.fogColorButton = null;
         this.colorPicker = null;
+        this.poseMakerNameKeyBox = null;
     }
 
     private void addGeneralControls(int y) {
@@ -821,6 +871,99 @@ public class PhotoModeScreen extends Screen {
         ));
     }
 
+    private void addPoseMakerWidgets() {
+        int contentX = this.poseMakerPanelX + PANEL_PADDING;
+        int contentWidth = this.poseMakerControlWidth();
+        int y = this.poseMakerNameBoxY();
+
+        this.poseMakerNameKeyBox = this.addRenderableWidget(new EditBox(
+                this.font,
+                contentX,
+                y,
+                contentWidth,
+                CONTROL_HEIGHT,
+                Component.translatable("panoramica.photo_mode.pose_maker.name_key")
+        ));
+        this.poseMakerNameKeyBox.setMaxLength(256);
+        this.poseMakerNameKeyBox.setHint(Component.translatable("panoramica.photo_mode.pose_maker.name_key_hint"));
+        this.poseMakerNameKeyBox.setValue(this.poseMakerNameKey);
+        this.poseMakerNameKeyBox.setResponder(value -> {
+            this.poseMakerNameKey = value;
+            this.syncPoseMakerPreview();
+        });
+
+        int columnWidth = this.poseMakerColumnWidth();
+        int sliderY = this.poseMakerSliderStartY();
+        int index = 0;
+        for (PoseMakerAxis axis : PoseMakerAxis.values()) {
+            index = this.addPoseMakerRotationSlider(
+                    index,
+                    sliderY,
+                    columnWidth,
+                    "panoramica.photo_mode.pose_maker.part.model",
+                    this.poseMakerModelRotation,
+                    axis
+            );
+        }
+        for (PhotoPose.BodyPart part : PhotoPose.BodyPart.values()) {
+            PoseMakerRotation rotation = this.poseMakerPartRotations.get(part);
+            if (rotation == null) {
+                continue;
+            }
+            for (PoseMakerAxis axis : PoseMakerAxis.values()) {
+                index = this.addPoseMakerRotationSlider(index, sliderY, columnWidth, part.labelKey(), rotation, axis);
+            }
+        }
+
+        int buttonY = this.poseMakerPanelY + this.poseMakerPanelHeight - PANEL_PADDING - CONTROL_HEIGHT;
+        int buttonWidth = (contentWidth - POSE_MAKER_BUTTON_GAP) / 2;
+        this.addRenderableWidget(Button.builder(Component.translatable("panoramica.photo_mode.pose_maker.save"), button -> {
+            if (this.minecraft != null) {
+                PhotoPoseExporter.saveWithNativeDialog(this.minecraft, this.createPoseMakerPose());
+            }
+        }).bounds(contentX, buttonY, buttonWidth, CONTROL_HEIGHT).build());
+        this.addRenderableWidget(Button.builder(Component.translatable("panoramica.photo_mode.pose_maker.close"), button -> this.closePoseMaker())
+                .bounds(contentX + buttonWidth + POSE_MAKER_BUTTON_GAP, buttonY, contentWidth - buttonWidth - POSE_MAKER_BUTTON_GAP, CONTROL_HEIGHT)
+                .build());
+    }
+
+    private int addPoseMakerRotationSlider(
+            int index,
+            int sliderStartY,
+            int columnWidth,
+            @NotNull String labelKey,
+            @NotNull PoseMakerRotation rotation,
+            @NotNull PoseMakerAxis axis
+    ) {
+        int column = index % this.poseMakerColumns;
+        int row = index / this.poseMakerColumns;
+        int x = this.poseMakerPanelX + PANEL_PADDING + column * (columnWidth + POSE_MAKER_COLUMN_GAP);
+        int y = sliderStartY + row * (CONTROL_HEIGHT + CONTROL_GAP);
+        this.addRenderableWidget(new PhotoModeSlider(
+                x,
+                y,
+                columnWidth,
+                CONTROL_HEIGHT,
+                POSE_MAKER_ROTATION_MIN,
+                POSE_MAKER_ROTATION_MAX,
+                rotation.value(axis),
+                0.0D,
+                POSE_MAKER_ROTATION_SNAP_RADIUS,
+                POSE_MAKER_ROTATION_STEP,
+                value -> {
+                    rotation.set(axis, value);
+                    this.syncPoseMakerPreview();
+                },
+                value -> optionMessage(
+                        "panoramica.photo_mode.pose_maker.rotation",
+                        Component.translatable(labelKey),
+                        Component.literal(axis.label()),
+                        this.degreeValue(value)
+                )
+        ));
+        return index + 1;
+    }
+
     private void addActionButton(@NotNull Component message, int x, int y, int width, @NotNull Button.OnPress onPress, @NotNull Component tooltip) {
         this.addRenderableWidget(Button.builder(message, onPress)
                 .bounds(x, y, width, CONTROL_HEIGHT)
@@ -940,12 +1083,110 @@ public class PhotoModeScreen extends Screen {
         graphics.outline(tabX - 1, tabY - 1, TexturedIconButton.DEFAULT_BUTTON_SIZE + 2, TexturedIconButton.DEFAULT_BUTTON_SIZE + 2, PANEL_ACCENT_COLOR);
     }
 
+    private void renderPoseMakerPanel(@NotNull GuiGraphicsExtractor graphics) {
+        RenderingUtils.renderBorder(graphics, this.poseMakerPanelX - 1, this.poseMakerPanelY - 1, this.poseMakerPanelWidth + 2, this.poseMakerPanelHeight + 2, 1, PANEL_BORDER_COLOR);
+        graphics.fill(this.poseMakerPanelX, this.poseMakerPanelY, this.poseMakerPanelX + this.poseMakerPanelWidth, this.poseMakerPanelY + this.poseMakerPanelHeight, PANEL_BACKGROUND_COLOR);
+        graphics.centeredText(
+                this.font,
+                Component.translatable("panoramica.photo_mode.pose_maker.title"),
+                this.poseMakerPanelX + this.poseMakerPanelWidth / 2,
+                this.poseMakerPanelY + PANEL_PADDING + 3,
+                PANEL_ACCENT_COLOR
+        );
+        graphics.text(
+                this.font,
+                Component.translatable("panoramica.photo_mode.pose_maker.name_key"),
+                this.poseMakerPanelX + PANEL_PADDING,
+                this.poseMakerNameLabelY(),
+                0xFFFFFFFF
+        );
+    }
+
     private void updatePanelBounds() {
         int actionRowReserve = this.confirmation == null ? CONTROL_HEIGHT + ACTION_ROW_GAP : 0;
         int availablePanelHeight = Math.max(CONTROL_HEIGHT, this.height - SCREEN_MARGIN * 2 - actionRowReserve);
         this.panelHeight = Math.min(availablePanelHeight, this.confirmation != null ? 118 : this.selectedTab.panelHeight());
         this.panelX = Math.max(SCREEN_MARGIN, this.width - PANEL_WIDTH - SCREEN_MARGIN);
         this.panelY = Math.max(SCREEN_MARGIN, this.height - this.panelHeight - SCREEN_MARGIN - actionRowReserve);
+    }
+
+    private void updatePoseMakerPanelBounds() {
+        int actionRowReserve = CONTROL_HEIGHT + ACTION_ROW_GAP;
+        int availableHeight = Math.max(CONTROL_HEIGHT, this.height - SCREEN_MARGIN * 2 - actionRowReserve);
+        int availableWidth = this.poseMakerAvailableWidth();
+        this.poseMakerColumns = this.calculatePoseMakerColumns(availableWidth, availableHeight);
+        this.poseMakerPanelWidth = this.calculatePoseMakerPanelWidth(availableWidth, this.poseMakerColumns);
+        this.poseMakerPanelHeight = Math.min(availableHeight, this.poseMakerDesiredPanelHeight(this.poseMakerColumns));
+        this.poseMakerPanelX = SCREEN_MARGIN;
+        this.poseMakerPanelY = Math.max(SCREEN_MARGIN, this.height - this.poseMakerPanelHeight - SCREEN_MARGIN - actionRowReserve);
+    }
+
+    private int poseMakerAvailableWidth() {
+        int leftRegionWidth = this.panelX - COLOR_PICKER_GAP - SCREEN_MARGIN;
+        int minimumWidth = this.poseMakerMinimumPanelWidth(POSE_MAKER_MIN_COLUMNS);
+        if (leftRegionWidth >= minimumWidth) {
+            return leftRegionWidth;
+        }
+        return Math.max(minimumWidth, this.width - SCREEN_MARGIN * 2);
+    }
+
+    private int calculatePoseMakerColumns(int availableWidth, int availableHeight) {
+        int maxColumns = Math.min(POSE_MAKER_MAX_COLUMNS, Math.max(POSE_MAKER_MIN_COLUMNS, (availableWidth - PANEL_PADDING * 2 + POSE_MAKER_COLUMN_GAP) / (POSE_MAKER_MIN_COLUMN_WIDTH + POSE_MAKER_COLUMN_GAP)));
+        int firstColumns = Math.min(maxColumns, Math.max(POSE_MAKER_MIN_COLUMNS, 3));
+        for (int columns = firstColumns; columns <= maxColumns; columns++) {
+            if (this.poseMakerDesiredPanelHeight(columns) <= availableHeight) {
+                return columns;
+            }
+        }
+        return maxColumns;
+    }
+
+    private int calculatePoseMakerPanelWidth(int availableWidth, int columns) {
+        int minimumWidth = this.poseMakerMinimumPanelWidth(columns);
+        int preferredWidth = PANEL_PADDING * 2 + columns * POSE_MAKER_MAX_COLUMN_WIDTH + (columns - 1) * POSE_MAKER_COLUMN_GAP;
+        return Math.max(minimumWidth, Math.min(preferredWidth, availableWidth));
+    }
+
+    private int poseMakerMinimumPanelWidth(int columns) {
+        return PANEL_PADDING * 2 + columns * POSE_MAKER_MIN_COLUMN_WIDTH + (columns - 1) * POSE_MAKER_COLUMN_GAP;
+    }
+
+    private int poseMakerDesiredPanelHeight(int columns) {
+        int rows = (this.poseMakerSliderCount() + columns - 1) / columns;
+        int sliderHeight = rows * CONTROL_HEIGHT + Math.max(0, rows - 1) * CONTROL_GAP;
+        return PANEL_PADDING * 2
+                + POSE_MAKER_HEADER_HEIGHT
+                + CONTROL_GAP
+                + POSE_MAKER_NAME_LABEL_HEIGHT
+                + CONTROL_HEIGHT
+                + CONTROL_GAP
+                + sliderHeight
+                + CONTROL_GAP
+                + CONTROL_HEIGHT;
+    }
+
+    private int poseMakerSliderCount() {
+        return (PhotoPose.BodyPart.values().length + 1) * PoseMakerAxis.values().length;
+    }
+
+    private int poseMakerControlWidth() {
+        return this.poseMakerPanelWidth - PANEL_PADDING * 2;
+    }
+
+    private int poseMakerColumnWidth() {
+        return (this.poseMakerControlWidth() - (this.poseMakerColumns - 1) * POSE_MAKER_COLUMN_GAP) / this.poseMakerColumns;
+    }
+
+    private int poseMakerNameLabelY() {
+        return this.poseMakerPanelY + PANEL_PADDING + POSE_MAKER_HEADER_HEIGHT + CONTROL_GAP;
+    }
+
+    private int poseMakerNameBoxY() {
+        return this.poseMakerNameLabelY() + POSE_MAKER_NAME_LABEL_HEIGHT;
+    }
+
+    private int poseMakerSliderStartY() {
+        return this.poseMakerNameBoxY() + CONTROL_HEIGHT + CONTROL_GAP;
     }
 
     private void updateColorPickerPosition() {
@@ -992,8 +1233,14 @@ public class PhotoModeScreen extends Screen {
             return false;
         }
         boolean insidePanel = mouseX >= this.panelX && mouseX <= this.panelX + PANEL_WIDTH && mouseY >= this.panelY && mouseY <= this.panelY + this.panelHeight;
-        if (insidePanel || this.confirmation != null) {
-            return insidePanel;
+        if (insidePanel) {
+            return true;
+        }
+        if (this.poseMakerOpen && mouseX >= this.poseMakerPanelX && mouseX <= this.poseMakerPanelX + this.poseMakerPanelWidth && mouseY >= this.poseMakerPanelY && mouseY <= this.poseMakerPanelY + this.poseMakerPanelHeight) {
+            return true;
+        }
+        if (this.confirmation != null) {
+            return false;
         }
         if (this.colorPicker != null && this.colorPicker.contains(mouseX, mouseY)) {
             return true;
@@ -1027,6 +1274,84 @@ public class PhotoModeScreen extends Screen {
     @Nullable
     private static Integer emptyColor() {
         return null;
+    }
+
+    private boolean registerPoseMakerSpacePress() {
+        long now = Util.getMillis();
+        if (this.poseMakerFirstSpacePressMillis == 0L || now - this.poseMakerFirstSpacePressMillis > POSE_MAKER_SPACE_SEQUENCE_MILLIS) {
+            this.poseMakerFirstSpacePressMillis = now;
+            this.poseMakerSpacePresses = 0;
+        }
+
+        this.poseMakerSpacePresses++;
+        if (this.poseMakerSpacePresses < POSE_MAKER_SPACE_PRESS_COUNT) {
+            return false;
+        }
+
+        this.poseMakerSpacePresses = 0;
+        this.poseMakerFirstSpacePressMillis = 0L;
+        return true;
+    }
+
+    private void togglePoseMaker() {
+        if (this.poseMakerOpen) {
+            this.closePoseMaker();
+        } else {
+            this.openPoseMaker();
+        }
+    }
+
+    private void openPoseMaker() {
+        this.poseMakerOpen = true;
+        this.closeColorPicker();
+        this.syncPoseMakerPreview();
+        this.rebuildPhotoWidgets();
+    }
+
+    private void closePoseMaker() {
+        this.poseMakerOpen = false;
+        this.clearPoseMakerPreview();
+        this.rebuildPhotoWidgets();
+    }
+
+    private void syncPoseMakerPreview() {
+        PhotoModeManager.Session active = PhotoModeManager.session();
+        if (active != null && this.poseMakerOpen) {
+            active.setPoseMakerPose(this.createPoseMakerPose());
+        }
+    }
+
+    private void clearPoseMakerPreview() {
+        PhotoModeManager.Session active = PhotoModeManager.session();
+        if (active != null) {
+            active.setPoseMakerPose(null);
+        }
+    }
+
+    @NotNull
+    private PhotoPose createPoseMakerPose() {
+        Map<PhotoPose.BodyPart, PhotoPose.PartRotation> rotations = PhotoPose.emptyRotationMap();
+        for (PhotoPose.BodyPart part : PhotoPose.BodyPart.values()) {
+            PoseMakerRotation rotation = this.poseMakerPartRotations.get(part);
+            if (rotation == null) {
+                continue;
+            }
+            PhotoPose.PartRotation partRotation = rotation.toPartRotation();
+            if (!partRotation.isZero()) {
+                rotations.put(part, partRotation);
+            }
+        }
+        return new PhotoPose(
+                this.poseMakerNameKey(),
+                this.poseMakerModelRotation.toPartRotation(),
+                Map.copyOf(rotations)
+        );
+    }
+
+    @NotNull
+    private String poseMakerNameKey() {
+        String key = this.poseMakerNameKey.trim();
+        return key.isEmpty() ? DEFAULT_POSE_MAKER_NAME_KEY : key;
     }
 
     private void setPhotoModeUiHidden(boolean hidden) {
@@ -1096,6 +1421,11 @@ public class PhotoModeScreen extends Screen {
     }
 
     @NotNull
+    private static Component optionMessage(@NotNull String key, @NotNull Object... args) {
+        return Component.translatable(key, args);
+    }
+
+    @NotNull
     private static Component visibilityValue(boolean visible) {
         return Component.translatable(visible ? "panoramica.photo_mode.visible" : "panoramica.photo_mode.hidden")
                 .withStyle(Style.EMPTY.withColor(visible ? ChatFormatting.GREEN : ChatFormatting.RED));
@@ -1158,6 +1488,53 @@ public class PhotoModeScreen extends Screen {
         private int panelHeight() {
             return this.panelHeight;
         }
+    }
+
+    private enum PoseMakerAxis {
+        X("X"),
+        Y("Y"),
+        Z("Z");
+
+        private final String label;
+
+        PoseMakerAxis(@NotNull String label) {
+            this.label = label;
+        }
+
+        @NotNull
+        private String label() {
+            return this.label;
+        }
+    }
+
+    private static final class PoseMakerRotation {
+
+        private double x;
+        private double y;
+        private double z;
+
+        private double value(@NotNull PoseMakerAxis axis) {
+            return switch (axis) {
+                case X -> this.x;
+                case Y -> this.y;
+                case Z -> this.z;
+            };
+        }
+
+        private void set(@NotNull PoseMakerAxis axis, double value) {
+            double clamped = Mth.clamp(value, POSE_MAKER_ROTATION_MIN, POSE_MAKER_ROTATION_MAX);
+            switch (axis) {
+                case X -> this.x = clamped;
+                case Y -> this.y = clamped;
+                case Z -> this.z = clamped;
+            }
+        }
+
+        @NotNull
+        private PhotoPose.PartRotation toPartRotation() {
+            return PhotoPose.PartRotation.degrees((float) this.x, (float) this.y, (float) this.z);
+        }
+
     }
 
     private enum Confirmation {

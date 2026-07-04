@@ -496,25 +496,29 @@ public final class PhotoModeManager {
         }
 
         Vec3 rotation = active.selfPlayerRotationOffset();
-        if (!hasSelfPlayerTransform(rotation)) {
+        PhotoPose.PartRotation poseRotation = active.activePoseRotation();
+        double xRotation = rotation.x + poseRotation.xDegrees();
+        double yRotation = rotation.y + poseRotation.yDegrees();
+        double zRotation = rotation.z + poseRotation.zDegrees();
+        if (!hasSelfPlayerTransform(xRotation, yRotation, zRotation)) {
             return;
         }
 
         float pivotY = entityScale == 0.0F ? 0.0F : state.boundingBoxHeight / 2.0F / entityScale;
-        if (Math.abs(rotation.x) > SELF_PLAYER_TRANSFORM_EPSILON) {
-            poseStack.rotateAround(Axis.XP.rotationDegrees((float) rotation.x), 0.0F, pivotY, 0.0F);
+        if (Math.abs(xRotation) > SELF_PLAYER_TRANSFORM_EPSILON) {
+            poseStack.rotateAround(Axis.XP.rotationDegrees((float) xRotation), 0.0F, pivotY, 0.0F);
         }
-        if (Math.abs(rotation.y) > SELF_PLAYER_TRANSFORM_EPSILON) {
-            poseStack.rotateAround(Axis.YP.rotationDegrees((float) rotation.y), 0.0F, pivotY, 0.0F);
+        if (Math.abs(yRotation) > SELF_PLAYER_TRANSFORM_EPSILON) {
+            poseStack.rotateAround(Axis.YP.rotationDegrees((float) yRotation), 0.0F, pivotY, 0.0F);
         }
-        if (Math.abs(rotation.z) > SELF_PLAYER_TRANSFORM_EPSILON) {
-            poseStack.rotateAround(Axis.ZP.rotationDegrees((float) rotation.z), 0.0F, pivotY, 0.0F);
+        if (Math.abs(zRotation) > SELF_PLAYER_TRANSFORM_EPSILON) {
+            poseStack.rotateAround(Axis.ZP.rotationDegrees((float) zRotation), 0.0F, pivotY, 0.0F);
         }
     }
 
     public static void applySelfPose(@NotNull PlayerModel model, @NotNull AvatarRenderState state) {
         Session active = session;
-        if (active == null || active.poseId() == null) {
+        if (active == null) {
             return;
         }
 
@@ -523,9 +527,9 @@ public final class PhotoModeManager {
             return;
         }
 
-        PhotoPose pose = PhotoPoseManager.pose(active.poseId());
+        PhotoPose pose = active.activePose();
         if (pose != null) {
-            pose.apply(new PhotoPose.PlayerParts(model.head, model.body, model.leftArm, model.rightArm, model.leftLeg, model.rightLeg));
+            pose.apply(PhotoPose.PlayerParts.fromModel(model));
         }
     }
 
@@ -610,9 +614,13 @@ public final class PhotoModeManager {
     }
 
     private static boolean hasSelfPlayerTransform(@NotNull Vec3 transform) {
-        return Math.abs(transform.x) > SELF_PLAYER_TRANSFORM_EPSILON
-                || Math.abs(transform.y) > SELF_PLAYER_TRANSFORM_EPSILON
-                || Math.abs(transform.z) > SELF_PLAYER_TRANSFORM_EPSILON;
+        return hasSelfPlayerTransform(transform.x, transform.y, transform.z);
+    }
+
+    private static boolean hasSelfPlayerTransform(double x, double y, double z) {
+        return Math.abs(x) > SELF_PLAYER_TRANSFORM_EPSILON
+                || Math.abs(y) > SELF_PLAYER_TRANSFORM_EPSILON
+                || Math.abs(z) > SELF_PLAYER_TRANSFORM_EPSILON;
     }
 
     private static double clampFinite(double value, double minValue, double maxValue) {
@@ -753,6 +761,8 @@ public final class PhotoModeManager {
         private Integer skyColorOverride;
         @Nullable
         private Identifier poseId;
+        @Nullable
+        private PhotoPose poseMakerPose;
         private final Set<InputConstants.Key> activeBoundInputs = new HashSet<>();
         private final VisualLightningStorm visualLightningStorm = new VisualLightningStorm();
         private long visualGameTimeOffsetTicks;
@@ -820,6 +830,7 @@ public final class PhotoModeManager {
             this.photoModeUiHidden = false;
             this.gridEnabled = false;
             this.poseId = null;
+            this.poseMakerPose = null;
             this.timePreset = defaultTimePreset(minecraft);
             this.weatherPreset = defaultWeatherPreset(minecraft);
             this.fogIntensity = 0.0F;
@@ -1280,6 +1291,10 @@ public final class PhotoModeManager {
             this.skyColorOverride = skyColor == null ? null : ARGB.opaque(skyColor);
         }
 
+        public void setPoseMakerPose(@Nullable PhotoPose poseMakerPose) {
+            this.poseMakerPose = poseMakerPose;
+        }
+
         private int overrideSkyColor(int sampledSkyColor) {
             this.sampledSkyColor = ARGB.opaque(sampledSkyColor);
             return this.skyColor();
@@ -1320,6 +1335,20 @@ public final class PhotoModeManager {
                 }
             }
             this.poseId = null;
+        }
+
+        @Nullable
+        private PhotoPose activePose() {
+            if (this.poseMakerPose != null) {
+                return this.poseMakerPose;
+            }
+            return PhotoPoseManager.pose(this.poseId());
+        }
+
+        @NotNull
+        private PhotoPose.PartRotation activePoseRotation() {
+            PhotoPose pose = this.activePose();
+            return pose == null ? PhotoPose.PartRotation.ZERO : pose.modelRotation();
         }
 
     }

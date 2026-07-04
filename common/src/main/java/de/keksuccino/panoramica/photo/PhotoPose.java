@@ -1,12 +1,21 @@
 package de.keksuccino.panoramica.photo;
 
 import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.player.PlayerModel;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.EnumMap;
 import java.util.Map;
 
-public record PhotoPose(@NotNull String nameKey, @NotNull Map<BodyPart, PartRotation> rotations) {
+public record PhotoPose(
+        @NotNull String nameKey,
+        @NotNull PartRotation modelRotation,
+        @NotNull Map<BodyPart, PartRotation> rotations
+) {
+
+    public PhotoPose(@NotNull String nameKey, @NotNull Map<BodyPart, PartRotation> rotations) {
+        this(nameKey, PartRotation.ZERO, rotations);
+    }
 
     @NotNull
     public Map<BodyPart, PartRotation> rotations() {
@@ -17,11 +26,17 @@ public record PhotoPose(@NotNull String nameKey, @NotNull Map<BodyPart, PartRota
         for (Map.Entry<BodyPart, PartRotation> entry : this.rotations.entrySet()) {
             ModelPart part = switch (entry.getKey()) {
                 case HEAD -> parts.head();
+                case HAT -> parts.hat();
                 case BODY -> parts.body();
+                case JACKET -> parts.jacket();
                 case LEFT_ARM -> parts.leftArm();
+                case LEFT_SLEEVE -> parts.leftSleeve();
                 case RIGHT_ARM -> parts.rightArm();
+                case RIGHT_SLEEVE -> parts.rightSleeve();
                 case LEFT_LEG -> parts.leftLeg();
+                case LEFT_PANTS -> parts.leftPants();
                 case RIGHT_LEG -> parts.rightLeg();
+                case RIGHT_PANTS -> parts.rightPants();
             };
             entry.getValue().apply(part);
         }
@@ -33,22 +48,35 @@ public record PhotoPose(@NotNull String nameKey, @NotNull Map<BodyPart, PartRota
     }
 
     public enum BodyPart {
-        HEAD("head"),
-        BODY("body"),
-        LEFT_ARM("left_arm"),
-        RIGHT_ARM("right_arm"),
-        LEFT_LEG("left_leg"),
-        RIGHT_LEG("right_leg");
+        HEAD("head", "panoramica.photo_mode.pose_maker.part.head"),
+        HAT("hat", "panoramica.photo_mode.pose_maker.part.hat"),
+        BODY("body", "panoramica.photo_mode.pose_maker.part.body"),
+        JACKET("jacket", "panoramica.photo_mode.pose_maker.part.jacket"),
+        LEFT_ARM("left_arm", "panoramica.photo_mode.pose_maker.part.left_arm"),
+        LEFT_SLEEVE("left_sleeve", "panoramica.photo_mode.pose_maker.part.left_sleeve"),
+        RIGHT_ARM("right_arm", "panoramica.photo_mode.pose_maker.part.right_arm"),
+        RIGHT_SLEEVE("right_sleeve", "panoramica.photo_mode.pose_maker.part.right_sleeve"),
+        LEFT_LEG("left_leg", "panoramica.photo_mode.pose_maker.part.left_leg"),
+        LEFT_PANTS("left_pants", "panoramica.photo_mode.pose_maker.part.left_pants"),
+        RIGHT_LEG("right_leg", "panoramica.photo_mode.pose_maker.part.right_leg"),
+        RIGHT_PANTS("right_pants", "panoramica.photo_mode.pose_maker.part.right_pants");
 
         private final String jsonName;
+        private final String labelKey;
 
-        BodyPart(@NotNull String jsonName) {
+        BodyPart(@NotNull String jsonName, @NotNull String labelKey) {
             this.jsonName = jsonName;
+            this.labelKey = labelKey;
         }
 
         @NotNull
         public String jsonName() {
             return this.jsonName;
+        }
+
+        @NotNull
+        public String labelKey() {
+            return this.labelKey;
         }
 
         @NotNull
@@ -64,10 +92,28 @@ public record PhotoPose(@NotNull String nameKey, @NotNull Map<BodyPart, PartRota
 
     public record PartRotation(float x, float y, float z) {
 
+        public static final PartRotation ZERO = new PartRotation(0.0F, 0.0F, 0.0F);
+
         public void apply(@NotNull ModelPart part) {
             part.xRot += this.x;
             part.yRot += this.y;
             part.zRot += this.z;
+        }
+
+        public boolean isZero() {
+            return this.x == 0.0F && this.y == 0.0F && this.z == 0.0F;
+        }
+
+        public float xDegrees() {
+            return (float) Math.toDegrees(this.x);
+        }
+
+        public float yDegrees() {
+            return (float) Math.toDegrees(this.y);
+        }
+
+        public float zDegrees() {
+            return (float) Math.toDegrees(this.z);
         }
 
         public static PartRotation degrees(float x, float y, float z) {
@@ -79,12 +125,37 @@ public record PhotoPose(@NotNull String nameKey, @NotNull Map<BodyPart, PartRota
 
     public record PlayerParts(
             @NotNull ModelPart head,
+            @NotNull ModelPart hat,
             @NotNull ModelPart body,
+            @NotNull ModelPart jacket,
             @NotNull ModelPart leftArm,
+            @NotNull ModelPart leftSleeve,
             @NotNull ModelPart rightArm,
+            @NotNull ModelPart rightSleeve,
             @NotNull ModelPart leftLeg,
-            @NotNull ModelPart rightLeg
+            @NotNull ModelPart leftPants,
+            @NotNull ModelPart rightLeg,
+            @NotNull ModelPart rightPants
     ) {
+
+        @NotNull
+        public static PlayerParts fromModel(@NotNull PlayerModel model) {
+            return new PlayerParts(
+                    model.head,
+                    model.hat,
+                    model.body,
+                    model.jacket,
+                    model.leftArm,
+                    model.leftSleeve,
+                    model.rightArm,
+                    model.rightSleeve,
+                    model.leftLeg,
+                    model.leftPants,
+                    model.rightLeg,
+                    model.rightPants
+            );
+        }
+
     }
 
 }

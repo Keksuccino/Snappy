@@ -1,5 +1,7 @@
 package de.keksuccino.panoramica.photo;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -20,9 +22,12 @@ import java.util.Map;
 
 public final class PhotoPoseManager {
 
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String POSE_DIRECTORY = "photo_poses";
     private static final String NAME_KEY = "name";
+    private static final String MODEL_KEY = "model";
     private static final String PARTS_KEY = "parts";
+    private static final float JSON_ROTATION_EPSILON = 1.0E-4F;
 
     private static List<PoseEntry> poses = List.of();
     private static boolean loaded;
@@ -111,20 +116,69 @@ public final class PhotoPoseManager {
     @NotNull
     private static PhotoPose parse(@NotNull JsonObject root) {
         String nameKey = GsonHelper.getAsString(root, NAME_KEY);
+        PhotoPose.PartRotation modelRotation = parseRotation(GsonHelper.getAsJsonObject(root, MODEL_KEY, new JsonObject()));
         JsonObject parts = GsonHelper.getAsJsonObject(root, PARTS_KEY, new JsonObject());
         Map<PhotoPose.BodyPart, PhotoPose.PartRotation> rotations = PhotoPose.emptyRotationMap();
         for (Map.Entry<String, JsonElement> entry : parts.entrySet()) {
             if (!entry.getValue().isJsonObject()) {
                 throw new IllegalArgumentException("Body part '" + entry.getKey() + "' must be an object.");
             }
-            JsonObject rotation = entry.getValue().getAsJsonObject();
-            rotations.put(PhotoPose.BodyPart.fromJsonName(entry.getKey()), PhotoPose.PartRotation.degrees(
-                    GsonHelper.getAsFloat(rotation, "x", 0.0F),
-                    GsonHelper.getAsFloat(rotation, "y", 0.0F),
-                    GsonHelper.getAsFloat(rotation, "z", 0.0F)
-            ));
+            rotations.put(PhotoPose.BodyPart.fromJsonName(entry.getKey()), parseRotation(entry.getValue().getAsJsonObject()));
         }
-        return new PhotoPose(nameKey, Map.copyOf(rotations));
+        return new PhotoPose(nameKey, modelRotation, Map.copyOf(rotations));
+    }
+
+    @NotNull
+    private static PhotoPose.PartRotation parseRotation(@NotNull JsonObject rotation) {
+        return PhotoPose.PartRotation.degrees(
+                GsonHelper.getAsFloat(rotation, "x", 0.0F),
+                GsonHelper.getAsFloat(rotation, "y", 0.0F),
+                GsonHelper.getAsFloat(rotation, "z", 0.0F)
+        );
+    }
+
+    @NotNull
+    public static String toJsonString(@NotNull PhotoPose pose) {
+        return GSON.toJson(toJson(pose));
+    }
+
+    @NotNull
+    private static JsonObject toJson(@NotNull PhotoPose pose) {
+        JsonObject root = new JsonObject();
+        root.addProperty(NAME_KEY, pose.nameKey());
+        addRotation(root, MODEL_KEY, pose.modelRotation());
+
+        JsonObject parts = new JsonObject();
+        for (PhotoPose.BodyPart part : PhotoPose.BodyPart.values()) {
+            PhotoPose.PartRotation rotation = pose.rotations().get(part);
+            if (rotation != null && !rotation.isZero()) {
+                addRotation(parts, part.jsonName(), rotation);
+            }
+        }
+        root.add(PARTS_KEY, parts);
+        return root;
+    }
+
+    private static void addRotation(@NotNull JsonObject parent, @NotNull String key, @NotNull PhotoPose.PartRotation rotation) {
+        if (rotation.isZero()) {
+            return;
+        }
+
+        JsonObject object = new JsonObject();
+        addAxis(object, "x", rotation.xDegrees());
+        addAxis(object, "y", rotation.yDegrees());
+        addAxis(object, "z", rotation.zDegrees());
+        parent.add(key, object);
+    }
+
+    private static void addAxis(@NotNull JsonObject object, @NotNull String key, float value) {
+        if (Math.abs(value) > JSON_ROTATION_EPSILON) {
+            object.addProperty(key, roundJsonDegrees(value));
+        }
+    }
+
+    private static float roundJsonDegrees(float value) {
+        return Math.round(value * 1000.0F) / 1000.0F;
     }
 
     public record PoseEntry(@NotNull Identifier id, @NotNull PhotoPose pose) {
