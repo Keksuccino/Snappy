@@ -176,9 +176,9 @@ public class PhotoModeScreen extends Screen {
 
     @Override
     public boolean keyPressed(@NotNull KeyEvent event) {
-        boolean configuredCameraActionKey = this.isConfiguredCameraActionKey(event);
-        if (configuredCameraActionKey) {
-            PhotoModeManager.setConfiguredCameraActionKeyState(event, true);
+        boolean configuredCameraControlKey = this.isConfiguredCameraControlKey(event);
+        if (configuredCameraControlKey) {
+            PhotoModeManager.setConfiguredCameraControlKeyState(event, true);
         }
         if (isHideGuiKey(event.key())) {
             this.setPhotoModeUiHidden(!PhotoModeManager.isPhotoModeUiHidden());
@@ -199,7 +199,7 @@ public class PhotoModeScreen extends Screen {
             this.rebuildPhotoWidgets();
             return true;
         }
-        if (isCameraMovementKey(event.key()) || configuredCameraActionKey) {
+        if (configuredCameraControlKey) {
             return true;
         }
         return super.keyPressed(event);
@@ -207,8 +207,8 @@ public class PhotoModeScreen extends Screen {
 
     @Override
     public boolean keyReleased(@NotNull KeyEvent event) {
-        if (this.isConfiguredCameraActionKey(event)) {
-            PhotoModeManager.setConfiguredCameraActionKeyState(event, false);
+        if (this.isConfiguredCameraControlKey(event)) {
+            PhotoModeManager.setConfiguredCameraControlKeyState(event, false);
         }
         return super.keyReleased(event);
     }
@@ -681,22 +681,15 @@ public class PhotoModeScreen extends Screen {
         return mouseX >= actionX && mouseX <= actionX + this.actionRowWidth() && mouseY >= actionY && mouseY <= actionY + CONTROL_HEIGHT;
     }
 
-    private static boolean isCameraMovementKey(int key) {
-        return key == GLFW.GLFW_KEY_W
-                || key == GLFW.GLFW_KEY_A
-                || key == GLFW.GLFW_KEY_S
-                || key == GLFW.GLFW_KEY_D
-                || key == GLFW.GLFW_KEY_UP
-                || key == GLFW.GLFW_KEY_DOWN
-                || key == GLFW.GLFW_KEY_LEFT
-                || key == GLFW.GLFW_KEY_RIGHT;
-    }
-
-    private boolean isConfiguredCameraActionKey(@NotNull KeyEvent event) {
+    private boolean isConfiguredCameraControlKey(@NotNull KeyEvent event) {
         if (this.minecraft == null) {
             return false;
         }
-        return this.minecraft.options.keyJump.matches(event)
+        return this.minecraft.options.keyUp.matches(event)
+                || this.minecraft.options.keyDown.matches(event)
+                || this.minecraft.options.keyLeft.matches(event)
+                || this.minecraft.options.keyRight.matches(event)
+                || this.minecraft.options.keyJump.matches(event)
                 || this.minecraft.options.keyShift.matches(event)
                 || this.minecraft.options.keySprint.matches(event);
     }

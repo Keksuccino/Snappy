@@ -235,7 +235,7 @@ public final class PhotoModeManager {
         active.zoomFromScroll(minecraft, scrollY);
     }
 
-    public static void setConfiguredCameraActionKeyState(@NotNull KeyEvent event, boolean down) {
+    public static void setConfiguredCameraControlKeyState(@NotNull KeyEvent event, boolean down) {
         Session active = session;
         if (active == null) {
             return;
@@ -744,8 +744,8 @@ public final class PhotoModeManager {
                 return;
             }
 
-            float forwardAxis = axis(minecraft, GLFW.GLFW_KEY_W, GLFW.GLFW_KEY_UP, GLFW.GLFW_KEY_S, GLFW.GLFW_KEY_DOWN);
-            float strafeAxis = axis(minecraft, GLFW.GLFW_KEY_D, GLFW.GLFW_KEY_RIGHT, GLFW.GLFW_KEY_A, GLFW.GLFW_KEY_LEFT);
+            float forwardAxis = axis(minecraft, minecraft.options.keyUp, minecraft.options.keyDown);
+            float strafeAxis = axis(minecraft, minecraft.options.keyRight, minecraft.options.keyLeft);
             float verticalAxis = 0.0F;
             if (isBoundKeyDown(minecraft, minecraft.options.keyJump)) {
                 verticalAxis += 1.0F;
@@ -790,12 +790,12 @@ public final class PhotoModeManager {
             }
         }
 
-        private static float axis(@NotNull Minecraft minecraft, int positiveKey, int positiveFallbackKey, int negativeKey, int negativeFallbackKey) {
+        private float axis(@NotNull Minecraft minecraft, @NotNull KeyMapping positiveKey, @NotNull KeyMapping negativeKey) {
             float axis = 0.0F;
-            if (InputConstants.isKeyDown(minecraft.getWindow(), positiveKey) || InputConstants.isKeyDown(minecraft.getWindow(), positiveFallbackKey)) {
+            if (this.isBoundKeyDown(minecraft, positiveKey)) {
                 axis += 1.0F;
             }
-            if (InputConstants.isKeyDown(minecraft.getWindow(), negativeKey) || InputConstants.isKeyDown(minecraft.getWindow(), negativeFallbackKey)) {
+            if (this.isBoundKeyDown(minecraft, negativeKey)) {
                 axis -= 1.0F;
             }
             return axis;
