@@ -104,6 +104,9 @@ public final class PhotoModeManager {
     public static final float OVEREXPOSURE_MIN = -1.0F;
     public static final float OVEREXPOSURE_MAX = 1.0F;
     public static final float OVEREXPOSURE_DEFAULT = 0.0F;
+    public static final float BLOOM_MIN = 0.0F;
+    public static final float BLOOM_MAX = 1.0F;
+    public static final float BLOOM_DEFAULT = 0.0F;
     public static final double PHOTO_FOG_MIN_DISTANCE = 8.0D;
     public static final double PHOTO_FOG_MAX_DISTANCE = 512.0D;
     public static final double PHOTO_FOG_DEFAULT_DISTANCE = 64.0D;
@@ -163,6 +166,7 @@ public final class PhotoModeManager {
         }
         PhotoModeDepthOfFieldRenderer.close();
         PhotoModeColorAdjustmentRenderer.close();
+        PhotoModeBloomRenderer.close();
         session = null;
         environmentOverrideScope = false;
         suppressEnvironmentRefreshSounds = false;
@@ -480,6 +484,19 @@ public final class PhotoModeManager {
         PhotoModeColorAdjustmentRenderer.process(mainRenderTarget, resourceAllocator, active);
     }
 
+    public static void processBloomEffect(
+            @NotNull Minecraft minecraft,
+            @NotNull RenderTarget mainRenderTarget,
+            @NotNull GraphicsResourceAllocator resourceAllocator
+    ) {
+        Session active = session;
+        if (active == null || minecraft.level == null || !active.hasBloom()) {
+            return;
+        }
+
+        PhotoModeBloomRenderer.process(mainRenderTarget, resourceAllocator, active);
+    }
+
     public static boolean shouldHidePlayerEntity(@NotNull Entity entity) {
         Session active = session;
         if (active == null || !(entity instanceof Player)) {
@@ -770,6 +787,7 @@ public final class PhotoModeManager {
         private float saturation = SATURATION_DEFAULT;
         private float contrast = CONTRAST_DEFAULT;
         private float overexposure = OVEREXPOSURE_DEFAULT;
+        private float bloom = BLOOM_DEFAULT;
         private boolean depthOfFieldEnabled;
         private float depthOfFieldFocusDistance = DEPTH_OF_FIELD_FOCUS_DISTANCE_DEFAULT;
         private float depthOfFieldFocalLength = DEPTH_OF_FIELD_FOCAL_LENGTH_DEFAULT;
@@ -851,6 +869,7 @@ public final class PhotoModeManager {
             this.saturation = SATURATION_DEFAULT;
             this.contrast = CONTRAST_DEFAULT;
             this.overexposure = OVEREXPOSURE_DEFAULT;
+            this.bloom = BLOOM_DEFAULT;
             this.depthOfFieldEnabled = false;
             this.depthOfFieldFocusDistance = DEPTH_OF_FIELD_FOCUS_DISTANCE_DEFAULT;
             this.depthOfFieldFocalLength = DEPTH_OF_FIELD_FOCAL_LENGTH_DEFAULT;
@@ -1126,11 +1145,23 @@ public final class PhotoModeManager {
             this.overexposure = Mth.clamp(overexposure, OVEREXPOSURE_MIN, OVEREXPOSURE_MAX);
         }
 
+        public float bloom() {
+            return this.bloom;
+        }
+
+        public void setBloom(float bloom) {
+            this.bloom = Mth.clamp(bloom, BLOOM_MIN, BLOOM_MAX);
+        }
+
         public boolean hasColorAdjustments() {
             return Math.abs(this.gamma) > 1.0E-4F
                     || Math.abs(this.saturation) > 1.0E-4F
                     || Math.abs(this.contrast) > 1.0E-4F
                     || Math.abs(this.overexposure) > 1.0E-4F;
+        }
+
+        public boolean hasBloom() {
+            return this.bloom > 1.0E-4F;
         }
 
         public boolean depthOfFieldEnabled() {

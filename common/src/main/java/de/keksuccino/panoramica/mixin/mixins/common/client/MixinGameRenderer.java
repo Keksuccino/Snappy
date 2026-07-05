@@ -100,6 +100,7 @@ public class MixinGameRenderer {
     private void before_renderEndFrame_Panoramica(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo info) {
         PhotoModeManager.processColorizeEffect(Minecraft.getInstance(), this.mainRenderTarget, this.resourcePool);
         PhotoModeManager.processColorAdjustmentEffect(Minecraft.getInstance(), this.mainRenderTarget, this.resourcePool);
+        PhotoModeManager.processBloomEffect(Minecraft.getInstance(), this.mainRenderTarget, this.resourcePool);
     }
 
     @Inject(method = "render", at = @At("TAIL"))

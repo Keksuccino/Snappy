@@ -193,6 +193,8 @@
   "panoramica.photo_mode.contrast.desc": "Controls the separation between dark and bright areas. Lower values soften the image; higher values add punch and shape, but can hide some shadow detail.",
   "panoramica.photo_mode.overexposure": "Overexposure: %s",
   "panoramica.photo_mode.overexposure.desc": "Controls how strongly light is pushed across the image. Raise it for brighter, glowing highlights; lower it for a darker, more restrained look.",
+  "panoramica.photo_mode.bloom": "Bloom: %s",
+  "panoramica.photo_mode.bloom.desc": "Adds a soft glow around bright areas like sunlight, torches, reflections, and glowing blocks. Use a low value for a gentle cinematic shine, or raise it for a dreamier, more radiant shot.",
   "panoramica.photo_mode.colorize": "Colorize: %s",
   "panoramica.photo_mode.colorize.desc": "Applies a finished color preset over the photo view. Use it to quickly change the mood, then fine-tune the result with the nearby color sliders.",
   "panoramica.photo_mode.colorize.none": "None",
