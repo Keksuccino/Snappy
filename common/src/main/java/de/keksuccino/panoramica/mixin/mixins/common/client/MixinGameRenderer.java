@@ -101,6 +101,7 @@ public class MixinGameRenderer {
         PhotoModeManager.processColorizeEffect(Minecraft.getInstance(), this.mainRenderTarget, this.resourcePool);
         PhotoModeManager.processColorAdjustmentEffect(Minecraft.getInstance(), this.mainRenderTarget, this.resourcePool);
         PhotoModeManager.processBloomEffect(Minecraft.getInstance(), this.mainRenderTarget, this.resourcePool);
+        PhotoModeManager.processStylizeEffect(Minecraft.getInstance(), this.mainRenderTarget, this.resourcePool);
     }
 
     @Inject(method = "render", at = @At("TAIL"))

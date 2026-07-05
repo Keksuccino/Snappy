@@ -167,6 +167,7 @@ public final class PhotoModeManager {
         PhotoModeDepthOfFieldRenderer.close();
         PhotoModeColorAdjustmentRenderer.close();
         PhotoModeBloomRenderer.close();
+        PhotoModeStylizeRenderer.close();
         session = null;
         environmentOverrideScope = false;
         suppressEnvironmentRefreshSounds = false;
@@ -497,6 +498,19 @@ public final class PhotoModeManager {
         PhotoModeBloomRenderer.process(mainRenderTarget, resourceAllocator, active);
     }
 
+    public static void processStylizeEffect(
+            @NotNull Minecraft minecraft,
+            @NotNull RenderTarget mainRenderTarget,
+            @NotNull GraphicsResourceAllocator resourceAllocator
+    ) {
+        Session active = session;
+        if (active == null || minecraft.level == null || !active.stylizePreset().appliesShader()) {
+            return;
+        }
+
+        PhotoModeStylizeRenderer.process(mainRenderTarget, resourceAllocator, active);
+    }
+
     public static boolean shouldHidePlayerEntity(@NotNull Entity entity) {
         Session active = session;
         if (active == null || !(entity instanceof Player)) {
@@ -783,6 +797,7 @@ public final class PhotoModeManager {
         private float fieldOfView;
         private float vignette;
         private PhotoModeColorizePreset colorizePreset = PhotoModeColorizePreset.NONE;
+        private PhotoModeStylizePreset stylizePreset = PhotoModeStylizePreset.NONE;
         private float gamma = GAMMA_DEFAULT;
         private float saturation = SATURATION_DEFAULT;
         private float contrast = CONTRAST_DEFAULT;
@@ -865,6 +880,7 @@ public final class PhotoModeManager {
             this.fieldOfView = minecraft.options.fov().get().floatValue();
             this.vignette = 0.0F;
             this.colorizePreset = PhotoModeColorizePreset.NONE;
+            this.stylizePreset = PhotoModeStylizePreset.NONE;
             this.gamma = GAMMA_DEFAULT;
             this.saturation = SATURATION_DEFAULT;
             this.contrast = CONTRAST_DEFAULT;
@@ -1119,6 +1135,15 @@ public final class PhotoModeManager {
 
         public void setColorizePreset(@NotNull PhotoModeColorizePreset colorizePreset) {
             this.colorizePreset = colorizePreset;
+        }
+
+        @NotNull
+        public PhotoModeStylizePreset stylizePreset() {
+            return this.stylizePreset;
+        }
+
+        public void setStylizePreset(@NotNull PhotoModeStylizePreset stylizePreset) {
+            this.stylizePreset = stylizePreset;
         }
 
         public float saturation() {

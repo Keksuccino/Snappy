@@ -5,6 +5,7 @@ import de.keksuccino.panoramica.KeyMappings;
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.photo.PhotoModeColorizePreset;
 import de.keksuccino.panoramica.photo.PhotoModeManager;
+import de.keksuccino.panoramica.photo.PhotoModeStylizePreset;
 import de.keksuccino.panoramica.photo.PhotoModeTimePreset;
 import de.keksuccino.panoramica.photo.PhotoModeWeatherPreset;
 import de.keksuccino.panoramica.photo.PhotoPose;
@@ -142,6 +143,8 @@ public class PhotoModeScreen extends Screen {
     private Button weatherButton;
     @Nullable
     private Button colorizeButton;
+    @Nullable
+    private Button stylizeButton;
     @Nullable
     private Button depthOfFieldButton;
     @Nullable
@@ -415,6 +418,7 @@ public class PhotoModeScreen extends Screen {
         this.timeButton = null;
         this.weatherButton = null;
         this.colorizeButton = null;
+        this.stylizeButton = null;
         this.depthOfFieldButton = null;
         this.depthOfFieldFocalLengthSlider = null;
         this.depthOfFieldApertureSlider = null;
@@ -736,6 +740,12 @@ public class PhotoModeScreen extends Screen {
             active.setColorizePreset(active.colorizePreset().next());
             this.updateButtonMessages();
         }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.colorize.desc"))).build());
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.stylizeButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+            active.setStylizePreset(active.stylizePreset().next());
+            this.updateButtonMessages();
+        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.stylize.desc"))).build());
         return y + CONTROL_HEIGHT + CONTROL_GAP;
     }
 
@@ -1153,6 +1163,10 @@ public class PhotoModeScreen extends Screen {
         if (this.colorizeButton != null) {
             PhotoModeColorizePreset preset = active.colorizePreset();
             this.colorizeButton.setMessage(optionMessage("panoramica.photo_mode.colorize", Component.translatable(preset.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
+        }
+        if (this.stylizeButton != null) {
+            PhotoModeStylizePreset preset = active.stylizePreset();
+            this.stylizeButton.setMessage(optionMessage("panoramica.photo_mode.stylize", Component.translatable(preset.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
         }
         if (this.depthOfFieldButton != null) {
             this.depthOfFieldButton.setMessage(optionMessage("panoramica.photo_mode.depth_of_field", enabledValue(active.depthOfFieldEnabled())));
@@ -1661,7 +1675,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     private enum Tab {
-        GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 288),
+        GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 313),
         LENS(LENS_ICON, "panoramica.photo_mode.tab.lens", 138),
         PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
         ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 213);
