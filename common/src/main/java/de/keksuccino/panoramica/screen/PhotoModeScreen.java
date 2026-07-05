@@ -44,7 +44,6 @@ public class PhotoModeScreen extends Screen {
     private static final Identifier GENERAL_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/general_camera_icon_15x15.png");
     private static final Identifier PLAYER_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/player_head_icon_15x15.png");
     private static final Identifier LENS_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/lens_icon_15x15.png");
-    private static final Identifier EFFECTS_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/effects_icon_15x15.png");
     private static final Identifier GLOBE_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/globe_icon_15x15.png");
     private static final int PANEL_WIDTH = 236;
     private static final int PANEL_PADDING = 8;
@@ -380,7 +379,6 @@ public class PhotoModeScreen extends Screen {
             case GENERAL -> this.addGeneralControls(y);
             case PLAYER -> this.addPlayerControls(y);
             case LENS -> this.addLensControls(y);
-            case EFFECTS -> this.addEffectsControls(y);
             case ENVIRONMENT -> this.addEnvironmentControls(y);
         }
         this.addActionButtons();
@@ -443,6 +441,8 @@ public class PhotoModeScreen extends Screen {
                 value -> optionMessage("panoramica.photo_mode.roll", Component.translatable("panoramica.photo_mode.degrees", String.format(Locale.ROOT, "%.0f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
         y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        y = this.addColorEffectControls(x, y, width, active);
 
         this.gridButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
             active.setGridEnabled(!active.gridEnabled());
@@ -625,14 +625,7 @@ public class PhotoModeScreen extends Screen {
         this.depthOfFieldFocusDistanceSlider.setTooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.dof_focus_distance.desc")));
     }
 
-    private void addEffectsControls(int y) {
-        int x = this.panelX + PANEL_PADDING;
-        int width = this.controlWidth();
-        PhotoModeManager.Session active = PhotoModeManager.session();
-        if (active == null) {
-            return;
-        }
-
+    private int addColorEffectControls(int x, int y, int width, @NotNull PhotoModeManager.Session active) {
         PhotoModeSlider vignetteSlider = this.addRenderableWidget(new PhotoModeSlider(
                 x,
                 y,
@@ -705,6 +698,7 @@ public class PhotoModeScreen extends Screen {
             active.setColorizePreset(active.colorizePreset().next());
             this.updateButtonMessages();
         }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.colorize.desc"))).build());
+        return y + CONTROL_HEIGHT + CONTROL_GAP;
     }
 
     private int addColorAdjustmentSlider(
@@ -1600,10 +1594,9 @@ public class PhotoModeScreen extends Screen {
     }
 
     private enum Tab {
-        GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 113),
+        GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 263),
         PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
         LENS(LENS_ICON, "panoramica.photo_mode.tab.lens", 138),
-        EFFECTS(EFFECTS_ICON, "panoramica.photo_mode.tab.effects", 188),
         ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 213);
 
         private final Identifier icon;
