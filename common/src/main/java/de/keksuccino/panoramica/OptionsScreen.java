@@ -31,8 +31,7 @@ public class OptionsScreen extends Screen {
     protected static final int CYCLE_VALUE_COLOR = 0xFFAA00;
     protected static final int KEYBIND_RESET_BUTTON_WIDTH = 50;
     protected static final int KEYBIND_GAP = 5;
-    protected static final int OPTION_ROW_COUNT = 14;
-    protected static final int EXTRA_GAP_COUNT = 1;
+    protected static final int OPTION_ROW_ADVANCE = 26;
     protected static final KeybindSetting PANORAMA_KEYBIND = new KeybindSetting(
             KeyMappings.KEY_TAKE_PANORAMA,
             "panoramica.options.keybind",
@@ -85,9 +84,8 @@ public class OptionsScreen extends Screen {
         int centerX = this.width / 2;
         int doneY = this.height >= 300 ? this.height - 40 : this.height - 24;
         int optionsBottomY = doneY - 8;
-        int gapCount = OPTION_ROW_COUNT - 1 + EXTRA_GAP_COUNT;
-        int rowAdvance = Math.min(26, Math.max(BUTTON_HEIGHT, (optionsBottomY - 30 - BUTTON_HEIGHT) / gapCount));
-        int topY = Math.max(28, Math.min(50, optionsBottomY - BUTTON_HEIGHT - (rowAdvance * gapCount)));
+        int rowAdvance = OPTION_ROW_ADVANCE;
+        int topY = Math.max(28, Math.min(50, optionsBottomY - BUTTON_HEIGHT));
 
         StringWidget titleWidget = this.addRenderableWidget(new StringWidget(this.getTitle(), this.font));
         titleWidget.setX(centerX - (titleWidget.getWidth() / 2));
