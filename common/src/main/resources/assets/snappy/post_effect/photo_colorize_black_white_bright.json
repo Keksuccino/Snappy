@@ -1,0 +1,44 @@
+{
+    "targets": {
+        "swap": {}
+    },
+    "passes": [
+        {
+            "vertex_shader": "minecraft:core/screenquad",
+            "fragment_shader": "snappy:post/colorize",
+            "inputs": [
+                {
+                    "sampler_name": "In",
+                    "target": "minecraft:main"
+                }
+            ],
+            "output": "swap",
+            "uniforms": {
+                "ColorizeConfig": [
+                    { "name": "RedMatrix", "type": "vec4", "value": [ 0.2126, 0.7152, 0.0722, 0.03 ] },
+                    { "name": "GreenMatrix", "type": "vec4", "value": [ 0.2126, 0.7152, 0.0722, 0.03 ] },
+                    { "name": "BlueMatrix", "type": "vec4", "value": [ 0.2126, 0.7152, 0.0722, 0.03 ] },
+                    { "name": "Adjustments", "type": "vec4", "value": [ 1.0, 1.10, 1.08, 0.012 ] },
+                    { "name": "Tint", "type": "vec4", "value": [ 1.0, 1.0, 1.0, 0.0 ] },
+                    { "name": "ShadowTint", "type": "vec4", "value": [ 0.015, 0.015, 0.016, 0.04 ] }
+                ]
+            }
+        },
+        {
+            "vertex_shader": "minecraft:core/screenquad",
+            "fragment_shader": "minecraft:post/blit",
+            "inputs": [
+                {
+                    "sampler_name": "In",
+                    "target": "swap"
+                }
+            ],
+            "output": "minecraft:main",
+            "uniforms": {
+                "BlitConfig": [
+                    { "name": "ColorModulate", "type": "vec4", "value": [ 1.0, 1.0, 1.0, 1.0 ] }
+                ]
+            }
+        }
+    ]
+}

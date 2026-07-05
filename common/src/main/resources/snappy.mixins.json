@@ -1,0 +1,38 @@
+{
+  "required": true,
+  "package": "de.keksuccino.snappy.mixin.mixins.common",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "client.MixinAvatarRenderer",
+    "client.MixinBeaconRenderer",
+    "client.MixinCamera",
+    "client.MixinCubeMap",
+    "client.MixinGameRenderer",
+    "client.MixinFogRenderer",
+    "client.MixinGui",
+    "client.MixinGuiRenderer",
+    "client.MixinHud",
+    "client.MixinKeyMapping_Category",
+    "client.MixinMinecraft",
+    "client.MixinMouseHandler",
+    "client.MixinPanorama",
+    "client.MixinPauseScreen",
+    "client.MixinScreenshot",
+    "client.MixinTitleScreen",
+    "client.AccessorMixinGameRenderer",
+    "client.AccessorMixinLevelRenderer",
+    "client.MixinClientClockManager",
+    "client.MixinClientLevelData",
+    "client.MixinEnvironmentAttributeProbe",
+    "client.MixinLevel",
+    "client.MixinLevelExtractor",
+    "client.MixinPlayerModel"
+  ],
+  "mixins": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "plugin": "de.keksuccino.snappy.mixin.SnappyMixinPlugin",
+  "minVersion": "0.8"
+}

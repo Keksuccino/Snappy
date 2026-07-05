@@ -15,12 +15,12 @@
   "icon": "${mod_id}_logo_128x128.png",
   "entrypoints": {
     "main": [
-      "de.keksuccino.panoramica.PanoramicaFabric"
+      "de.keksuccino.snappy.SnappyFabric"
     ],
     "client": [],
     "server": [],
     "modmenu": [
-      "de.keksuccino.panoramica.ModMenuIntegration"
+      "de.keksuccino.snappy.ModMenuIntegration"
     ]
   },
   "mixins": [

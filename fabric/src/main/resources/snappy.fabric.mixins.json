@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "de.keksuccino.snappy.mixin.mixins.fabric",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "plugin": "de.keksuccino.snappy.mixin.SnappyMixinPlugin",
+  "minVersion": "0.8"
+}
+  

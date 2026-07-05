@@ -1,0 +1,26 @@
+{
+  "name": "snappy.photo_mode.pose.chill",
+  "model": {
+    "x": 86.0
+  },
+  "parts": {
+    "head": {
+      "x": 22.0
+    },
+    "left_arm": {
+      "x": -180.0,
+      "z": -16.0
+    },
+    "right_arm": {
+      "x": -180.0,
+      "z": 12.0
+    },
+    "left_leg": {
+      "x": -11.0,
+      "z": 17.0
+    },
+    "right_leg": {
+      "z": -9.0
+    }
+  }
+}
