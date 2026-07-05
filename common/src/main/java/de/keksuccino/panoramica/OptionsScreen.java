@@ -31,7 +31,7 @@ public class OptionsScreen extends Screen {
     protected static final int CYCLE_VALUE_COLOR = 0xFFAA00;
     protected static final int KEYBIND_RESET_BUTTON_WIDTH = 50;
     protected static final int KEYBIND_GAP = 5;
-    protected static final int OPTION_ROW_COUNT = 11;
+    protected static final int OPTION_ROW_COUNT = 14;
     protected static final int EXTRA_GAP_COUNT = 1;
     protected static final KeybindSetting PANORAMA_KEYBIND = new KeybindSetting(
             KeyMappings.KEY_TAKE_PANORAMA,
@@ -43,9 +43,27 @@ public class OptionsScreen extends Screen {
             "panoramica.options.photo_mode_keybind",
             "panoramica.options.photo_mode_keybind.desc"
     );
+    protected static final KeybindSetting PHOTO_MODE_GRID_KEYBIND = new KeybindSetting(
+            KeyMappings.KEY_PHOTO_MODE_TOGGLE_GRID,
+            "panoramica.options.photo_mode_grid_keybind",
+            "panoramica.options.photo_mode_grid_keybind.desc"
+    );
+    protected static final KeybindSetting PHOTO_MODE_HIDE_UI_KEYBIND = new KeybindSetting(
+            KeyMappings.KEY_PHOTO_MODE_HIDE_UI,
+            "panoramica.options.photo_mode_hide_ui_keybind",
+            "panoramica.options.photo_mode_hide_ui_keybind.desc"
+    );
+    protected static final KeybindSetting PHOTO_MODE_SLOW_CAMERA_KEYBIND = new KeybindSetting(
+            KeyMappings.KEY_PHOTO_MODE_SLOW_CAMERA,
+            "panoramica.options.photo_mode_slow_camera_keybind",
+            "panoramica.options.photo_mode_slow_camera_keybind.desc"
+    );
     protected static final List<KeybindSetting> KEYBIND_SETTINGS = List.of(
             PANORAMA_KEYBIND,
-            PHOTO_MODE_KEYBIND
+            PHOTO_MODE_KEYBIND,
+            PHOTO_MODE_GRID_KEYBIND,
+            PHOTO_MODE_HIDE_UI_KEYBIND,
+            PHOTO_MODE_SLOW_CAMERA_KEYBIND
     );
 
     @Nullable

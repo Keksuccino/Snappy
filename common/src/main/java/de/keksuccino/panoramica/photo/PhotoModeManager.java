@@ -1013,7 +1013,7 @@ public final class PhotoModeManager {
             if (isBoundKeyDown(minecraft, minecraft.options.keySprint)) {
                 speed *= CAMERA_FAST_SPEED_MULTIPLIER;
             }
-            if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_ALT) || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_ALT)) {
+            if (isBoundKeyDown(minecraft, KeyMappings.KEY_PHOTO_MODE_SLOW_CAMERA)) {
                 speed *= CAMERA_SLOW_SPEED_MULTIPLIER;
             }
             return speed;

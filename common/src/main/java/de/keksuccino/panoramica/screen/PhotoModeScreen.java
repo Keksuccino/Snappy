@@ -1,6 +1,7 @@
 package de.keksuccino.panoramica.screen;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import de.keksuccino.panoramica.KeyMappings;
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.photo.PhotoModeColorizePreset;
 import de.keksuccino.panoramica.photo.PhotoModeManager;
@@ -214,10 +215,16 @@ public class PhotoModeScreen extends Screen {
     public boolean mouseClicked(@NotNull MouseButtonEvent event, boolean doubleClick) {
         this.stopRotatingView();
         if (PhotoModeManager.isPhotoModeUiHidden()) {
+            if (this.handlePhotoModeActionMouse(event)) {
+                return true;
+            }
             if (event.button() == 0) {
                 this.clearFocus();
                 this.startRotatingView();
             }
+            return true;
+        }
+        if (!this.isInsidePhotoModeUi(event.x(), event.y()) && this.handlePhotoModeActionMouse(event)) {
             return true;
         }
         if (this.colorPicker != null && this.colorPicker.mouseClicked(event, doubleClick)) {
@@ -234,6 +241,18 @@ public class PhotoModeScreen extends Screen {
             return true;
         }
         return true;
+    }
+
+    private boolean handlePhotoModeActionMouse(@NotNull MouseButtonEvent event) {
+        if (KeyMappings.KEY_PHOTO_MODE_HIDE_UI.matchesMouse(event)) {
+            this.setPhotoModeUiHidden(!PhotoModeManager.isPhotoModeUiHidden());
+            return true;
+        }
+        if (KeyMappings.KEY_PHOTO_MODE_TOGGLE_GRID.matchesMouse(event)) {
+            this.toggleGrid();
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -289,11 +308,11 @@ public class PhotoModeScreen extends Screen {
             this.togglePoseMaker();
             return true;
         }
-        if (isHideGuiKey(event.key())) {
+        if (isHideGuiKey(event)) {
             this.setPhotoModeUiHidden(!PhotoModeManager.isPhotoModeUiHidden());
             return true;
         }
-        if (isGridKey(event.key())) {
+        if (isGridKey(event)) {
             this.toggleGrid();
             return true;
         }
@@ -815,7 +834,7 @@ public class PhotoModeScreen extends Screen {
     private void addActionButtons() {
         Component takePhotoMessage = this.takePhotoMessage();
         Component returnToPlayerMessage = Component.translatable("panoramica.photo_mode.return_to_player");
-        Component hideGuiMessage = Component.translatable("panoramica.photo_mode.hide_gui");
+        Component hideGuiMessage = this.hideGuiMessage();
         Component resetMessage = Component.translatable("panoramica.photo_mode.reset");
         Component leaveMessage = Component.translatable("panoramica.photo_mode.leave_short");
         int rowWidth = this.actionRowWidth();
@@ -843,7 +862,7 @@ public class PhotoModeScreen extends Screen {
             this.closeColorPicker();
             this.confirmation = Confirmation.HIDE_GUI;
             this.rebuildPhotoWidgets();
-        }, Component.translatable("panoramica.photo_mode.hide_gui.desc"));
+        }, this.hideGuiDescription());
         x += hideGuiWidth + ACTION_GAP;
         this.addActionButton(resetMessage, x, y, resetWidth, button -> {
             this.closeColorPicker();
@@ -1093,7 +1112,7 @@ public class PhotoModeScreen extends Screen {
                     : "panoramica.photo_mode.pause.unavailable_server")));
         }
         if (this.gridButton != null) {
-            this.gridButton.setMessage(optionMessage("panoramica.photo_mode.grid", enabledValue(active.gridEnabled())));
+            this.gridButton.setMessage(this.gridMessage(active.gridEnabled()));
         }
         if (this.hideSelfButton != null) {
             this.hideSelfButton.setMessage(optionMessage("panoramica.photo_mode.hide_self", visibilityValue(!active.hideSelfPlayer())));
@@ -1156,7 +1175,7 @@ public class PhotoModeScreen extends Screen {
             graphics.fill(contentX, contentY, contentX + width, this.panelY + this.panelHeight - PANEL_PADDING - CONTROL_HEIGHT - CONTROL_GAP, SECTION_BACKGROUND_COLOR);
             graphics.outline(contentX, contentY, width, this.panelHeight - PANEL_PADDING * 2 - CONTROL_HEIGHT - CONTROL_GAP, PANEL_BORDER_COLOR);
             graphics.centeredText(this.font, this.confirmation.title(), contentX + width / 2, contentY + 14, PANEL_ACCENT_COLOR);
-            graphics.textWithWordWrap(this.font, this.confirmation.message(), contentX + 10, contentY + 36, width - 20, 0xFFFFFFFF);
+            graphics.textWithWordWrap(this.font, this.confirmationMessage(this.confirmation), contentX + 10, contentY + 36, width - 20, 0xFFFFFFFF);
             return;
         }
 
@@ -1282,6 +1301,14 @@ public class PhotoModeScreen extends Screen {
         this.colorPicker.setPosition(x, y);
     }
 
+    @NotNull
+    private Component confirmationMessage(@NotNull Confirmation confirmation) {
+        if (confirmation == Confirmation.HIDE_GUI) {
+            return Component.translatable(confirmation.messageKey, this.hideGuiKeyMessage());
+        }
+        return confirmation.message();
+    }
+
     private int actionY() {
         return this.panelY + this.panelHeight + ACTION_ROW_GAP;
     }
@@ -1298,7 +1325,7 @@ public class PhotoModeScreen extends Screen {
     private int preferredActionRowWidth() {
         return this.actionButtonWidth(this.takePhotoMessage(), ACTION_TAKE_PHOTO_MIN_WIDTH)
                 + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.return_to_player"), ACTION_RETURN_TO_PLAYER_MIN_WIDTH)
-                + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.hide_gui"), ACTION_HIDE_GUI_MIN_WIDTH)
+                + this.actionButtonWidth(this.hideGuiMessage(), ACTION_HIDE_GUI_MIN_WIDTH)
                 + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.reset"), ACTION_RESET_MIN_WIDTH)
                 + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.leave_short"), ACTION_LEAVE_MIN_WIDTH)
                 + ACTION_GAP * 4;
@@ -1308,6 +1335,26 @@ public class PhotoModeScreen extends Screen {
     private Component takePhotoMessage() {
         Minecraft minecraft = this.minecraft == null ? Minecraft.getInstance() : this.minecraft;
         return Component.translatable("panoramica.photo_mode.take_photo", minecraft.options.keyScreenshot.getTranslatedKeyMessage());
+    }
+
+    @NotNull
+    private Component gridMessage(boolean enabled) {
+        return optionMessage("panoramica.photo_mode.grid", KeyMappings.KEY_PHOTO_MODE_TOGGLE_GRID.getTranslatedKeyMessage(), enabledValue(enabled));
+    }
+
+    @NotNull
+    private Component hideGuiMessage() {
+        return Component.translatable("panoramica.photo_mode.hide_gui", this.hideGuiKeyMessage());
+    }
+
+    @NotNull
+    private Component hideGuiDescription() {
+        return Component.translatable("panoramica.photo_mode.hide_gui.desc", this.hideGuiKeyMessage());
+    }
+
+    @NotNull
+    private Component hideGuiKeyMessage() {
+        return KeyMappings.KEY_PHOTO_MODE_HIDE_UI.getTranslatedKeyMessage();
     }
 
     private int actionButtonWidth(@NotNull Component message, int minWidth) {
@@ -1350,15 +1397,16 @@ public class PhotoModeScreen extends Screen {
                 || this.minecraft.options.keyRight.matches(event)
                 || this.minecraft.options.keyJump.matches(event)
                 || this.minecraft.options.keyShift.matches(event)
-                || this.minecraft.options.keySprint.matches(event);
+                || this.minecraft.options.keySprint.matches(event)
+                || KeyMappings.KEY_PHOTO_MODE_SLOW_CAMERA.matches(event);
     }
 
-    private static boolean isHideGuiKey(int key) {
-        return key == GLFW.GLFW_KEY_H;
+    private static boolean isHideGuiKey(@NotNull KeyEvent event) {
+        return KeyMappings.KEY_PHOTO_MODE_HIDE_UI.matches(event);
     }
 
-    private static boolean isGridKey(int key) {
-        return key == GLFW.GLFW_KEY_G;
+    private static boolean isGridKey(@NotNull KeyEvent event) {
+        return KeyMappings.KEY_PHOTO_MODE_TOGGLE_GRID.matches(event);
     }
 
     private boolean isPoseMakerNameKeyBoxFocused() {
