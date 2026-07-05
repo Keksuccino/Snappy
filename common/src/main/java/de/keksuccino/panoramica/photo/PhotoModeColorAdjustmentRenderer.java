@@ -136,7 +136,7 @@ final class PhotoModeColorAdjustmentRenderer {
 
         try (GpuBufferSlice.MappedView view = renderResources.adjustmentConfigBuffer.currentBuffer().map(false, true)) {
             Std140Builder builder = Std140Builder.intoBuffer(view.data());
-            builder.putVec4(session.saturation(), session.contrast(), session.overexposure(), 0.0F);
+            builder.putVec4(session.saturation(), session.contrast(), session.overexposure(), session.gamma());
         }
     }
 

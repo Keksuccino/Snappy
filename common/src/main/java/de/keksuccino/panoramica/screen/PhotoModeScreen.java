@@ -79,7 +79,6 @@ public class PhotoModeScreen extends Screen {
     private static final int NO_HOVER_MOUSE_POSITION = -1;
     private static final double FOV_SNAP_RADIUS = 2.0D;
     private static final double ROLL_SNAP_RADIUS = 5.0D;
-    private static final double BRIGHTNESS_SNAP_RADIUS = 0.05D;
     private static final double VIGNETTE_SNAP_RADIUS = 0.05D;
     private static final double COLOR_ADJUSTMENT_SNAP_RADIUS = 0.03D;
     private static final double COLOR_ADJUSTMENT_STEP = 0.01D;
@@ -445,21 +444,6 @@ public class PhotoModeScreen extends Screen {
         ));
         y += CONTROL_HEIGHT + CONTROL_GAP;
 
-        this.addRenderableWidget(new PhotoModeSlider(
-                x,
-                y,
-                width,
-                CONTROL_HEIGHT,
-                0.0D,
-                1.0D,
-                active.brightness(),
-                Minecraft.getInstance().options.gamma().get().doubleValue(),
-                BRIGHTNESS_SNAP_RADIUS,
-                value -> active.setBrightness((float) value),
-                value -> optionMessage("panoramica.photo_mode.brightness", Component.translatable("panoramica.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
-        ));
-        y += CONTROL_HEIGHT + CONTROL_GAP;
-
         this.gridButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
             active.setGridEnabled(!active.gridEnabled());
             this.updateButtonMessages();
@@ -664,6 +648,19 @@ public class PhotoModeScreen extends Screen {
         ));
         vignetteSlider.setTooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.vignette.desc")));
         y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        y = this.addColorAdjustmentSlider(
+                x,
+                y,
+                width,
+                "panoramica.photo_mode.gamma",
+                "panoramica.photo_mode.gamma.desc",
+                PhotoModeManager.GAMMA_MIN,
+                PhotoModeManager.GAMMA_MAX,
+                active.gamma(),
+                PhotoModeManager.GAMMA_DEFAULT,
+                value -> active.setGamma((float) value)
+        );
 
         y = this.addColorAdjustmentSlider(
                 x,
@@ -1603,10 +1600,10 @@ public class PhotoModeScreen extends Screen {
     }
 
     private enum Tab {
-        GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 138),
+        GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 113),
         PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
         LENS(LENS_ICON, "panoramica.photo_mode.tab.lens", 138),
-        EFFECTS(EFFECTS_ICON, "panoramica.photo_mode.tab.effects", 163),
+        EFFECTS(EFFECTS_ICON, "panoramica.photo_mode.tab.effects", 188),
         ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 213);
 
         private final Identifier icon;

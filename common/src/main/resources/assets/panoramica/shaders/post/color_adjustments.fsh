@@ -21,6 +21,11 @@ float luminance(vec3 color) {
     return dot(color, LUMA);
 }
 
+vec3 applyGamma(vec3 color, float amount) {
+    float gamma = exp2(-amount * 1.05);
+    return pow(clamp(color, 0.0, 1.0), vec3(gamma));
+}
+
 vec3 applyOverexposure(vec3 color, float amount) {
     float stops = amount < 0.0 ? amount * 1.25 : amount * 1.70;
     vec3 exposed = color * exp2(stops);
@@ -57,6 +62,7 @@ void main() {
     vec4 diffuseColor = texture(InSampler, texCoord);
     vec3 color = clamp(diffuseColor.rgb, 0.0, 1.0);
 
+    color = applyGamma(color, Adjustments.w);
     color = applyOverexposure(color, Adjustments.z);
     color = applyContrast(color, Adjustments.y);
     color = applySaturation(color, Adjustments.x);

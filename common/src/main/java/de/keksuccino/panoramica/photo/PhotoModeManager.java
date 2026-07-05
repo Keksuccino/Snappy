@@ -91,6 +91,9 @@ public final class PhotoModeManager {
     public static final float DEPTH_OF_FIELD_APERTURE_MIN = 1.2F;
     public static final float DEPTH_OF_FIELD_APERTURE_MAX = 22.0F;
     public static final float DEPTH_OF_FIELD_APERTURE_DEFAULT = 2.8F;
+    public static final float GAMMA_MIN = -1.0F;
+    public static final float GAMMA_MAX = 1.0F;
+    public static final float GAMMA_DEFAULT = 0.0F;
     public static final float SATURATION_MIN = -1.0F;
     public static final float SATURATION_MAX = 1.0F;
     public static final float SATURATION_DEFAULT = 0.0F;
@@ -293,11 +296,6 @@ public final class PhotoModeManager {
     public static float overrideFieldOfView(float original) {
         Session active = session;
         return active == null ? original : active.fieldOfView();
-    }
-
-    public static float overrideBrightness(float original) {
-        Session active = session;
-        return active == null ? original : active.brightness();
     }
 
     @Nullable
@@ -759,9 +757,9 @@ public final class PhotoModeManager {
         private float pitch;
         private float roll;
         private float fieldOfView;
-        private float brightness;
         private float vignette;
         private PhotoModeColorizePreset colorizePreset = PhotoModeColorizePreset.NONE;
+        private float gamma = GAMMA_DEFAULT;
         private float saturation = SATURATION_DEFAULT;
         private float contrast = CONTRAST_DEFAULT;
         private float overexposure = OVEREXPOSURE_DEFAULT;
@@ -801,7 +799,6 @@ public final class PhotoModeManager {
                 float yaw,
                 float pitch,
                 float fieldOfView,
-                float brightness,
                 boolean paused,
                 @NotNull PhotoModeTimePreset timePreset,
                 @NotNull PhotoModeWeatherPreset weatherPreset,
@@ -811,7 +808,6 @@ public final class PhotoModeManager {
             this.yaw = yaw;
             this.pitch = pitch;
             this.fieldOfView = Mth.clamp(fieldOfView, 30.0F, 110.0F);
-            this.brightness = Mth.clamp(brightness, 0.0F, 1.0F);
             this.paused = paused;
             this.timePreset = timePreset;
             this.weatherPreset = weatherPreset;
@@ -827,7 +823,6 @@ public final class PhotoModeManager {
                     start.yaw(),
                     start.pitch(),
                     minecraft.options.fov().get().floatValue(),
-                    minecraft.options.gamma().get().floatValue(),
                     canPause(minecraft),
                     defaultTimePreset(minecraft),
                     defaultWeatherPreset(minecraft),
@@ -843,9 +838,9 @@ public final class PhotoModeManager {
             this.skyColorOverride = null;
             this.roll = 0.0F;
             this.fieldOfView = minecraft.options.fov().get().floatValue();
-            this.brightness = minecraft.options.gamma().get().floatValue();
             this.vignette = 0.0F;
             this.colorizePreset = PhotoModeColorizePreset.NONE;
+            this.gamma = GAMMA_DEFAULT;
             this.saturation = SATURATION_DEFAULT;
             this.contrast = CONTRAST_DEFAULT;
             this.overexposure = OVEREXPOSURE_DEFAULT;
@@ -1075,12 +1070,12 @@ public final class PhotoModeManager {
             this.fieldOfView = Mth.clamp(fieldOfView, 30.0F, 110.0F);
         }
 
-        public float brightness() {
-            return this.brightness;
+        public float gamma() {
+            return this.gamma;
         }
 
-        public void setBrightness(float brightness) {
-            this.brightness = Mth.clamp(brightness, 0.0F, 1.0F);
+        public void setGamma(float gamma) {
+            this.gamma = Mth.clamp(gamma, GAMMA_MIN, GAMMA_MAX);
         }
 
         public float vignette() {
@@ -1125,7 +1120,8 @@ public final class PhotoModeManager {
         }
 
         public boolean hasColorAdjustments() {
-            return Math.abs(this.saturation) > 1.0E-4F
+            return Math.abs(this.gamma) > 1.0E-4F
+                    || Math.abs(this.saturation) > 1.0E-4F
                     || Math.abs(this.contrast) > 1.0E-4F
                     || Math.abs(this.overexposure) > 1.0E-4F;
         }

@@ -12,7 +12,6 @@
     "client.MixinGuiRenderer",
     "client.MixinHud",
     "client.MixinKeyMapping_Category",
-    "client.MixinLightmapRenderStateExtractor",
     "client.MixinMinecraft",
     "client.MixinMouseHandler",
     "client.MixinPanorama",
