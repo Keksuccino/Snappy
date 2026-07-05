@@ -5,6 +5,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import de.keksuccino.panoramica.KeyMappings;
 import de.keksuccino.panoramica.Panoramica;
 import de.keksuccino.panoramica.capture.NormalScreenshotCaptureManager;
 import de.keksuccino.panoramica.metadata.ScreenshotMetadataManager;
@@ -241,6 +242,12 @@ public final class PhotoModeManager {
             close();
             return;
         }
+        while (KeyMappings.KEY_OPEN_PHOTO_MODE.consumeClick()) {
+            if (session == null) {
+                open(minecraft);
+            }
+        }
+        active = session;
         if (active != null) {
             active.tickVisualEffects(minecraft);
         }

@@ -1,6 +1,7 @@
 package de.keksuccino.panoramica;
 
 import de.keksuccino.panoramica.platform.Services;
+import net.minecraft.client.KeyMapping;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
@@ -29,7 +30,9 @@ public class PanoramicaNeoForge {
     @SubscribeEvent
     public static void onRegisterKeybinds(RegisterKeyMappingsEvent e) {
 
-        e.register(KeyMappings.KEY_TAKE_PANORAMA);
+        for (KeyMapping keyMapping : KeyMappings.ALL) {
+            e.register(keyMapping);
+        }
 
     }
 

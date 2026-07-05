@@ -21,6 +21,9 @@ import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class OptionsScreen extends Screen {
 
     protected static final int BUTTON_HEIGHT = 20;
@@ -28,18 +31,30 @@ public class OptionsScreen extends Screen {
     protected static final int CYCLE_VALUE_COLOR = 0xFFAA00;
     protected static final int KEYBIND_RESET_BUTTON_WIDTH = 50;
     protected static final int KEYBIND_GAP = 5;
-    protected static final int OPTION_ROW_COUNT = 10;
+    protected static final int OPTION_ROW_COUNT = 11;
     protected static final int EXTRA_GAP_COUNT = 1;
+    protected static final KeybindSetting PANORAMA_KEYBIND = new KeybindSetting(
+            KeyMappings.KEY_TAKE_PANORAMA,
+            "panoramica.options.keybind",
+            "panoramica.options.keybind.desc"
+    );
+    protected static final KeybindSetting PHOTO_MODE_KEYBIND = new KeybindSetting(
+            KeyMappings.KEY_OPEN_PHOTO_MODE,
+            "panoramica.options.photo_mode_keybind",
+            "panoramica.options.photo_mode_keybind.desc"
+    );
+    protected static final List<KeybindSetting> KEYBIND_SETTINGS = List.of(
+            PANORAMA_KEYBIND,
+            PHOTO_MODE_KEYBIND
+    );
 
     @Nullable
     protected Screen parent;
     @Nullable
     private Button cycleIntervalButton;
     @Nullable
-    private Button keybindButton;
-    @Nullable
-    private Button keybindResetButton;
-    private boolean waitingForPanoramaKey;
+    private KeyMapping waitingForKeybind;
+    private final List<KeybindControl> keybindControls = new ArrayList<>();
 
     public OptionsScreen(@Nullable Screen parent) {
         super(Component.translatable("panoramica.options"));
@@ -63,9 +78,10 @@ public class OptionsScreen extends Screen {
         LinearLayout optionsLayout = LinearLayout.vertical().spacing(rowAdvance - BUTTON_HEIGHT);
         optionsLayout.defaultCellSetting().alignHorizontallyCenter();
 
-        this.keybindButton = this.buildKeybindButton();
-        this.keybindResetButton = this.buildKeybindResetButton();
-        optionsLayout.addChild(this.buildKeybindRowLayout(this.keybindButton, this.keybindResetButton));
+        this.keybindControls.clear();
+        for (KeybindSetting setting : KEYBIND_SETTINGS) {
+            this.addKeybindRow(optionsLayout, setting);
+        }
         this.updateKeybindButtons();
 
         optionsLayout.addChild(this.buildResolutionButton());
@@ -93,25 +109,34 @@ public class OptionsScreen extends Screen {
 
     }
 
+    protected void addKeybindRow(@NotNull LinearLayout optionsLayout, @NotNull KeybindSetting setting) {
+        Button keybindButton = this.buildKeybindButton(setting);
+        Button keybindResetButton = this.buildKeybindResetButton(setting);
+        this.keybindControls.add(new KeybindControl(setting, keybindButton, keybindResetButton));
+        optionsLayout.addChild(this.buildKeybindRowLayout(keybindButton, keybindResetButton));
+    }
+
     @NotNull
-    protected Button buildKeybindButton() {
+    protected Button buildKeybindButton(@NotNull KeybindSetting setting) {
+        KeyMapping keyMapping = setting.keyMapping();
         return Button.builder(Component.empty(), button -> {
-                    this.waitingForPanoramaKey = true;
+                    this.waitingForKeybind = keyMapping;
                     this.updateKeybindButtons();
                 }).bounds(0, 0, this.getButtonWidth() - KEYBIND_RESET_BUTTON_WIDTH - KEYBIND_GAP, BUTTON_HEIGHT)
-                .createNarration(defaultNarrationSupplier -> KeyMappings.KEY_TAKE_PANORAMA.isUnbound()
-                        ? Component.translatable("narrator.controls.unbound", Component.translatable(KeyMappings.KEY_TAKE_PANORAMA.getName()))
-                        : Component.translatable("narrator.controls.bound", Component.translatable(KeyMappings.KEY_TAKE_PANORAMA.getName()), defaultNarrationSupplier.get()))
+                .createNarration(defaultNarrationSupplier -> keyMapping.isUnbound()
+                        ? Component.translatable("narrator.controls.unbound", Component.translatable(keyMapping.getName()))
+                        : Component.translatable("narrator.controls.bound", Component.translatable(keyMapping.getName()), defaultNarrationSupplier.get()))
                 .build();
     }
 
     @NotNull
-    protected Button buildKeybindResetButton() {
+    protected Button buildKeybindResetButton(@NotNull KeybindSetting setting) {
+        KeyMapping keyMapping = setting.keyMapping();
         return Button.builder(Component.translatable("controls.reset"), button -> {
-                    KeyMappings.KEY_TAKE_PANORAMA.setKey(KeyMappings.KEY_TAKE_PANORAMA.getDefaultKey());
+                    keyMapping.setKey(keyMapping.getDefaultKey());
                     this.afterKeybindChanged();
                 }).bounds(0, 0, KEYBIND_RESET_BUTTON_WIDTH, BUTTON_HEIGHT)
-                .createNarration(defaultNarrationSupplier -> Component.translatable("narrator.controls.reset", Component.translatable(KeyMappings.KEY_TAKE_PANORAMA.getName())))
+                .createNarration(defaultNarrationSupplier -> Component.translatable("narrator.controls.reset", Component.translatable(keyMapping.getName())))
                 .build();
     }
 
@@ -218,12 +243,11 @@ public class OptionsScreen extends Screen {
     }
 
     protected void updateKeybindButtons() {
-        if (this.keybindButton != null) {
-            this.keybindButton.setMessage(this.keybindMessage());
-            this.keybindButton.setTooltip(this.keybindTooltip());
-        }
-        if (this.keybindResetButton != null) {
-            this.keybindResetButton.active = !KeyMappings.KEY_TAKE_PANORAMA.isDefault();
+        for (KeybindControl control : this.keybindControls) {
+            KeyMapping keyMapping = control.setting().keyMapping();
+            control.keybindButton().setMessage(this.keybindMessage(control.setting()));
+            control.keybindButton().setTooltip(this.keybindTooltip(control.setting()));
+            control.resetButton().active = !keyMapping.isDefault();
         }
     }
 
@@ -290,35 +314,37 @@ public class OptionsScreen extends Screen {
     }
 
     @NotNull
-    protected Component keybindMessage() {
-        Component value = this.keybindValue();
-        Component message = this.optionMessage("panoramica.options.keybind", value);
-        if (this.waitingForPanoramaKey) {
+    protected Component keybindMessage(@NotNull KeybindSetting setting) {
+        KeyMapping keyMapping = setting.keyMapping();
+        Component value = this.keybindValue(keyMapping);
+        Component message = this.optionMessage(setting.labelKey(), value);
+        if (this.waitingForKeybind == keyMapping) {
             return Component.literal("> ").append(message.copy().withStyle(ChatFormatting.WHITE, ChatFormatting.UNDERLINE)).append(" <").withStyle(ChatFormatting.YELLOW);
         }
-        if (this.hasKeybindCollision()) {
+        if (this.hasKeybindCollision(keyMapping)) {
             return Component.literal("[ ").append(message.copy().withStyle(ChatFormatting.WHITE)).append(" ]").withStyle(ChatFormatting.YELLOW);
         }
         return message;
     }
 
     @NotNull
-    protected Component keybindValue() {
-        return KeyMappings.KEY_TAKE_PANORAMA.getTranslatedKeyMessage().copy().withStyle(Style.EMPTY.withColor(CYCLE_VALUE_COLOR));
+    protected Component keybindValue(@NotNull KeyMapping keyMapping) {
+        return keyMapping.getTranslatedKeyMessage().copy().withStyle(Style.EMPTY.withColor(CYCLE_VALUE_COLOR));
     }
 
     @Nullable
-    protected Tooltip keybindTooltip() {
-        if (!this.hasKeybindCollision()) {
-            return Tooltip.create(Component.translatable("panoramica.options.keybind.desc"));
+    protected Tooltip keybindTooltip(@NotNull KeybindSetting setting) {
+        KeyMapping keyMapping = setting.keyMapping();
+        if (!this.hasKeybindCollision(keyMapping)) {
+            return Tooltip.create(Component.translatable(setting.descriptionKey()));
         }
 
         MutableComponent collisions = Component.empty();
         boolean first = true;
         if (this.minecraft != null) {
             for (KeyMapping otherKey : this.minecraft.options.keyMappings) {
-                if (otherKey != KeyMappings.KEY_TAKE_PANORAMA && KeyMappings.KEY_TAKE_PANORAMA.same(otherKey)
-                        && (!otherKey.isDefault() || !KeyMappings.KEY_TAKE_PANORAMA.isDefault())) {
+                if (otherKey != keyMapping && keyMapping.same(otherKey)
+                        && (!otherKey.isDefault() || !keyMapping.isDefault())) {
                     if (!first) {
                         collisions.append(", ");
                     }
@@ -361,14 +387,14 @@ public class OptionsScreen extends Screen {
         return Math.min(BUTTON_ROW_MAX_WIDTH, this.width - 40);
     }
 
-    protected boolean hasKeybindCollision() {
-        if (this.minecraft == null || KeyMappings.KEY_TAKE_PANORAMA.isUnbound()) {
+    protected boolean hasKeybindCollision(@NotNull KeyMapping keyMapping) {
+        if (this.minecraft == null || keyMapping.isUnbound()) {
             return false;
         }
 
         for (KeyMapping otherKey : this.minecraft.options.keyMappings) {
-            if (otherKey != KeyMappings.KEY_TAKE_PANORAMA && KeyMappings.KEY_TAKE_PANORAMA.same(otherKey)
-                    && (!otherKey.isDefault() || !KeyMappings.KEY_TAKE_PANORAMA.isDefault())) {
+            if (otherKey != keyMapping && keyMapping.same(otherKey)
+                    && (!otherKey.isDefault() || !keyMapping.isDefault())) {
                 return true;
             }
         }
@@ -397,7 +423,7 @@ public class OptionsScreen extends Screen {
     }
 
     protected void afterKeybindChanged() {
-        this.waitingForPanoramaKey = false;
+        this.waitingForKeybind = null;
         KeyMapping.resetMapping();
         if (this.minecraft != null) {
             this.minecraft.options.save();
@@ -407,8 +433,8 @@ public class OptionsScreen extends Screen {
 
     @Override
     public boolean mouseClicked(@NotNull MouseButtonEvent event, boolean doubleClick) {
-        if (this.waitingForPanoramaKey) {
-            KeyMappings.KEY_TAKE_PANORAMA.setKey(InputConstants.Type.MOUSE.getOrCreate(event.button()));
+        if (this.waitingForKeybind != null) {
+            this.waitingForKeybind.setKey(InputConstants.Type.MOUSE.getOrCreate(event.button()));
             this.afterKeybindChanged();
             return true;
         }
@@ -417,8 +443,8 @@ public class OptionsScreen extends Screen {
 
     @Override
     public boolean keyPressed(@NotNull KeyEvent event) {
-        if (this.waitingForPanoramaKey) {
-            KeyMappings.KEY_TAKE_PANORAMA.setKey(event.isEscape() ? InputConstants.UNKNOWN : InputConstants.getKey(event));
+        if (this.waitingForKeybind != null) {
+            this.waitingForKeybind.setKey(event.isEscape() ? InputConstants.UNKNOWN : InputConstants.getKey(event));
             this.afterKeybindChanged();
             return true;
         }
@@ -428,6 +454,12 @@ public class OptionsScreen extends Screen {
     @Override
     public void onClose() {
         Minecraft.getInstance().gui.setScreen(this.parent);
+    }
+
+    protected record KeybindSetting(@NotNull KeyMapping keyMapping, @NotNull String labelKey, @NotNull String descriptionKey) {
+    }
+
+    private record KeybindControl(@NotNull KeybindSetting setting, @NotNull Button keybindButton, @NotNull Button resetButton) {
     }
 
 }

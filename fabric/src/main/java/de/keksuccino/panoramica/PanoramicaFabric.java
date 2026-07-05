@@ -3,6 +3,7 @@ package de.keksuccino.panoramica;
 import de.keksuccino.panoramica.platform.Services;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.client.KeyMapping;
 
 public class PanoramicaFabric implements ModInitializer {
     
@@ -13,7 +14,9 @@ public class PanoramicaFabric implements ModInitializer {
 
         if (Services.PLATFORM.isOnClient()) {
 
-            KeyMappingHelper.registerKeyMapping(KeyMappings.KEY_TAKE_PANORAMA);
+            for (KeyMapping keyMapping : KeyMappings.ALL) {
+                KeyMappingHelper.registerKeyMapping(keyMapping);
+            }
 
         }
 
