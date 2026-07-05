@@ -91,6 +91,15 @@ public final class PhotoModeManager {
     public static final float DEPTH_OF_FIELD_APERTURE_MIN = 1.2F;
     public static final float DEPTH_OF_FIELD_APERTURE_MAX = 22.0F;
     public static final float DEPTH_OF_FIELD_APERTURE_DEFAULT = 2.8F;
+    public static final float SATURATION_MIN = -1.0F;
+    public static final float SATURATION_MAX = 1.0F;
+    public static final float SATURATION_DEFAULT = 0.0F;
+    public static final float CONTRAST_MIN = -1.0F;
+    public static final float CONTRAST_MAX = 1.0F;
+    public static final float CONTRAST_DEFAULT = 0.0F;
+    public static final float OVEREXPOSURE_MIN = -1.0F;
+    public static final float OVEREXPOSURE_MAX = 1.0F;
+    public static final float OVEREXPOSURE_DEFAULT = 0.0F;
     public static final double PHOTO_FOG_MIN_DISTANCE = 8.0D;
     public static final double PHOTO_FOG_MAX_DISTANCE = 512.0D;
     public static final double PHOTO_FOG_DEFAULT_DISTANCE = 64.0D;
@@ -149,6 +158,7 @@ public final class PhotoModeManager {
             active.clearVisualEffects(Minecraft.getInstance().level);
         }
         PhotoModeDepthOfFieldRenderer.close();
+        PhotoModeColorAdjustmentRenderer.close();
         session = null;
         environmentOverrideScope = false;
         suppressEnvironmentRefreshSounds = false;
@@ -452,6 +462,19 @@ public final class PhotoModeManager {
         }
     }
 
+    public static void processColorAdjustmentEffect(
+            @NotNull Minecraft minecraft,
+            @NotNull RenderTarget mainRenderTarget,
+            @NotNull GraphicsResourceAllocator resourceAllocator
+    ) {
+        Session active = session;
+        if (active == null || minecraft.level == null || !active.hasColorAdjustments()) {
+            return;
+        }
+
+        PhotoModeColorAdjustmentRenderer.process(mainRenderTarget, resourceAllocator, active);
+    }
+
     public static boolean shouldHidePlayerEntity(@NotNull Entity entity) {
         Session active = session;
         if (active == null || !(entity instanceof Player)) {
@@ -739,6 +762,9 @@ public final class PhotoModeManager {
         private float brightness;
         private float vignette;
         private PhotoModeColorizePreset colorizePreset = PhotoModeColorizePreset.NONE;
+        private float saturation = SATURATION_DEFAULT;
+        private float contrast = CONTRAST_DEFAULT;
+        private float overexposure = OVEREXPOSURE_DEFAULT;
         private boolean depthOfFieldEnabled;
         private float depthOfFieldFocusDistance = DEPTH_OF_FIELD_FOCUS_DISTANCE_DEFAULT;
         private float depthOfFieldFocalLength = DEPTH_OF_FIELD_FOCAL_LENGTH_DEFAULT;
@@ -820,6 +846,9 @@ public final class PhotoModeManager {
             this.brightness = minecraft.options.gamma().get().floatValue();
             this.vignette = 0.0F;
             this.colorizePreset = PhotoModeColorizePreset.NONE;
+            this.saturation = SATURATION_DEFAULT;
+            this.contrast = CONTRAST_DEFAULT;
+            this.overexposure = OVEREXPOSURE_DEFAULT;
             this.depthOfFieldEnabled = false;
             this.depthOfFieldFocusDistance = DEPTH_OF_FIELD_FOCUS_DISTANCE_DEFAULT;
             this.depthOfFieldFocalLength = DEPTH_OF_FIELD_FOCAL_LENGTH_DEFAULT;
@@ -1069,6 +1098,36 @@ public final class PhotoModeManager {
 
         public void setColorizePreset(@NotNull PhotoModeColorizePreset colorizePreset) {
             this.colorizePreset = colorizePreset;
+        }
+
+        public float saturation() {
+            return this.saturation;
+        }
+
+        public void setSaturation(float saturation) {
+            this.saturation = Mth.clamp(saturation, SATURATION_MIN, SATURATION_MAX);
+        }
+
+        public float contrast() {
+            return this.contrast;
+        }
+
+        public void setContrast(float contrast) {
+            this.contrast = Mth.clamp(contrast, CONTRAST_MIN, CONTRAST_MAX);
+        }
+
+        public float overexposure() {
+            return this.overexposure;
+        }
+
+        public void setOverexposure(float overexposure) {
+            this.overexposure = Mth.clamp(overexposure, OVEREXPOSURE_MIN, OVEREXPOSURE_MAX);
+        }
+
+        public boolean hasColorAdjustments() {
+            return Math.abs(this.saturation) > 1.0E-4F
+                    || Math.abs(this.contrast) > 1.0E-4F
+                    || Math.abs(this.overexposure) > 1.0E-4F;
         }
 
         public boolean depthOfFieldEnabled() {

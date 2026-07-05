@@ -81,6 +81,8 @@ public class PhotoModeScreen extends Screen {
     private static final double ROLL_SNAP_RADIUS = 5.0D;
     private static final double BRIGHTNESS_SNAP_RADIUS = 0.05D;
     private static final double VIGNETTE_SNAP_RADIUS = 0.05D;
+    private static final double COLOR_ADJUSTMENT_SNAP_RADIUS = 0.03D;
+    private static final double COLOR_ADJUSTMENT_STEP = 0.01D;
     private static final double PLAYER_POSITION_OFFSET_MIN = -5.0D;
     private static final double PLAYER_POSITION_OFFSET_MAX = 5.0D;
     private static final double PLAYER_POSITION_OFFSET_SNAP_RADIUS = 0.08D;
@@ -659,10 +661,74 @@ public class PhotoModeScreen extends Screen {
         ));
         y += CONTROL_HEIGHT + CONTROL_GAP;
 
+        y = this.addColorAdjustmentSlider(
+                x,
+                y,
+                width,
+                "panoramica.photo_mode.saturation",
+                PhotoModeManager.SATURATION_MIN,
+                PhotoModeManager.SATURATION_MAX,
+                active.saturation(),
+                PhotoModeManager.SATURATION_DEFAULT,
+                value -> active.setSaturation((float) value)
+        );
+
+        y = this.addColorAdjustmentSlider(
+                x,
+                y,
+                width,
+                "panoramica.photo_mode.contrast",
+                PhotoModeManager.CONTRAST_MIN,
+                PhotoModeManager.CONTRAST_MAX,
+                active.contrast(),
+                PhotoModeManager.CONTRAST_DEFAULT,
+                value -> active.setContrast((float) value)
+        );
+
+        y = this.addColorAdjustmentSlider(
+                x,
+                y,
+                width,
+                "panoramica.photo_mode.overexposure",
+                PhotoModeManager.OVEREXPOSURE_MIN,
+                PhotoModeManager.OVEREXPOSURE_MAX,
+                active.overexposure(),
+                PhotoModeManager.OVEREXPOSURE_DEFAULT,
+                value -> active.setOverexposure((float) value)
+        );
+
         this.colorizeButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
             active.setColorizePreset(active.colorizePreset().next());
             this.updateButtonMessages();
         }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.colorize.desc"))).build());
+    }
+
+    private int addColorAdjustmentSlider(
+            int x,
+            int y,
+            int width,
+            @NotNull String labelKey,
+            float minValue,
+            float maxValue,
+            float currentValue,
+            float defaultValue,
+            @NotNull DoubleConsumer valueConsumer
+    ) {
+        this.addRenderableWidget(new PhotoModeSlider(
+                x,
+                y,
+                width,
+                CONTROL_HEIGHT,
+                minValue,
+                maxValue,
+                currentValue,
+                defaultValue,
+                COLOR_ADJUSTMENT_SNAP_RADIUS,
+                COLOR_ADJUSTMENT_STEP,
+                valueConsumer,
+                value -> optionMessage(labelKey, signedPercentValue(value))
+        ));
+        return y + CONTROL_HEIGHT + CONTROL_GAP;
     }
 
     private void addEnvironmentControls(int y) {
@@ -1487,6 +1553,14 @@ public class PhotoModeScreen extends Screen {
     }
 
     @NotNull
+    private static Component signedPercentValue(double value) {
+        int percent = (int) Math.round(value * 100.0D);
+        String sign = percent > 0 ? "+" : "";
+        return Component.translatable("panoramica.photo_mode.percent", sign + percent)
+                .withStyle(Style.EMPTY.withColor(VALUE_COLOR));
+    }
+
+    @NotNull
     private static Component visibilityValue(boolean visible) {
         return Component.translatable(visible ? "panoramica.photo_mode.visible" : "panoramica.photo_mode.hidden")
                 .withStyle(Style.EMPTY.withColor(visible ? ChatFormatting.GREEN : ChatFormatting.RED));
@@ -1523,7 +1597,7 @@ public class PhotoModeScreen extends Screen {
         GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 138),
         PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
         LENS(LENS_ICON, "panoramica.photo_mode.tab.lens", 138),
-        EFFECTS(EFFECTS_ICON, "panoramica.photo_mode.tab.effects", 88),
+        EFFECTS(EFFECTS_ICON, "panoramica.photo_mode.tab.effects", 163),
         ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 213);
 
         private final Identifier icon;

@@ -99,6 +99,7 @@ public class MixinGameRenderer {
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/fog/FogRenderer;endFrame()V"))
     private void before_renderEndFrame_Panoramica(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo info) {
         PhotoModeManager.processColorizeEffect(Minecraft.getInstance(), this.mainRenderTarget, this.resourcePool);
+        PhotoModeManager.processColorAdjustmentEffect(Minecraft.getInstance(), this.mainRenderTarget, this.resourcePool);
     }
 
     @Inject(method = "render", at = @At("TAIL"))
