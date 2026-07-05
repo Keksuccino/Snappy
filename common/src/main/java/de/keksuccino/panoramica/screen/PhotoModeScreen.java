@@ -747,7 +747,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void addActionButtons() {
-        Component takePhotoMessage = Component.translatable("panoramica.photo_mode.take_photo");
+        Component takePhotoMessage = this.takePhotoMessage();
         Component returnToPlayerMessage = Component.translatable("panoramica.photo_mode.return_to_player");
         Component hideGuiMessage = Component.translatable("panoramica.photo_mode.hide_gui");
         Component resetMessage = Component.translatable("panoramica.photo_mode.reset");
@@ -1230,12 +1230,18 @@ public class PhotoModeScreen extends Screen {
     }
 
     private int preferredActionRowWidth() {
-        return this.actionButtonWidth(Component.translatable("panoramica.photo_mode.take_photo"), ACTION_TAKE_PHOTO_MIN_WIDTH)
+        return this.actionButtonWidth(this.takePhotoMessage(), ACTION_TAKE_PHOTO_MIN_WIDTH)
                 + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.return_to_player"), ACTION_RETURN_TO_PLAYER_MIN_WIDTH)
                 + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.hide_gui"), ACTION_HIDE_GUI_MIN_WIDTH)
                 + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.reset"), ACTION_RESET_MIN_WIDTH)
                 + this.actionButtonWidth(Component.translatable("panoramica.photo_mode.leave_short"), ACTION_LEAVE_MIN_WIDTH)
                 + ACTION_GAP * 4;
+    }
+
+    @NotNull
+    private Component takePhotoMessage() {
+        Minecraft minecraft = this.minecraft == null ? Minecraft.getInstance() : this.minecraft;
+        return Component.translatable("panoramica.photo_mode.take_photo", minecraft.options.keyScreenshot.getTranslatedKeyMessage());
     }
 
     private int actionButtonWidth(@NotNull Component message, int minWidth) {

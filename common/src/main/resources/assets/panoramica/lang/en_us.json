@@ -253,7 +253,7 @@
   "panoramica.photo_mode.disabled": "Disabled",
   "panoramica.photo_mode.visible": "Visible",
   "panoramica.photo_mode.hidden": "Hidden",
-  "panoramica.photo_mode.take_photo": "Take Photo",
+  "panoramica.photo_mode.take_photo": "Take Photo [%s]",
   "panoramica.photo_mode.return_to_player": "Return to Player",
   "panoramica.photo_mode.return_to_player.desc": "Moves the photo camera back to its player-facing starting position without changing photo settings.",
   "panoramica.photo_mode.hide_gui": "Hide UI [H]",
