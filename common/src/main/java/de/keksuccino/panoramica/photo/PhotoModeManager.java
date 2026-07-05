@@ -531,6 +531,11 @@ public final class PhotoModeManager {
         return active != null && !active.hideSelfPlayer() && isSelfPlayerEntity(Minecraft.getInstance(), entity);
     }
 
+    public static boolean shouldHideBeaconBeams() {
+        Session active = session;
+        return active != null && active.hideBeaconBeams();
+    }
+
     public static void applySelfPlayerRenderStateOverrides(@NotNull Entity entity, @NotNull AvatarRenderState state, float partialTicks) {
         Session active = session;
         if (active == null || !isSelfPlayerEntity(Minecraft.getInstance(), entity)) {
@@ -811,6 +816,7 @@ public final class PhotoModeManager {
         private Vec3 selfPlayerRotationOffset = Vec3.ZERO;
         private boolean hideSelfPlayer;
         private boolean hideOtherPlayers;
+        private boolean hideBeaconBeams;
         private boolean paused;
         private boolean photoModeUiHidden;
         private boolean gridEnabled;
@@ -894,6 +900,7 @@ public final class PhotoModeManager {
             this.selfPlayerRotationOffset = Vec3.ZERO;
             this.hideSelfPlayer = false;
             this.hideOtherPlayers = false;
+            this.hideBeaconBeams = false;
             this.photoModeUiHidden = false;
             this.gridEnabled = false;
             this.poseId = null;
@@ -1317,6 +1324,14 @@ public final class PhotoModeManager {
 
         public void setHideOtherPlayers(boolean hideOtherPlayers) {
             this.hideOtherPlayers = hideOtherPlayers;
+        }
+
+        public boolean hideBeaconBeams() {
+            return this.hideBeaconBeams;
+        }
+
+        public void setHideBeaconBeams(boolean hideBeaconBeams) {
+            this.hideBeaconBeams = hideBeaconBeams;
         }
 
         public boolean paused() {

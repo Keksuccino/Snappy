@@ -143,6 +143,8 @@ public class PhotoModeScreen extends Screen {
     @Nullable
     private Button weatherButton;
     @Nullable
+    private Button hideBeaconBeamsButton;
+    @Nullable
     private Button colorizeButton;
     @Nullable
     private Button stylizeButton;
@@ -422,6 +424,7 @@ public class PhotoModeScreen extends Screen {
         this.poseButton = null;
         this.timeButton = null;
         this.weatherButton = null;
+        this.hideBeaconBeamsButton = null;
         this.colorizeButton = null;
         this.stylizeButton = null;
         this.depthOfFieldButton = null;
@@ -810,6 +813,12 @@ public class PhotoModeScreen extends Screen {
         }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.weather.desc"))).build());
         y += CONTROL_HEIGHT + CONTROL_GAP;
 
+        this.hideBeaconBeamsButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+            active.setHideBeaconBeams(!active.hideBeaconBeams());
+            this.updateButtonMessages();
+        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.hide_beacon_beams.desc"))).build());
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
         this.skyColorButton = this.addPhotoColorButton(
                 x,
                 y,
@@ -1164,6 +1173,9 @@ public class PhotoModeScreen extends Screen {
         if (this.weatherButton != null) {
             PhotoModeWeatherPreset preset = active.weatherPreset();
             this.weatherButton.setMessage(optionMessage("panoramica.photo_mode.weather", Component.translatable(preset.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
+        }
+        if (this.hideBeaconBeamsButton != null) {
+            this.hideBeaconBeamsButton.setMessage(optionMessage("panoramica.photo_mode.hide_beacon_beams", enabledValue(active.hideBeaconBeams())));
         }
         if (this.colorizeButton != null) {
             PhotoModeColorizePreset preset = active.colorizePreset();
@@ -1694,7 +1706,7 @@ public class PhotoModeScreen extends Screen {
         GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 313),
         LENS(LENS_ICON, "panoramica.photo_mode.tab.lens", 138),
         PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
-        ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 213);
+        ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 238);
 
         private final Identifier icon;
         private final String labelKey;

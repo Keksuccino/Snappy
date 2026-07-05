@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_17",
   "client": [
     "client.MixinAvatarRenderer",
+    "client.MixinBeaconRenderer",
     "client.MixinCamera",
     "client.MixinCubeMap",
     "client.MixinGameRenderer",

@@ -270,6 +270,8 @@
   "panoramica.photo_mode.time.night": "Night",
   "panoramica.photo_mode.weather": "Weather: %s",
   "panoramica.photo_mode.weather.desc": "Changes rendered weather without changing the world's real weather.",
+  "panoramica.photo_mode.hide_beacon_beams": "Hide Beacon Beams: %s",
+  "panoramica.photo_mode.hide_beacon_beams.desc": "Visually hides beacon beams while photo mode is active.",
   "panoramica.photo_mode.weather.sunny": "Clear",
   "panoramica.photo_mode.weather.rainy": "Raining",
   "panoramica.photo_mode.weather.thundering": "Thundering",
