@@ -44,6 +44,7 @@ public class OptionsScreen extends Screen {
     protected static final int KEYBIND_RESET_BUTTON_WIDTH = 50;
     protected static final int KEYBIND_GAP = 5;
     protected static final int OPTION_ROW_ADVANCE = 26;
+    protected static final int OPTION_SECTION_PADDING_TOP = 10;
     protected static final Identifier TAB_HEADER_BACKGROUND = Identifier.withDefaultNamespace("textures/gui/tab_header_background.png");
     protected static final KeybindSetting PANORAMA_KEYBIND = new KeybindSetting(
             KeyMappings.KEY_TAKE_PANORAMA,
@@ -104,9 +105,10 @@ public class OptionsScreen extends Screen {
         this.keybindControls.clear();
 
         OptionsTab generalTab = this.buildGeneralTab();
+        OptionsTab panoramasTab = this.buildPanoramasTab();
         OptionsTab controlsTab = this.buildControlsTab();
         this.tabNavigationBar = MenuTabBar.builder(this.tabManager, this.width)
-                .addTabs(generalTab, controlsTab)
+                .addTabs(generalTab, panoramasTab, controlsTab)
                 .build();
         this.addRenderableWidget(this.tabNavigationBar);
 
@@ -127,18 +129,23 @@ public class OptionsScreen extends Screen {
     @NotNull
     protected OptionsTab buildGeneralTab() {
         OptionsTab tab = new OptionsTab(Component.translatable("panoramica.options.tab.general"));
-        this.addFullWidthOption(tab, this.buildResolutionButton());
-        this.addFullWidthOption(tab, this.buildMenuModeButton());
+        this.addFullWidthOption(tab, this.buildHideHudInNormalScreenshotsButton());
+        this.addFullWidthOption(tab, this.buildScreenshotChatMessagesButton());
+        this.addFullWidthOption(tab, this.buildPreviewModeButton());
+        this.addFullWidthOption(tab, this.buildScreenshotButtonsVisibilityButton(), settings -> settings.paddingTop(OPTION_SECTION_PADDING_TOP));
+        return tab;
+    }
 
+    @NotNull
+    protected OptionsTab buildPanoramasTab() {
+        OptionsTab tab = new OptionsTab(Component.translatable("panoramica.options.tab.panoramas"));
+        this.addFullWidthOption(tab, this.buildResolutionButton());
+        this.addFullWidthOption(tab, this.buildStorageLocationButton());
+
+        this.addFullWidthOption(tab, this.buildMenuModeButton(), settings -> settings.paddingTop(OPTION_SECTION_PADDING_TOP));
         this.cycleIntervalButton = this.buildCycleIntervalButton();
         this.addFullWidthOption(tab, this.cycleIntervalButton);
         this.addFullWidthOption(tab, this.buildMenuParallaxButton());
-
-        this.addFullWidthOption(tab, this.buildStorageLocationButton());
-        this.addFullWidthOption(tab, this.buildHideHudInNormalScreenshotsButton());
-        this.addFullWidthOption(tab, this.buildPreviewModeButton());
-        this.addFullWidthOption(tab, this.buildScreenshotChatMessagesButton());
-        this.addFullWidthOption(tab, this.buildScreenshotButtonsVisibilityButton(), settings -> settings.paddingTop(OPTION_ROW_ADVANCE));
         return tab;
     }
 
