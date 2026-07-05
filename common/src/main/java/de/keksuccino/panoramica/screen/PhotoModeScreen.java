@@ -604,6 +604,7 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setDepthOfFieldFocalLength((float) value),
                 value -> optionMessage("panoramica.photo_mode.dof_focal_length", Component.translatable("panoramica.photo_mode.millimeters", String.format(Locale.ROOT, "%.0f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
+        this.depthOfFieldFocalLengthSlider.setTooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.dof_focal_length.desc")));
         y += CONTROL_HEIGHT + CONTROL_GAP;
 
         this.depthOfFieldApertureSlider = this.addRenderableWidget(new PhotoModeSlider(
@@ -620,6 +621,7 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setDepthOfFieldAperture((float) value),
                 value -> optionMessage("panoramica.photo_mode.dof_aperture", Component.translatable("panoramica.photo_mode.aperture", String.format(Locale.ROOT, "%.1f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
+        this.depthOfFieldApertureSlider.setTooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.dof_aperture.desc")));
         y += CONTROL_HEIGHT + CONTROL_GAP;
 
         this.depthOfFieldFocusDistanceSlider = this.addRenderableWidget(new PhotoModeSlider(
@@ -636,6 +638,7 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setDepthOfFieldFocusDistance((float) value),
                 value -> optionMessage("panoramica.photo_mode.dof_focus_distance", Component.translatable("panoramica.photo_mode.blocks", String.format(Locale.ROOT, "%.2f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
+        this.depthOfFieldFocusDistanceSlider.setTooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.dof_focus_distance.desc")));
     }
 
     private void addEffectsControls(int y) {
@@ -646,7 +649,7 @@ public class PhotoModeScreen extends Screen {
             return;
         }
 
-        this.addRenderableWidget(new PhotoModeSlider(
+        PhotoModeSlider vignetteSlider = this.addRenderableWidget(new PhotoModeSlider(
                 x,
                 y,
                 width,
@@ -659,6 +662,7 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setVignette((float) value),
                 value -> optionMessage("panoramica.photo_mode.vignette", Component.translatable("panoramica.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
+        vignetteSlider.setTooltip(Tooltip.create(Component.translatable("panoramica.photo_mode.vignette.desc")));
         y += CONTROL_HEIGHT + CONTROL_GAP;
 
         y = this.addColorAdjustmentSlider(
@@ -666,6 +670,7 @@ public class PhotoModeScreen extends Screen {
                 y,
                 width,
                 "panoramica.photo_mode.saturation",
+                "panoramica.photo_mode.saturation.desc",
                 PhotoModeManager.SATURATION_MIN,
                 PhotoModeManager.SATURATION_MAX,
                 active.saturation(),
@@ -678,6 +683,7 @@ public class PhotoModeScreen extends Screen {
                 y,
                 width,
                 "panoramica.photo_mode.contrast",
+                "panoramica.photo_mode.contrast.desc",
                 PhotoModeManager.CONTRAST_MIN,
                 PhotoModeManager.CONTRAST_MAX,
                 active.contrast(),
@@ -690,6 +696,7 @@ public class PhotoModeScreen extends Screen {
                 y,
                 width,
                 "panoramica.photo_mode.overexposure",
+                "panoramica.photo_mode.overexposure.desc",
                 PhotoModeManager.OVEREXPOSURE_MIN,
                 PhotoModeManager.OVEREXPOSURE_MAX,
                 active.overexposure(),
@@ -708,13 +715,14 @@ public class PhotoModeScreen extends Screen {
             int y,
             int width,
             @NotNull String labelKey,
+            @NotNull String tooltipKey,
             float minValue,
             float maxValue,
             float currentValue,
             float defaultValue,
             @NotNull DoubleConsumer valueConsumer
     ) {
-        this.addRenderableWidget(new PhotoModeSlider(
+        PhotoModeSlider slider = this.addRenderableWidget(new PhotoModeSlider(
                 x,
                 y,
                 width,
@@ -728,6 +736,7 @@ public class PhotoModeScreen extends Screen {
                 valueConsumer,
                 value -> optionMessage(labelKey, signedPercentValue(value))
         ));
+        slider.setTooltip(Tooltip.create(Component.translatable(tooltipKey)));
         return y + CONTROL_HEIGHT + CONTROL_GAP;
     }
 
