@@ -15,7 +15,7 @@ public class MixinAvatarRenderer {
 
     @Inject(method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At("TAIL"))
     private void after_extractRenderState_Panoramica(Avatar entity, AvatarRenderState state, float partialTicks, CallbackInfo info) {
-        PhotoModeManager.applySelfPlayerRenderStateOverrides(entity, state);
+        PhotoModeManager.applySelfPlayerRenderStateOverrides(entity, state, partialTicks);
     }
 
     @Inject(method = "setupRotations(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;FF)V", at = @At("TAIL"))

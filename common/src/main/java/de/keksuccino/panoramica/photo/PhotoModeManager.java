@@ -472,7 +472,7 @@ public final class PhotoModeManager {
         return active != null && !active.hideSelfPlayer() && isSelfPlayerEntity(Minecraft.getInstance(), entity);
     }
 
-    public static void applySelfPlayerRenderStateOverrides(@NotNull Entity entity, @NotNull AvatarRenderState state) {
+    public static void applySelfPlayerRenderStateOverrides(@NotNull Entity entity, @NotNull AvatarRenderState state, float partialTicks) {
         Session active = session;
         if (active == null || !isSelfPlayerEntity(Minecraft.getInstance(), entity)) {
             return;
@@ -484,7 +484,7 @@ public final class PhotoModeManager {
             state.y += offset.y;
             state.z += offset.z;
             state.distanceToCameraSq = active.position().distanceToSqr(state.x, state.y, state.z);
-            state.lightCoords = lightCoordsAt(entity, state.x, state.y, state.z);
+            state.lightCoords = lightCoordsAt(entity, entity.getLightProbePosition(partialTicks).add(offset));
         }
     }
 
@@ -628,8 +628,8 @@ public final class PhotoModeManager {
         return Double.isFinite(value) ? Mth.clamp(value, minValue, maxValue) : 0.0D;
     }
 
-    private static int lightCoordsAt(@NotNull Entity entity, double x, double y, double z) {
-        BlockPos blockPos = BlockPos.containing(x, y, z);
+    private static int lightCoordsAt(@NotNull Entity entity, @NotNull Vec3 position) {
+        BlockPos blockPos = BlockPos.containing(position);
         int blockLight = entity.isOnFire() ? 15 : entity.level().getBrightness(LightLayer.BLOCK, blockPos);
         int skyLight = entity.level().getBrightness(LightLayer.SKY, blockPos);
         return LightCoordsUtil.pack(blockLight, skyLight);
