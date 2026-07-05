@@ -1595,8 +1595,8 @@ public class PhotoModeScreen extends Screen {
 
     private enum Tab {
         GENERAL(GENERAL_ICON, "panoramica.photo_mode.tab.general", 263),
-        PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
         LENS(LENS_ICON, "panoramica.photo_mode.tab.lens", 138),
+        PLAYER(PLAYER_ICON, "panoramica.photo_mode.tab.player", 263),
         ENVIRONMENT(GLOBE_ICON, "panoramica.photo_mode.tab.environment", 213);
 
         private final Identifier icon;
