@@ -5,24 +5,36 @@ import de.keksuccino.panoramica.menu.PanoramaMenuManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ScrollableLayout;
-import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.tabs.MenuTabBar;
+import net.minecraft.client.gui.components.tabs.Tab;
+import net.minecraft.client.gui.components.tabs.TabManager;
+import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
+import net.minecraft.client.gui.layouts.Layout;
+import net.minecraft.client.gui.layouts.LayoutElement;
+import net.minecraft.client.gui.layouts.LayoutSettings;
 import net.minecraft.client.gui.layouts.LinearLayout;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class OptionsScreen extends Screen {
 
@@ -32,6 +44,7 @@ public class OptionsScreen extends Screen {
     protected static final int KEYBIND_RESET_BUTTON_WIDTH = 50;
     protected static final int KEYBIND_GAP = 5;
     protected static final int OPTION_ROW_ADVANCE = 26;
+    protected static final Identifier TAB_HEADER_BACKGROUND = Identifier.withDefaultNamespace("textures/gui/tab_header_background.png");
     protected static final KeybindSetting PANORAMA_KEYBIND = new KeybindSetting(
             KeyMappings.KEY_TAKE_PANORAMA,
             "panoramica.options.keybind",
@@ -67,10 +80,15 @@ public class OptionsScreen extends Screen {
 
     @Nullable
     protected Screen parent;
+    private final HeaderAndFooterLayout layout = new HeaderAndFooterLayout(this);
+    private final TabManager tabManager = new TabManager(this::addRenderableWidget, this::removeWidget);
     @Nullable
     private Button cycleIntervalButton;
     @Nullable
+    private MenuTabBar tabNavigationBar;
+    @Nullable
     private KeyMapping waitingForKeybind;
+    private final List<Button> fullWidthOptionButtons = new ArrayList<>();
     private final List<KeybindControl> keybindControls = new ArrayList<>();
 
     public OptionsScreen(@Nullable Screen parent) {
@@ -81,55 +99,73 @@ public class OptionsScreen extends Screen {
     @Override
     protected void init() {
 
-        int centerX = this.width / 2;
-        int doneY = this.height >= 300 ? this.height - 40 : this.height - 24;
-        int optionsBottomY = doneY - 8;
-        int rowAdvance = OPTION_ROW_ADVANCE;
-        int topY = Math.max(28, Math.min(50, optionsBottomY - BUTTON_HEIGHT));
-
-        StringWidget titleWidget = this.addRenderableWidget(new StringWidget(this.getTitle(), this.font));
-        titleWidget.setX(centerX - (titleWidget.getWidth() / 2));
-        titleWidget.setY(Math.max(8, Math.min(20, topY - 24)));
-
-        LinearLayout optionsLayout = LinearLayout.vertical().spacing(rowAdvance - BUTTON_HEIGHT);
-        optionsLayout.defaultCellSetting().alignHorizontallyCenter();
-
+        this.layout.removeChildren();
+        this.fullWidthOptionButtons.clear();
         this.keybindControls.clear();
-        for (KeybindSetting setting : KEYBIND_SETTINGS) {
-            this.addKeybindRow(optionsLayout, setting);
-        }
-        this.updateKeybindButtons();
 
-        optionsLayout.addChild(this.buildResolutionButton());
-        optionsLayout.addChild(this.buildMenuModeButton());
+        OptionsTab generalTab = this.buildGeneralTab();
+        OptionsTab controlsTab = this.buildControlsTab();
+        this.tabNavigationBar = MenuTabBar.builder(this.tabManager, this.width)
+                .addTabs(generalTab, controlsTab)
+                .build();
+        this.addRenderableWidget(this.tabNavigationBar);
 
-        this.cycleIntervalButton = this.buildCycleIntervalButton();
-        optionsLayout.addChild(this.cycleIntervalButton);
+        this.layout.addToFooter(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose()).width(150).build());
+        this.layout.visitWidgets(widget -> {
+            widget.setTabOrderGroup(1);
+            this.addRenderableWidget(widget);
+        });
+
+        this.updateOptionButtonWidths();
         this.updateCycleIntervalButton();
-        optionsLayout.addChild(this.buildMenuParallaxButton());
-
-        optionsLayout.addChild(this.buildStorageLocationButton());
-        optionsLayout.addChild(this.buildHideHudInNormalScreenshotsButton());
-        optionsLayout.addChild(this.buildPreviewModeButton());
-        optionsLayout.addChild(this.buildScreenshotChatMessagesButton());
-        optionsLayout.addChild(this.buildScreenshotButtonsVisibilityButton(), settings -> settings.paddingTop(rowAdvance));
-
-        ScrollableLayout scrollableLayout = new ScrollableLayout(this.minecraft, optionsLayout, Math.max(BUTTON_HEIGHT, optionsBottomY - topY), ScrollableLayout.ReserveStrategy.BOTH);
-        scrollableLayout.setMinWidth(this.getButtonWidth());
-        scrollableLayout.setScrollbarSpacing(2);
-        scrollableLayout.arrangeElements();
-        scrollableLayout.setPosition((this.width - scrollableLayout.getWidth()) / 2, topY);
-        scrollableLayout.visitWidgets(this::addRenderableWidget);
-
-        this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose()).bounds(centerX - 75, doneY, 150, BUTTON_HEIGHT).build());
+        this.updateKeybindButtons();
+        this.tabNavigationBar.selectTab(0, false);
+        this.repositionElements();
 
     }
 
-    protected void addKeybindRow(@NotNull LinearLayout optionsLayout, @NotNull KeybindSetting setting) {
+    @NotNull
+    protected OptionsTab buildGeneralTab() {
+        OptionsTab tab = new OptionsTab(Component.translatable("panoramica.options.tab.general"));
+        this.addFullWidthOption(tab, this.buildResolutionButton());
+        this.addFullWidthOption(tab, this.buildMenuModeButton());
+
+        this.cycleIntervalButton = this.buildCycleIntervalButton();
+        this.addFullWidthOption(tab, this.cycleIntervalButton);
+        this.addFullWidthOption(tab, this.buildMenuParallaxButton());
+
+        this.addFullWidthOption(tab, this.buildStorageLocationButton());
+        this.addFullWidthOption(tab, this.buildHideHudInNormalScreenshotsButton());
+        this.addFullWidthOption(tab, this.buildPreviewModeButton());
+        this.addFullWidthOption(tab, this.buildScreenshotChatMessagesButton());
+        this.addFullWidthOption(tab, this.buildScreenshotButtonsVisibilityButton(), settings -> settings.paddingTop(OPTION_ROW_ADVANCE));
+        return tab;
+    }
+
+    @NotNull
+    protected OptionsTab buildControlsTab() {
+        OptionsTab tab = new OptionsTab(Component.translatable("panoramica.options.tab.controls"));
+        for (KeybindSetting setting : KEYBIND_SETTINGS) {
+            this.addKeybindRow(tab, setting);
+        }
+        return tab;
+    }
+
+    protected void addFullWidthOption(@NotNull OptionsTab tab, @NotNull Button button) {
+        this.fullWidthOptionButtons.add(button);
+        tab.addChild(button);
+    }
+
+    protected void addFullWidthOption(@NotNull OptionsTab tab, @NotNull Button button, @NotNull Consumer<LayoutSettings> settings) {
+        this.fullWidthOptionButtons.add(button);
+        tab.addChild(button, settings);
+    }
+
+    protected void addKeybindRow(@NotNull OptionsTab tab, @NotNull KeybindSetting setting) {
         Button keybindButton = this.buildKeybindButton(setting);
         Button keybindResetButton = this.buildKeybindResetButton(setting);
         this.keybindControls.add(new KeybindControl(setting, keybindButton, keybindResetButton));
-        optionsLayout.addChild(this.buildKeybindRowLayout(keybindButton, keybindResetButton));
+        tab.addChild(this.buildKeybindRowLayout(keybindButton, keybindResetButton));
     }
 
     @NotNull
@@ -264,6 +300,17 @@ public class OptionsScreen extends Screen {
             control.keybindButton().setMessage(this.keybindMessage(control.setting()));
             control.keybindButton().setTooltip(this.keybindTooltip(control.setting()));
             control.resetButton().active = !keyMapping.isDefault();
+        }
+    }
+
+    protected void updateOptionButtonWidths() {
+        int rowWidth = this.getButtonWidth();
+        for (Button button : this.fullWidthOptionButtons) {
+            button.setWidth(rowWidth);
+        }
+        for (KeybindControl control : this.keybindControls) {
+            control.keybindButton().setWidth(rowWidth - KEYBIND_RESET_BUTTON_WIDTH - KEYBIND_GAP);
+            control.resetButton().setWidth(KEYBIND_RESET_BUTTON_WIDTH);
         }
     }
 
@@ -464,7 +511,36 @@ public class OptionsScreen extends Screen {
             this.afterKeybindChanged();
             return true;
         }
+        if (this.tabNavigationBar != null && this.tabNavigationBar.keyPressed(event)) {
+            return true;
+        }
         return super.keyPressed(event);
+    }
+
+    @Override
+    protected void repositionElements() {
+        if (this.tabNavigationBar == null) {
+            return;
+        }
+
+        this.tabNavigationBar.arrangeElements(this.width);
+        int tabAreaTop = this.tabNavigationBar.getRectangle().bottom();
+        ScreenRectangle tabArea = new ScreenRectangle(0, tabAreaTop, this.width, Math.max(0, this.height - this.layout.getFooterHeight() - tabAreaTop));
+        this.tabManager.setTabArea(tabArea);
+        this.layout.setHeaderHeight(tabAreaTop);
+        this.layout.arrangeElements();
+    }
+
+    @Override
+    public void extractRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        super.extractRenderState(graphics, mouseX, mouseY, a);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, Screen.FOOTER_SEPARATOR, 0, this.height - this.layout.getFooterHeight(), 0.0F, 0.0F, this.width, 2, 32, 2);
+    }
+
+    @Override
+    protected void extractMenuBackground(@NotNull GuiGraphicsExtractor graphics) {
+        graphics.blit(RenderPipelines.GUI_TEXTURED, TAB_HEADER_BACKGROUND, 0, 0, 0.0F, 0.0F, this.width, this.layout.getHeaderHeight(), 16, 16);
+        this.extractMenuBackground(graphics, 0, this.layout.getHeaderHeight(), this.width, this.height);
     }
 
     @Override
@@ -476,6 +552,62 @@ public class OptionsScreen extends Screen {
     }
 
     private record KeybindControl(@NotNull KeybindSetting setting, @NotNull Button keybindButton, @NotNull Button resetButton) {
+    }
+
+    protected class OptionsTab implements Tab {
+
+        private final Component title;
+        private final LinearLayout optionsLayout;
+        private final ScrollableLayout scrollableLayout;
+
+        protected OptionsTab(@NotNull Component title) {
+            this.title = title;
+            this.optionsLayout = LinearLayout.vertical().spacing(OPTION_ROW_ADVANCE - BUTTON_HEIGHT);
+            this.optionsLayout.defaultCellSetting().alignHorizontallyCenter();
+            this.scrollableLayout = new ScrollableLayout(OptionsScreen.this.minecraft, this.optionsLayout, BUTTON_HEIGHT, ScrollableLayout.ReserveStrategy.BOTH);
+            this.scrollableLayout.setScrollbarSpacing(2);
+        }
+
+        protected void addChild(@NotNull LayoutElement child) {
+            this.optionsLayout.addChild(child);
+        }
+
+        protected void addChild(@NotNull LayoutElement child, @NotNull Consumer<LayoutSettings> settings) {
+            this.optionsLayout.addChild(child, settings);
+        }
+
+        @Override
+        public Component getTabTitle() {
+            return this.title;
+        }
+
+        @Override
+        public Component getTabExtraNarration() {
+            return Component.empty();
+        }
+
+        @Override
+        public void visitChildren(@NotNull Consumer<AbstractWidget> childrenConsumer) {
+            // ScrollableLayout caches its content widgets, so refresh before TabManager registers it.
+            this.scrollableLayout.arrangeElements();
+            this.scrollableLayout.visitWidgets(childrenConsumer);
+        }
+
+        @Override
+        public void doLayout(@NotNull ScreenRectangle screenRectangle) {
+            OptionsScreen.this.updateOptionButtonWidths();
+            int topY = Math.max(screenRectangle.top() + 4, Math.min(50, screenRectangle.bottom() - BUTTON_HEIGHT));
+            this.scrollableLayout.setMinWidth(OptionsScreen.this.getButtonWidth());
+            this.scrollableLayout.setMaxHeight(Math.max(BUTTON_HEIGHT, screenRectangle.bottom() - topY));
+            this.scrollableLayout.arrangeElements();
+            this.scrollableLayout.setPosition((OptionsScreen.this.width - this.scrollableLayout.getWidth()) / 2, topY);
+        }
+
+        @Override
+        public Layout getLayout() {
+            return this.scrollableLayout;
+        }
+
     }
 
 }

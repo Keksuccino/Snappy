@@ -6,6 +6,8 @@
   "panoramica.keybinds.keybind.photo_mode_hide_ui": "Hide Photo Mode UI",
   "panoramica.keybinds.keybind.photo_mode_slow_camera": "Slow Photo Mode Camera",
   "panoramica.options": "Panoramica Options",
+  "panoramica.options.tab.general": "General",
+  "panoramica.options.tab.controls": "Controls",
   "panoramica.options.keybind": "Panorama Screenshot Key: %s",
   "panoramica.options.keybind.desc": "The key or mouse button used to take a panorama screenshot.",
   "panoramica.options.photo_mode_keybind": "Photo Mode Key: %s",
