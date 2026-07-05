@@ -122,6 +122,7 @@ public class PhotoModeScreen extends Screen {
     private int poseMakerPanelWidth;
     private int poseMakerPanelHeight;
     private int poseMakerColumns;
+    private boolean poseMakerSpaceDown;
     private int poseMakerSpacePresses;
     private long poseMakerFirstSpacePressMillis;
     private String poseMakerNameKey = DEFAULT_POSE_MAKER_NAME_KEY;
@@ -296,6 +297,7 @@ public class PhotoModeScreen extends Screen {
 
     @Override
     public boolean keyPressed(@NotNull KeyEvent event) {
+        boolean poseMakerSpacePress = this.markPoseMakerSpaceDown(event);
         if (this.isPoseMakerNameKeyBoxFocused()) {
             if (event.isEscape()) {
                 this.clearFocus();
@@ -309,7 +311,7 @@ public class PhotoModeScreen extends Screen {
         if (configuredCameraControlKey) {
             PhotoModeManager.setConfiguredCameraControlKeyState(event, true);
         }
-        if (event.key() == GLFW.GLFW_KEY_SPACE && this.registerPoseMakerSpacePress()) {
+        if (poseMakerSpacePress && this.registerPoseMakerSpacePress()) {
             this.togglePoseMaker();
             return true;
         }
@@ -345,6 +347,9 @@ public class PhotoModeScreen extends Screen {
 
     @Override
     public boolean keyReleased(@NotNull KeyEvent event) {
+        if (event.key() == GLFW.GLFW_KEY_SPACE) {
+            this.poseMakerSpaceDown = false;
+        }
         if (this.isConfiguredCameraControlKey(event)) {
             PhotoModeManager.setConfiguredCameraControlKeyState(event, false);
         }
@@ -1444,6 +1449,17 @@ public class PhotoModeScreen extends Screen {
 
     private boolean isPoseMakerNameKeyBoxFocused() {
         return this.poseMakerNameKeyBox != null && this.poseMakerNameKeyBox.isFocused();
+    }
+
+    private boolean markPoseMakerSpaceDown(@NotNull KeyEvent event) {
+        if (event.key() != GLFW.GLFW_KEY_SPACE) {
+            return false;
+        }
+        if (this.poseMakerSpaceDown) {
+            return false;
+        }
+        this.poseMakerSpaceDown = true;
+        return true;
     }
 
     @Nullable
