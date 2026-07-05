@@ -10,7 +10,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(PlayerModel.class)
+// Run after default-priority animation mixins so photo poses stay authoritative. This fixes a conflict with "Not Enough Animations".
+@Mixin(value = PlayerModel.class, priority = 1100)
 public abstract class MixinPlayerModel extends HumanoidModel<AvatarRenderState> {
 
     @SuppressWarnings("unused")
