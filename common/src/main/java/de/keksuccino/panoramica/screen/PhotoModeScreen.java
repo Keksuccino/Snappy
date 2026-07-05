@@ -41,7 +41,7 @@ import java.util.function.Supplier;
 
 public class PhotoModeScreen extends Screen {
 
-    private static final Identifier GENERAL_ICON = PanoramicaButtons.SCREENSHOT_BROWSER_ICON;
+    private static final Identifier GENERAL_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/general_camera_icon_15x15.png");
     private static final Identifier PLAYER_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/player_head_icon_15x15.png");
     private static final Identifier LENS_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/lens_icon_15x15.png");
     private static final Identifier EFFECTS_ICON = Identifier.fromNamespaceAndPath(Panoramica.MOD_ID, "textures/effects_icon_15x15.png");
