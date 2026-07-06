@@ -2,24 +2,45 @@ package de.keksuccino.snappy.photo;
 
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Objects;
 
 public record PhotoPose(
         @NotNull String nameKey,
         @NotNull PartRotation modelRotation,
+        double modelYOffset,
         @NotNull Map<BodyPart, PartRotation> rotations
 ) {
 
+    public static final double MODEL_Y_OFFSET_MIN = -5.0D;
+    public static final double MODEL_Y_OFFSET_MAX = 5.0D;
+
     public PhotoPose(@NotNull String nameKey, @NotNull Map<BodyPart, PartRotation> rotations) {
-        this(nameKey, PartRotation.ZERO, rotations);
+        this(nameKey, PartRotation.ZERO, 0.0D, rotations);
+    }
+
+    public PhotoPose(@NotNull String nameKey, @NotNull PartRotation modelRotation, @NotNull Map<BodyPart, PartRotation> rotations) {
+        this(nameKey, modelRotation, 0.0D, rotations);
+    }
+
+    public PhotoPose {
+        nameKey = Objects.requireNonNull(nameKey, "nameKey");
+        modelRotation = Objects.requireNonNull(modelRotation, "modelRotation");
+        modelYOffset = clampModelYOffset(modelYOffset);
+        rotations = Map.copyOf(Objects.requireNonNull(rotations, "rotations"));
     }
 
     @NotNull
     public Map<BodyPart, PartRotation> rotations() {
         return this.rotations;
+    }
+
+    public static double clampModelYOffset(double value) {
+        return Double.isFinite(value) ? Mth.clamp(value, MODEL_Y_OFFSET_MIN, MODEL_Y_OFFSET_MAX) : 0.0D;
     }
 
     public void apply(@NotNull PlayerParts parts) {

@@ -116,6 +116,8 @@ public class PhotoModeScreen extends Screen {
     private static final double POSE_MAKER_ROTATION_MAX = 180.0D;
     private static final double POSE_MAKER_ROTATION_SNAP_RADIUS = 5.0D;
     private static final double POSE_MAKER_ROTATION_STEP = 1.0D;
+    private static final double POSE_MAKER_MODEL_Y_OFFSET_SNAP_RADIUS = 0.08D;
+    private static final double POSE_MAKER_MODEL_Y_OFFSET_STEP = 0.01D;
     private static final long POSE_MAKER_SPACE_SEQUENCE_MILLIS = 900L;
     private static final String DEFAULT_POSE_MAKER_NAME_KEY = "snappy.photo_mode.pose.custom";
 
@@ -138,6 +140,7 @@ public class PhotoModeScreen extends Screen {
     private long poseMakerFirstSpacePressMillis;
     private String poseMakerNameKey = DEFAULT_POSE_MAKER_NAME_KEY;
     private final PoseMakerRotation poseMakerModelRotation = new PoseMakerRotation();
+    private double poseMakerModelYOffset;
     private final Map<PhotoPose.BodyPart, PoseMakerRotation> poseMakerPartRotations = new EnumMap<>(PhotoPose.BodyPart.class);
     @Nullable
     private LinearLayout tabControlLayout;
@@ -1043,6 +1046,7 @@ public class PhotoModeScreen extends Screen {
                     axis
             );
         }
+        index = this.addPoseMakerModelYOffsetSlider(index, sliderY, columnWidth);
         for (PhotoPose.BodyPart part : PhotoPose.BodyPart.values()) {
             PoseMakerRotation rotation = this.poseMakerPartRotations.get(part);
             if (rotation == null) {
@@ -1106,6 +1110,32 @@ public class PhotoModeScreen extends Screen {
                         this.degreeValue(value)
                 )
         ));
+        return index + 1;
+    }
+
+    private int addPoseMakerModelYOffsetSlider(int index, int sliderStartY, int columnWidth) {
+        int column = index % this.poseMakerColumns;
+        int row = index / this.poseMakerColumns;
+        int x = this.poseMakerPanelX + PANEL_PADDING + column * (columnWidth + POSE_MAKER_COLUMN_GAP);
+        int y = sliderStartY + row * (CONTROL_HEIGHT + CONTROL_GAP);
+        PhotoModeSlider slider = this.addRenderableWidget(new PhotoModeSlider(
+                x,
+                y,
+                columnWidth,
+                CONTROL_HEIGHT,
+                PhotoPose.MODEL_Y_OFFSET_MIN,
+                PhotoPose.MODEL_Y_OFFSET_MAX,
+                this.poseMakerModelYOffset,
+                0.0D,
+                POSE_MAKER_MODEL_Y_OFFSET_SNAP_RADIUS,
+                POSE_MAKER_MODEL_Y_OFFSET_STEP,
+                value -> {
+                    this.setPoseMakerModelYOffset(value);
+                    this.syncPoseMakerPreview();
+                },
+                value -> optionMessage("snappy.photo_mode.pose_maker.model_y_offset", this.poseMakerOffsetValue(value))
+        ));
+        slider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.pose_maker.model_y_offset.desc")));
         return index + 1;
     }
 
@@ -1360,7 +1390,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     private int poseMakerSliderCount() {
-        return (PhotoPose.BodyPart.values().length + 1) * PoseMakerAxis.values().length;
+        return (PhotoPose.BodyPart.values().length + 1) * PoseMakerAxis.values().length + 1;
     }
 
     private int poseMakerControlWidth() {
@@ -1570,6 +1600,7 @@ public class PhotoModeScreen extends Screen {
 
     private void resetPoseMakerSliders() {
         this.poseMakerModelRotation.reset();
+        this.poseMakerModelYOffset = 0.0D;
         for (PoseMakerRotation rotation : this.poseMakerPartRotations.values()) {
             rotation.reset();
         }
@@ -1593,6 +1624,7 @@ public class PhotoModeScreen extends Screen {
     private void applyPoseToPoseMaker(@NotNull PhotoPose pose) {
         this.poseMakerNameKey = pose.nameKey();
         this.poseMakerModelRotation.set(pose.modelRotation());
+        this.setPoseMakerModelYOffset(pose.modelYOffset());
         for (PhotoPose.BodyPart part : PhotoPose.BodyPart.values()) {
             PoseMakerRotation rotation = this.poseMakerPartRotations.get(part);
             if (rotation != null) {
@@ -1617,8 +1649,13 @@ public class PhotoModeScreen extends Screen {
         return new PhotoPose(
                 this.poseMakerNameKey(),
                 this.poseMakerModelRotation.toPartRotation(),
+                this.poseMakerModelYOffset,
                 Map.copyOf(rotations)
         );
+    }
+
+    private void setPoseMakerModelYOffset(double value) {
+        this.poseMakerModelYOffset = PhotoPose.clampModelYOffset(value);
     }
 
     @NotNull
@@ -1730,6 +1767,12 @@ public class PhotoModeScreen extends Screen {
     @NotNull
     private Component blockValue(double value) {
         return Component.translatable("snappy.photo_mode.blocks", String.format(Locale.ROOT, "%.2f", value))
+                .withStyle(Style.EMPTY.withColor(VALUE_COLOR));
+    }
+
+    @NotNull
+    private Component poseMakerOffsetValue(double value) {
+        return Component.literal(String.format(Locale.ROOT, "%+.2f", value))
                 .withStyle(Style.EMPTY.withColor(VALUE_COLOR));
     }
 

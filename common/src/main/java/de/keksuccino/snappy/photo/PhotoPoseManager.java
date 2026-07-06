@@ -26,8 +26,10 @@ public final class PhotoPoseManager {
     private static final String POSE_DIRECTORY = "photo_poses";
     private static final String NAME_KEY = "name";
     private static final String MODEL_KEY = "model";
+    private static final String MODEL_Y_OFFSET_KEY = "y_offset";
     private static final String PARTS_KEY = "parts";
     private static final float JSON_ROTATION_EPSILON = 1.0E-4F;
+    private static final double JSON_OFFSET_EPSILON = 1.0E-4D;
 
     private static List<PoseEntry> poses = List.of();
     private static boolean loaded;
@@ -125,7 +127,9 @@ public final class PhotoPoseManager {
     @NotNull
     private static PhotoPose parse(@NotNull JsonObject root) {
         String nameKey = GsonHelper.getAsString(root, NAME_KEY);
-        PhotoPose.PartRotation modelRotation = parseRotation(GsonHelper.getAsJsonObject(root, MODEL_KEY, new JsonObject()));
+        JsonObject model = GsonHelper.getAsJsonObject(root, MODEL_KEY, new JsonObject());
+        PhotoPose.PartRotation modelRotation = parseRotation(model);
+        double modelYOffset = GsonHelper.getAsDouble(model, MODEL_Y_OFFSET_KEY, 0.0D);
         JsonObject parts = GsonHelper.getAsJsonObject(root, PARTS_KEY, new JsonObject());
         Map<PhotoPose.BodyPart, PhotoPose.PartRotation> rotations = PhotoPose.emptyRotationMap();
         for (Map.Entry<String, JsonElement> entry : parts.entrySet()) {
@@ -134,7 +138,7 @@ public final class PhotoPoseManager {
             }
             rotations.put(PhotoPose.BodyPart.fromJsonName(entry.getKey()), parseRotation(entry.getValue().getAsJsonObject()));
         }
-        return new PhotoPose(nameKey, modelRotation, Map.copyOf(rotations));
+        return new PhotoPose(nameKey, modelRotation, modelYOffset, Map.copyOf(rotations));
     }
 
     @NotNull
@@ -155,7 +159,7 @@ public final class PhotoPoseManager {
     private static JsonObject toJson(@NotNull PhotoPose pose) {
         JsonObject root = new JsonObject();
         root.addProperty(NAME_KEY, pose.nameKey());
-        addRotation(root, MODEL_KEY, pose.modelRotation());
+        addModel(root, pose);
 
         JsonObject parts = new JsonObject();
         for (PhotoPose.BodyPart part : PhotoPose.BodyPart.values()) {
@@ -168,16 +172,29 @@ public final class PhotoPoseManager {
         return root;
     }
 
+    private static void addModel(@NotNull JsonObject root, @NotNull PhotoPose pose) {
+        JsonObject model = new JsonObject();
+        addRotationAxes(model, pose.modelRotation());
+        addOffsetAxis(model, MODEL_Y_OFFSET_KEY, pose.modelYOffset());
+        if (!model.entrySet().isEmpty()) {
+            root.add(MODEL_KEY, model);
+        }
+    }
+
     private static void addRotation(@NotNull JsonObject parent, @NotNull String key, @NotNull PhotoPose.PartRotation rotation) {
         if (rotation.isZero()) {
             return;
         }
 
         JsonObject object = new JsonObject();
+        addRotationAxes(object, rotation);
+        parent.add(key, object);
+    }
+
+    private static void addRotationAxes(@NotNull JsonObject object, @NotNull PhotoPose.PartRotation rotation) {
         addAxis(object, "x", rotation.xDegrees());
         addAxis(object, "y", rotation.yDegrees());
         addAxis(object, "z", rotation.zDegrees());
-        parent.add(key, object);
     }
 
     private static void addAxis(@NotNull JsonObject object, @NotNull String key, float value) {
@@ -186,8 +203,18 @@ public final class PhotoPoseManager {
         }
     }
 
+    private static void addOffsetAxis(@NotNull JsonObject object, @NotNull String key, double value) {
+        if (Math.abs(value) > JSON_OFFSET_EPSILON) {
+            object.addProperty(key, roundJsonBlocks(value));
+        }
+    }
+
     private static float roundJsonDegrees(float value) {
         return Math.round(value * 1000.0F) / 1000.0F;
+    }
+
+    private static double roundJsonBlocks(double value) {
+        return Math.round(value * 1000.0D) / 1000.0D;
     }
 
     public record PoseEntry(@NotNull Identifier id, @NotNull PhotoPose pose) {

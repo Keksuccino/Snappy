@@ -548,6 +548,10 @@ public final class PhotoModeManager {
         applySelfPlayerHeldItemsMode(active, state);
 
         Vec3 offset = active.selfPlayerPositionOffset();
+        double poseYOffset = active.activePoseYOffset();
+        if (Math.abs(poseYOffset) > SELF_PLAYER_TRANSFORM_EPSILON) {
+            offset = offset.add(0.0D, poseYOffset, 0.0D);
+        }
         if (hasSelfPlayerTransform(offset)) {
             state.x += offset.x;
             state.y += offset.y;
@@ -1553,6 +1557,11 @@ public final class PhotoModeManager {
         private PhotoPose.PartRotation activePoseRotation() {
             PhotoPose pose = this.activePose();
             return pose == null ? PhotoPose.PartRotation.ZERO : pose.modelRotation();
+        }
+
+        private double activePoseYOffset() {
+            PhotoPose pose = this.activePose();
+            return pose == null ? 0.0D : pose.modelYOffset();
         }
 
     }
