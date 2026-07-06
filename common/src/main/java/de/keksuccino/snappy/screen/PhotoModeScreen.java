@@ -302,6 +302,10 @@ public class PhotoModeScreen extends Screen {
 
     @Override
     public boolean keyPressed(@NotNull KeyEvent event) {
+        if (this.handleConfirmationKeyPressed(event)) {
+            return true;
+        }
+
         boolean poseMakerSpacePress = this.markPoseMakerSpaceDown(event);
         if (this.isPoseMakerNameKeyBoxFocused()) {
             if (event.isEscape()) {
@@ -1126,26 +1130,56 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void addConfirmationWidgets() {
+        Confirmation pending = this.confirmation;
+        if (pending == null) {
+            return;
+        }
         int buttonWidth = (this.controlWidth() - CONTROL_GAP) / 2;
         int y = this.panelY + this.panelHeight - PANEL_PADDING - CONTROL_HEIGHT;
         int x = this.panelX + PANEL_PADDING;
-        this.addRenderableWidget(Button.builder(this.confirmation.confirmMessage(), button -> {
-            Confirmation pending = this.confirmation;
-            this.confirmation = null;
-            if (pending == Confirmation.RESET) {
-                PhotoModeManager.resetToDefaults(Minecraft.getInstance());
-                this.rebuildPhotoWidgets();
-            } else if (pending == Confirmation.HIDE_GUI) {
-                this.setPhotoModeUiHidden(true);
-            } else {
-                PhotoModeManager.close();
-                Minecraft.getInstance().gui.setScreen(null);
-            }
-        }).bounds(x, y, buttonWidth, CONTROL_HEIGHT).build());
-        this.addRenderableWidget(Button.builder(CommonComponents.GUI_CANCEL, button -> {
-            this.confirmation = null;
+        this.addRenderableWidget(Button.builder(pending.confirmMessage(), button -> this.confirmConfirmation())
+                .bounds(x, y, buttonWidth, CONTROL_HEIGHT)
+                .build());
+        this.addRenderableWidget(Button.builder(CommonComponents.GUI_CANCEL, button -> this.cancelConfirmation())
+                .bounds(x + buttonWidth + CONTROL_GAP, y, this.controlWidth() - buttonWidth - CONTROL_GAP, CONTROL_HEIGHT)
+                .build());
+    }
+
+    private boolean handleConfirmationKeyPressed(@NotNull KeyEvent event) {
+        if (this.confirmation == null) {
+            return false;
+        }
+        if (event.isEscape()) {
+            this.cancelConfirmation();
+            return true;
+        }
+        if (event.isConfirmation()) {
+            this.confirmConfirmation();
+            return true;
+        }
+        return false;
+    }
+
+    private void confirmConfirmation() {
+        Confirmation pending = this.confirmation;
+        if (pending == null) {
+            return;
+        }
+        this.confirmation = null;
+        if (pending == Confirmation.RESET) {
+            PhotoModeManager.resetToDefaults(Minecraft.getInstance());
             this.rebuildPhotoWidgets();
-        }).bounds(x + buttonWidth + CONTROL_GAP, y, this.controlWidth() - buttonWidth - CONTROL_GAP, CONTROL_HEIGHT).build());
+        } else if (pending == Confirmation.HIDE_GUI) {
+            this.setPhotoModeUiHidden(true);
+        } else {
+            PhotoModeManager.close();
+            Minecraft.getInstance().gui.setScreen(null);
+        }
+    }
+
+    private void cancelConfirmation() {
+        this.confirmation = null;
+        this.rebuildPhotoWidgets();
     }
 
     private void updateButtonMessages() {
