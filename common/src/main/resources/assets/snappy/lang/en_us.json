@@ -230,7 +230,7 @@
   "snappy.photo_mode.pose_maker.name_key": "Display Name Key",
   "snappy.photo_mode.pose_maker.name_key_hint": "snappy.photo_mode.pose.my_pose",
   "snappy.photo_mode.pose_maker.rotation": "%s %s: %s",
-  "snappy.photo_mode.pose_maker.model_y_offset": "Model Y: %s",
+  "snappy.photo_mode.pose_maker.model_y_offset": "Vertical Offset: %s",
   "snappy.photo_mode.pose_maker.model_y_offset.desc": "Moves the whole posed player model up or down in blocks.",
   "snappy.photo_mode.pose_maker.part.model": "Model",
   "snappy.photo_mode.pose_maker.part.head": "Head",

@@ -1,7 +1,8 @@
 {
   "name": "snappy.photo_mode.pose.sit",
   "model": {
-    "x": 43.0
+    "x": 43.0,
+    "y_offset": -0.6
   },
   "parts": {
     "head": {

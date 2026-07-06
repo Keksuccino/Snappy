@@ -1,7 +1,8 @@
 {
   "name": "snappy.photo_mode.pose.chill",
   "model": {
-    "x": 86.0
+    "x": 86.0,
+    "y_offset": -0.8
   },
   "parts": {
     "head": {
