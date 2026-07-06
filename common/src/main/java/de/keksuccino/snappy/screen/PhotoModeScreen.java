@@ -17,9 +17,13 @@ import de.keksuccino.snappy.util.rendering.RenderingUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractScrollArea;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.ScrollableLayout;
 import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.layouts.LinearLayout;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -54,6 +58,11 @@ public class PhotoModeScreen extends Screen {
     private static final int CONTROL_HEIGHT = 20;
     private static final int CONTROL_GAP = 5;
     private static final int TAB_GAP = 4;
+    private static final int TAB_SCROLLBAR_SPACING = 2;
+    private static final int TAB_SCROLLBAR_RESERVE = AbstractScrollArea.SCROLLBAR_WIDTH + TAB_SCROLLBAR_SPACING;
+    private static final int TAB_BODY_TOP_OFFSET = PANEL_PADDING + TexturedIconButton.DEFAULT_BUTTON_SIZE + CONTROL_GAP + 2;
+    private static final int MIN_TAB_BODY_HEIGHT = CONTROL_HEIGHT;
+    private static final int MIN_TAB_PANEL_HEIGHT = TAB_BODY_TOP_OFFSET + MIN_TAB_BODY_HEIGHT + PANEL_PADDING;
     private static final int SCREEN_MARGIN = 12;
     private static final int ACTION_GAP = 4;
     private static final int ACTION_ROW_GAP = 5;
@@ -130,6 +139,8 @@ public class PhotoModeScreen extends Screen {
     private String poseMakerNameKey = DEFAULT_POSE_MAKER_NAME_KEY;
     private final PoseMakerRotation poseMakerModelRotation = new PoseMakerRotation();
     private final Map<PhotoPose.BodyPart, PoseMakerRotation> poseMakerPartRotations = new EnumMap<>(PhotoPose.BodyPart.class);
+    @Nullable
+    private LinearLayout tabControlLayout;
     @Nullable
     private Button pauseButton;
     @Nullable
@@ -414,18 +425,20 @@ public class PhotoModeScreen extends Screen {
             x += TexturedIconButton.DEFAULT_BUTTON_SIZE + TAB_GAP;
         }
 
-        y += TexturedIconButton.DEFAULT_BUTTON_SIZE + CONTROL_GAP + 2;
+        this.tabControlLayout = LinearLayout.vertical().spacing(CONTROL_GAP);
         switch (this.selectedTab) {
-            case GENERAL -> this.addGeneralControls(y);
-            case PLAYER -> this.addPlayerControls(y);
-            case LENS -> this.addLensControls(y);
-            case ENVIRONMENT -> this.addEnvironmentControls(y);
+            case GENERAL -> this.addGeneralControls();
+            case PLAYER -> this.addPlayerControls();
+            case LENS -> this.addLensControls();
+            case ENVIRONMENT -> this.addEnvironmentControls();
         }
+        this.addTabControlScrollArea();
         this.addActionButtons();
         this.updateButtonMessages();
     }
 
     private void clearControlReferences() {
+        this.tabControlLayout = null;
         this.pauseButton = null;
         this.gridButton = null;
         this.hideSelfButton = null;
@@ -448,17 +461,48 @@ public class PhotoModeScreen extends Screen {
         this.poseMakerNameKeyBox = null;
     }
 
-    private void addGeneralControls(int y) {
-        int x = this.panelX + PANEL_PADDING;
-        int width = this.controlWidth();
+    private void addTabControlScrollArea() {
+        LinearLayout controls = this.tabControlLayout;
+        if (controls == null) {
+            return;
+        }
+
+        int bodyHeight = this.tabBodyHeight();
+        ScrollableLayout scrollableLayout = new ScrollableLayout(
+                this.minecraft,
+                controls,
+                bodyHeight,
+                ScrollableLayout.ReserveStrategy.RIGHT
+        );
+        scrollableLayout.setScrollbarSpacing(TAB_SCROLLBAR_SPACING);
+        scrollableLayout.setMinWidth(this.tabControlWidth());
+        scrollableLayout.arrangeElements();
+        scrollableLayout.setMaxHeight(bodyHeight);
+        scrollableLayout.arrangeElements();
+        scrollableLayout.setPosition(this.panelX + PANEL_PADDING, this.tabBodyY());
+        scrollableLayout.visitWidgets(this::addRenderableWidget);
+    }
+
+    @NotNull
+    private <T extends AbstractWidget> T addTabControl(@NotNull T widget) {
+        LinearLayout controls = this.tabControlLayout;
+        if (controls == null) {
+            throw new IllegalStateException("Tab controls can only be added while rebuilding the photo mode tab body.");
+        }
+        controls.addChild(widget);
+        return widget;
+    }
+
+    private void addGeneralControls() {
+        int width = this.tabControlWidth();
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active == null) {
             return;
         }
 
-        this.addRenderableWidget(new PhotoModeSlider(
-                x,
-                y,
+        this.addTabControl(new PhotoModeSlider(
+                0,
+                0,
                 width,
                 CONTROL_HEIGHT,
                 30.0D,
@@ -469,11 +513,10 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setFieldOfView((float) value),
                 value -> optionMessage("snappy.photo_mode.fov", Component.literal(String.format(Locale.ROOT, "%.0f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
-        this.addRenderableWidget(new PhotoModeSlider(
-                x,
-                y,
+        this.addTabControl(new PhotoModeSlider(
+                0,
+                0,
                 width,
                 CONTROL_HEIGHT,
                 -180.0D,
@@ -484,45 +527,38 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setRoll((float) value),
                 value -> optionMessage("snappy.photo_mode.roll", Component.translatable("snappy.photo_mode.degrees", String.format(Locale.ROOT, "%.0f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
-        y = this.addColorEffectControls(x, y, width, active);
+        this.addColorEffectControls(width, active);
 
-        this.gridButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.gridButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             active.setGridEnabled(!active.gridEnabled());
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.grid.desc"))).build());
+        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.grid.desc"))).build());
     }
 
-    private void addPlayerControls(int y) {
-        int x = this.panelX + PANEL_PADDING;
-        int width = this.controlWidth();
+    private void addPlayerControls() {
+        int width = this.tabControlWidth();
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active == null) {
             return;
         }
 
-        this.hideSelfButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.hideSelfButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             active.setHideSelfPlayer(!active.hideSelfPlayer());
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).build());
-        y += CONTROL_HEIGHT + CONTROL_GAP;
+        }).bounds(0, 0, width, CONTROL_HEIGHT).build());
 
-        this.hideOthersButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.hideOthersButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             active.setHideOtherPlayers(!active.hideOtherPlayers());
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).build());
-        y += CONTROL_HEIGHT + CONTROL_GAP;
+        }).bounds(0, 0, width, CONTROL_HEIGHT).build());
 
-        this.poseButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.poseButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             active.cyclePose();
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.pose.desc"))).build());
-        y += CONTROL_HEIGHT + CONTROL_GAP;
+        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.pose.desc"))).build());
 
         this.addPlayerTransformSlider(
-                x,
-                y,
                 width,
                 PLAYER_POSITION_OFFSET_MIN,
                 PLAYER_POSITION_OFFSET_MAX,
@@ -532,11 +568,8 @@ public class PhotoModeScreen extends Screen {
                 active::setSelfPlayerPositionOffsetX,
                 value -> optionMessage("snappy.photo_mode.player_offset_x", this.blockValue(value))
         );
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
         this.addPlayerTransformSlider(
-                x,
-                y,
                 width,
                 PLAYER_POSITION_OFFSET_MIN,
                 PLAYER_POSITION_OFFSET_MAX,
@@ -546,11 +579,8 @@ public class PhotoModeScreen extends Screen {
                 active::setSelfPlayerPositionOffsetY,
                 value -> optionMessage("snappy.photo_mode.player_offset_y", this.blockValue(value))
         );
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
         this.addPlayerTransformSlider(
-                x,
-                y,
                 width,
                 PLAYER_POSITION_OFFSET_MIN,
                 PLAYER_POSITION_OFFSET_MAX,
@@ -560,11 +590,8 @@ public class PhotoModeScreen extends Screen {
                 active::setSelfPlayerPositionOffsetZ,
                 value -> optionMessage("snappy.photo_mode.player_offset_z", this.blockValue(value))
         );
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
         this.addPlayerTransformSlider(
-                x,
-                y,
                 width,
                 PLAYER_ROTATION_OFFSET_MIN,
                 PLAYER_ROTATION_OFFSET_MAX,
@@ -574,11 +601,8 @@ public class PhotoModeScreen extends Screen {
                 active::setSelfPlayerRotationOffsetX,
                 value -> optionMessage("snappy.photo_mode.player_rotation_x", this.degreeValue(value))
         );
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
         this.addPlayerTransformSlider(
-                x,
-                y,
                 width,
                 PLAYER_ROTATION_OFFSET_MIN,
                 PLAYER_ROTATION_OFFSET_MAX,
@@ -588,11 +612,8 @@ public class PhotoModeScreen extends Screen {
                 active::setSelfPlayerRotationOffsetY,
                 value -> optionMessage("snappy.photo_mode.player_rotation_y", this.degreeValue(value))
         );
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
         this.addPlayerTransformSlider(
-                x,
-                y,
                 width,
                 PLAYER_ROTATION_OFFSET_MIN,
                 PLAYER_ROTATION_OFFSET_MAX,
@@ -602,37 +623,33 @@ public class PhotoModeScreen extends Screen {
                 active::setSelfPlayerRotationOffsetZ,
                 value -> optionMessage("snappy.photo_mode.player_rotation_z", this.degreeValue(value))
         );
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
-        this.armorButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.armorButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             active.setArmorMode(active.armorMode().next());
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.armor.desc"))).build());
-        y += CONTROL_HEIGHT + CONTROL_GAP;
+        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.armor.desc"))).build());
 
-        this.heldItemsButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.heldItemsButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             active.setHeldItemsMode(active.heldItemsMode().next());
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.held_items.desc"))).build());
+        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.held_items.desc"))).build());
     }
 
-    private void addLensControls(int y) {
-        int x = this.panelX + PANEL_PADDING;
-        int width = this.controlWidth();
+    private void addLensControls() {
+        int width = this.tabControlWidth();
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active == null) {
             return;
         }
 
-        this.depthOfFieldButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.depthOfFieldButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             active.setDepthOfFieldEnabled(!active.depthOfFieldEnabled());
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.depth_of_field.desc"))).build());
-        y += CONTROL_HEIGHT + CONTROL_GAP;
+        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.depth_of_field.desc"))).build());
 
-        this.depthOfFieldFocalLengthSlider = this.addRenderableWidget(new PhotoModeSlider(
-                x,
-                y,
+        this.depthOfFieldFocalLengthSlider = this.addTabControl(new PhotoModeSlider(
+                0,
+                0,
                 width,
                 CONTROL_HEIGHT,
                 PhotoModeManager.DEPTH_OF_FIELD_FOCAL_LENGTH_MIN,
@@ -645,11 +662,10 @@ public class PhotoModeScreen extends Screen {
                 value -> optionMessage("snappy.photo_mode.dof_focal_length", Component.translatable("snappy.photo_mode.millimeters", String.format(Locale.ROOT, "%.0f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
         this.depthOfFieldFocalLengthSlider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.dof_focal_length.desc")));
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
-        this.depthOfFieldApertureSlider = this.addRenderableWidget(new PhotoModeSlider(
-                x,
-                y,
+        this.depthOfFieldApertureSlider = this.addTabControl(new PhotoModeSlider(
+                0,
+                0,
                 width,
                 CONTROL_HEIGHT,
                 PhotoModeManager.DEPTH_OF_FIELD_APERTURE_MIN,
@@ -662,11 +678,10 @@ public class PhotoModeScreen extends Screen {
                 value -> optionMessage("snappy.photo_mode.dof_aperture", Component.translatable("snappy.photo_mode.aperture", String.format(Locale.ROOT, "%.1f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
         this.depthOfFieldApertureSlider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.dof_aperture.desc")));
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
-        this.depthOfFieldFocusDistanceSlider = this.addRenderableWidget(new PhotoModeSlider(
-                x,
-                y,
+        this.depthOfFieldFocusDistanceSlider = this.addTabControl(new PhotoModeSlider(
+                0,
+                0,
                 width,
                 CONTROL_HEIGHT,
                 PhotoModeManager.DEPTH_OF_FIELD_FOCUS_DISTANCE_MIN,
@@ -681,10 +696,10 @@ public class PhotoModeScreen extends Screen {
         this.depthOfFieldFocusDistanceSlider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.dof_focus_distance.desc")));
     }
 
-    private int addColorEffectControls(int x, int y, int width, @NotNull PhotoModeManager.Session active) {
-        PhotoModeSlider vignetteSlider = this.addRenderableWidget(new PhotoModeSlider(
-                x,
-                y,
+    private void addColorEffectControls(int width, @NotNull PhotoModeManager.Session active) {
+        PhotoModeSlider vignetteSlider = this.addTabControl(new PhotoModeSlider(
+                0,
+                0,
                 width,
                 CONTROL_HEIGHT,
                 0.0D,
@@ -696,11 +711,8 @@ public class PhotoModeScreen extends Screen {
                 value -> optionMessage("snappy.photo_mode.vignette", Component.translatable("snappy.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
         vignetteSlider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.vignette.desc")));
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
-        y = this.addColorAdjustmentSlider(
-                x,
-                y,
+        this.addColorAdjustmentSlider(
                 width,
                 "snappy.photo_mode.gamma",
                 "snappy.photo_mode.gamma.desc",
@@ -711,9 +723,7 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setGamma((float) value)
         );
 
-        y = this.addColorAdjustmentSlider(
-                x,
-                y,
+        this.addColorAdjustmentSlider(
                 width,
                 "snappy.photo_mode.saturation",
                 "snappy.photo_mode.saturation.desc",
@@ -724,9 +734,7 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setSaturation((float) value)
         );
 
-        y = this.addColorAdjustmentSlider(
-                x,
-                y,
+        this.addColorAdjustmentSlider(
                 width,
                 "snappy.photo_mode.contrast",
                 "snappy.photo_mode.contrast.desc",
@@ -737,9 +745,7 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setContrast((float) value)
         );
 
-        y = this.addColorAdjustmentSlider(
-                x,
-                y,
+        this.addColorAdjustmentSlider(
                 width,
                 "snappy.photo_mode.overexposure",
                 "snappy.photo_mode.overexposure.desc",
@@ -750,9 +756,9 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setOverexposure((float) value)
         );
 
-        PhotoModeSlider bloomSlider = this.addRenderableWidget(new PhotoModeSlider(
-                x,
-                y,
+        PhotoModeSlider bloomSlider = this.addTabControl(new PhotoModeSlider(
+                0,
+                0,
                 width,
                 CONTROL_HEIGHT,
                 PhotoModeManager.BLOOM_MIN,
@@ -765,24 +771,19 @@ public class PhotoModeScreen extends Screen {
                 value -> optionMessage("snappy.photo_mode.bloom", Component.translatable("snappy.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
         bloomSlider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.bloom.desc")));
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
-        this.colorizeButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.colorizeButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             active.setColorizePreset(active.colorizePreset().next());
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.colorize.desc"))).build());
-        y += CONTROL_HEIGHT + CONTROL_GAP;
+        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.colorize.desc"))).build());
 
-        this.stylizeButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.stylizeButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             active.setStylizePreset(active.stylizePreset().next());
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.stylize.desc"))).build());
-        return y + CONTROL_HEIGHT + CONTROL_GAP;
+        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.stylize.desc"))).build());
     }
 
-    private int addColorAdjustmentSlider(
-            int x,
-            int y,
+    private void addColorAdjustmentSlider(
             int width,
             @NotNull String labelKey,
             @NotNull String tooltipKey,
@@ -792,9 +793,9 @@ public class PhotoModeScreen extends Screen {
             float defaultValue,
             @NotNull DoubleConsumer valueConsumer
     ) {
-        PhotoModeSlider slider = this.addRenderableWidget(new PhotoModeSlider(
-                x,
-                y,
+        PhotoModeSlider slider = this.addTabControl(new PhotoModeSlider(
+                0,
+                0,
                 width,
                 CONTROL_HEIGHT,
                 minValue,
@@ -807,44 +808,36 @@ public class PhotoModeScreen extends Screen {
                 value -> optionMessage(labelKey, signedPercentValue(value))
         ));
         slider.setTooltip(Tooltip.create(Component.translatable(tooltipKey)));
-        return y + CONTROL_HEIGHT + CONTROL_GAP;
     }
 
-    private void addEnvironmentControls(int y) {
-        int x = this.panelX + PANEL_PADDING;
-        int width = this.controlWidth();
+    private void addEnvironmentControls() {
+        int width = this.tabControlWidth();
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active == null) {
             return;
         }
 
-        this.pauseButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.pauseButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             PhotoModeManager.togglePaused(Minecraft.getInstance());
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.pause.desc"))).build());
-        y += CONTROL_HEIGHT + CONTROL_GAP;
+        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.pause.desc"))).build());
 
-        this.timeButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.timeButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             active.setTimePreset(active.timePreset().next());
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.time.desc"))).build());
-        y += CONTROL_HEIGHT + CONTROL_GAP;
+        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.time.desc"))).build());
 
-        this.weatherButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.weatherButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             active.setWeatherPreset(active.weatherPreset().next());
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.weather.desc"))).build());
-        y += CONTROL_HEIGHT + CONTROL_GAP;
+        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.weather.desc"))).build());
 
-        this.hideBeaconBeamsButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+        this.hideBeaconBeamsButton = this.addTabControl(Button.builder(Component.empty(), button -> {
             active.setHideBeaconBeams(!active.hideBeaconBeams());
             this.updateButtonMessages();
-        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.hide_beacon_beams.desc"))).build());
-        y += CONTROL_HEIGHT + CONTROL_GAP;
+        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.hide_beacon_beams.desc"))).build());
 
         this.skyColorButton = this.addPhotoColorButton(
-                x,
-                y,
                 width,
                 ColorPickerTarget.SKY,
                 active::skyColorOverride,
@@ -852,11 +845,10 @@ public class PhotoModeScreen extends Screen {
                 PhotoModeScreen::emptyColor,
                 active::setSkyColor
         );
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
-        this.addRenderableWidget(new PhotoModeSlider(
-                x,
-                y,
+        this.addTabControl(new PhotoModeSlider(
+                0,
+                0,
                 width,
                 CONTROL_HEIGHT,
                 0.0D,
@@ -867,11 +859,10 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setFogIntensity((float) value),
                 value -> optionMessage("snappy.photo_mode.fog_intensity", Component.translatable("snappy.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
         ));
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
-        this.addRenderableWidget(new PhotoModeSlider(
-                x,
-                y,
+        this.addTabControl(new PhotoModeSlider(
+                0,
+                0,
                 width,
                 CONTROL_HEIGHT,
                 PhotoModeManager.PHOTO_FOG_MIN_DISTANCE,
@@ -883,11 +874,8 @@ public class PhotoModeScreen extends Screen {
                 value -> active.setFogDistance((float) value),
                 value -> optionMessage("snappy.photo_mode.fog_distance", this.blockValue(value))
         ));
-        y += CONTROL_HEIGHT + CONTROL_GAP;
 
         this.fogColorButton = this.addPhotoColorButton(
-                x,
-                y,
                 width,
                 ColorPickerTarget.FOG,
                 active::fogColorOverride,
@@ -939,8 +927,6 @@ public class PhotoModeScreen extends Screen {
 
     @NotNull
     private PhotoModeColorButton addPhotoColorButton(
-            int x,
-            int y,
             int width,
             @NotNull ColorPickerTarget target,
             @NotNull Supplier<@Nullable Integer> colorSupplier,
@@ -948,9 +934,9 @@ public class PhotoModeScreen extends Screen {
             @NotNull Supplier<@Nullable Integer> defaultColorSupplier,
             @NotNull Consumer<@Nullable Integer> colorConsumer
     ) {
-        PhotoModeColorButton button = this.addRenderableWidget(new PhotoModeColorButton(
-                x,
-                y,
+        PhotoModeColorButton button = this.addTabControl(new PhotoModeColorButton(
+                0,
+                0,
                 width,
                 CONTROL_HEIGHT,
                 Component.empty(),
@@ -998,8 +984,6 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void addPlayerTransformSlider(
-            int x,
-            int y,
             int width,
             double minValue,
             double maxValue,
@@ -1009,9 +993,9 @@ public class PhotoModeScreen extends Screen {
             @NotNull DoubleConsumer valueConsumer,
             @NotNull DoubleFunction<Component> messageFactory
     ) {
-        this.addRenderableWidget(new PhotoModeSlider(
-                x,
-                y,
+        this.addTabControl(new PhotoModeSlider(
+                0,
+                0,
                 width,
                 CONTROL_HEIGHT,
                 minValue,
@@ -1299,10 +1283,23 @@ public class PhotoModeScreen extends Screen {
 
     private void updatePanelBounds() {
         int actionRowReserve = this.confirmationDialog == null ? CONTROL_HEIGHT + ACTION_ROW_GAP : 0;
-        int availablePanelHeight = Math.max(CONTROL_HEIGHT, this.height - SCREEN_MARGIN * 2 - actionRowReserve);
-        this.panelHeight = Math.min(availablePanelHeight, this.confirmationDialog != null ? 118 : this.selectedTab.panelHeight());
+        int availablePanelHeight = Math.max(MIN_TAB_PANEL_HEIGHT, this.height - SCREEN_MARGIN * 2 - actionRowReserve);
+        int desiredPanelHeight = this.confirmationDialog != null ? 118 : Math.min(this.selectedTab.panelHeight(), this.maxTabPanelHeight());
+        this.panelHeight = Math.min(availablePanelHeight, desiredPanelHeight);
         this.panelX = Math.max(SCREEN_MARGIN, this.width - PANEL_WIDTH - SCREEN_MARGIN);
         this.panelY = Math.max(SCREEN_MARGIN, this.height - this.panelHeight - SCREEN_MARGIN - actionRowReserve);
+    }
+
+    private int maxTabPanelHeight() {
+        return Math.max(MIN_TAB_PANEL_HEIGHT, this.height / 3);
+    }
+
+    private int tabBodyY() {
+        return this.panelY + TAB_BODY_TOP_OFFSET;
+    }
+
+    private int tabBodyHeight() {
+        return Math.max(MIN_TAB_BODY_HEIGHT, this.panelHeight - TAB_BODY_TOP_OFFSET - PANEL_PADDING);
     }
 
     private void updatePoseMakerPanelBounds() {
@@ -1449,6 +1446,10 @@ public class PhotoModeScreen extends Screen {
 
     private int controlWidth() {
         return PANEL_WIDTH - PANEL_PADDING * 2;
+    }
+
+    private int tabControlWidth() {
+        return Math.max(1, this.controlWidth() - TAB_SCROLLBAR_RESERVE);
     }
 
     private boolean isInsidePhotoModeUi(double mouseX, double mouseY) {
