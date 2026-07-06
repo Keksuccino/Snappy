@@ -1,0 +1,31 @@
+{
+  "name": "snappy.photo_mode.pose.tripped",
+  "model": {
+    "x": -90.0,
+    "y_offset": -0.77
+  },
+  "parts": {
+    "head": {
+      "x": -111.0,
+      "y": 12.0,
+      "z": -50.0
+    },
+    "left_arm": {
+      "x": -179.0,
+      "y": -6.0,
+      "z": 24.0
+    },
+    "right_arm": {
+      "x": -178.0,
+      "z": -22.0
+    },
+    "left_leg": {
+      "y": -6.0,
+      "z": -13.0
+    },
+    "right_leg": {
+      "y": 8.0,
+      "z": 33.0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "snappy.photo_mode.pose.derpy_running",
+  "model": {
+    "x": 6.0
+  },
+  "parts": {
+    "head": {
+      "x": -11.0
+    },
+    "left_arm": {
+      "x": 148.0,
+      "z": 19.0
+    },
+    "right_arm": {
+      "x": 161.0,
+      "z": -22.0
+    },
+    "left_leg": {
+      "x": 36.0,
+      "z": -6.0
+    },
+    "right_leg": {
+      "x": -22.0,
+      "z": 6.0
+    }
+  }
+}

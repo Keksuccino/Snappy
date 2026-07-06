@@ -1,0 +1,26 @@
+{
+  "name": "snappy.photo_mode.pose.teasing_master",
+  "model": {
+    "x": -25.0
+  },
+  "parts": {
+    "head": {
+      "x": -22.0,
+      "z": 12.0
+    },
+    "left_arm": {
+      "x": 33.0,
+      "z": 36.0
+    },
+    "right_arm": {
+      "x": 33.0,
+      "z": -32.0
+    },
+    "left_leg": {
+      "x": -25.0
+    },
+    "right_leg": {
+      "x": -43.0
+    }
+  }
+}

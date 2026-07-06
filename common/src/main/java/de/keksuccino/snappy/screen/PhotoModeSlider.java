@@ -2,6 +2,7 @@ package de.keksuccino.snappy.screen;
 
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
@@ -21,6 +22,7 @@ public class PhotoModeSlider extends AbstractSliderButton {
     private final DoubleConsumer valueConsumer;
     private final DoubleFunction<Component> messageFactory;
     private double rawSliderValue;
+    private boolean skipDefaultSnapUntilOutsideZone;
 
     public PhotoModeSlider(
             int x,
@@ -75,7 +77,7 @@ public class PhotoModeSlider extends AbstractSliderButton {
         this.actualStep = maxValue <= minValue ? 0.0D : Math.max(0.0D, actualStep);
         this.valueConsumer = valueConsumer;
         this.messageFactory = messageFactory;
-        super.setValue(this.adjustedSliderValue(this.rawSliderValue));
+        super.setValue(this.adjustedSliderValue(this.rawSliderValue, true));
         this.updateMessage();
     }
 
@@ -99,8 +101,24 @@ public class PhotoModeSlider extends AbstractSliderButton {
 
     @Override
     protected void setValue(double newValue) {
+        this.setValue(newValue, true);
+    }
+
+    private void setValue(double newValue, boolean allowDefaultSnapping) {
         this.rawSliderValue = Mth.clamp(newValue, 0.0D, 1.0D);
-        super.setValue(this.adjustedSliderValue(this.rawSliderValue));
+        super.setValue(this.adjustedSliderValue(this.rawSliderValue, allowDefaultSnapping));
+    }
+
+    @Override
+    public void onClick(@NotNull MouseButtonEvent event, boolean doubleClick) {
+        this.skipDefaultSnapUntilOutsideZone = this.isInDefaultSnapZone(this.rawSliderValue);
+        super.onClick(event, doubleClick);
+    }
+
+    @Override
+    public void onRelease(@NotNull MouseButtonEvent event) {
+        this.skipDefaultSnapUntilOutsideZone = false;
+        super.onRelease(event);
     }
 
     @Override
@@ -114,22 +132,42 @@ public class PhotoModeSlider extends AbstractSliderButton {
             boolean right = event.isRight();
             if (left || right) {
                 double direction = left ? -1.0D : 1.0D;
-                this.setValue(this.rawSliderValue + direction * this.keyboardSliderStep());
+                this.setValue(this.value + direction * this.keyboardSliderStep(), false);
                 return true;
             }
         }
         return false;
     }
 
-    private double adjustedSliderValue(double newValue) {
-        return this.steppedSliderValue(this.snappedSliderValue(newValue));
+    private double adjustedSliderValue(double newValue, boolean allowDefaultSnapping) {
+        return this.steppedSliderValue(this.snappedSliderValue(newValue, allowDefaultSnapping));
     }
 
-    private double snappedSliderValue(double newValue) {
-        if (this.snapSliderRadius <= 0.0D || Math.abs(newValue - this.defaultSliderValue) > this.snapSliderRadius + DEFAULT_EPSILON) {
+    private double snappedSliderValue(double newValue, boolean allowDefaultSnapping) {
+        if (!this.shouldSnapToDefault(newValue, allowDefaultSnapping)) {
             return newValue;
         }
         return this.defaultSliderValue;
+    }
+
+    private boolean shouldSnapToDefault(double newValue, boolean allowDefaultSnapping) {
+        if (!allowDefaultSnapping) {
+            return false;
+        }
+
+        boolean inDefaultSnapZone = this.isInDefaultSnapZone(newValue);
+        if (!this.skipDefaultSnapUntilOutsideZone) {
+            return inDefaultSnapZone;
+        }
+        if (inDefaultSnapZone) {
+            return false;
+        }
+        this.skipDefaultSnapUntilOutsideZone = false;
+        return false;
+    }
+
+    private boolean isInDefaultSnapZone(double newValue) {
+        return this.snapSliderRadius > 0.0D && Math.abs(newValue - this.defaultSliderValue) <= this.snapSliderRadius + DEFAULT_EPSILON;
     }
 
     private double steppedSliderValue(double newValue) {
