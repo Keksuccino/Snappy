@@ -112,7 +112,7 @@ public class PhotoModeScreen extends Screen {
 
     private Tab selectedTab = Tab.GENERAL;
     @Nullable
-    private Confirmation confirmation;
+    private ConfirmationDialog confirmationDialog;
     private boolean rotatingView;
     private boolean cameraCursorGrabbed;
     private int panelX;
@@ -305,7 +305,7 @@ public class PhotoModeScreen extends Screen {
 
     @Override
     public boolean keyPressed(@NotNull KeyEvent event) {
-        if (this.handleConfirmationKeyPressed(event)) {
+        if (this.handleConfirmationDialogKeyPressed(event)) {
             return true;
         }
 
@@ -347,8 +347,7 @@ public class PhotoModeScreen extends Screen {
             return true;
         }
         if (event.isEscape()) {
-            this.confirmation = Confirmation.LEAVE;
-            this.rebuildPhotoWidgets();
+            this.openConfirmationDialog(Confirmation.LEAVE);
             return true;
         }
         if (configuredCameraControlKey) {
@@ -396,7 +395,7 @@ public class PhotoModeScreen extends Screen {
         if (this.poseMakerOpen) {
             this.addPoseMakerWidgets();
         }
-        if (this.confirmation != null) {
+        if (this.confirmationDialog != null) {
             this.closeColorPicker();
             this.addConfirmationWidgets();
             return;
@@ -926,21 +925,15 @@ public class PhotoModeScreen extends Screen {
         this.addActionButton(returnToPlayerMessage, x, y, returnToPlayerWidth, button -> PhotoModeManager.returnCameraToPlayer(Minecraft.getInstance()), Component.translatable("snappy.photo_mode.return_to_player.desc"));
         x += returnToPlayerWidth + ACTION_GAP;
         this.addActionButton(hideGuiMessage, x, y, hideGuiWidth, button -> {
-            this.closeColorPicker();
-            this.confirmation = Confirmation.HIDE_GUI;
-            this.rebuildPhotoWidgets();
+            this.openConfirmationDialog(Confirmation.HIDE_GUI);
         }, this.hideGuiDescription());
         x += hideGuiWidth + ACTION_GAP;
         this.addActionButton(resetMessage, x, y, resetWidth, button -> {
-            this.closeColorPicker();
-            this.confirmation = Confirmation.RESET;
-            this.rebuildPhotoWidgets();
+            this.openConfirmationDialog(Confirmation.RESET);
         }, resetMessage);
         x += resetWidth + ACTION_GAP;
         this.addActionButton(leaveMessage, x, y, leaveWidth, button -> {
-            this.closeColorPicker();
-            this.confirmation = Confirmation.LEAVE;
-            this.rebuildPhotoWidgets();
+            this.openConfirmationDialog(Confirmation.LEAVE);
         }, Component.translatable("snappy.photo_mode.leave"));
     }
 
@@ -1140,55 +1133,43 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void addConfirmationWidgets() {
-        Confirmation pending = this.confirmation;
-        if (pending == null) {
+        ConfirmationDialog dialog = this.confirmationDialog;
+        if (dialog == null) {
             return;
         }
         int buttonWidth = (this.controlWidth() - CONTROL_GAP) / 2;
         int y = this.panelY + this.panelHeight - PANEL_PADDING - CONTROL_HEIGHT;
         int x = this.panelX + PANEL_PADDING;
-        this.addRenderableWidget(Button.builder(pending.confirmMessage(), button -> this.confirmConfirmation())
+        this.addRenderableWidget(Button.builder(dialog.confirmMessage(), button -> this.confirmConfirmationDialog())
                 .bounds(x, y, buttonWidth, CONTROL_HEIGHT)
                 .build());
-        this.addRenderableWidget(Button.builder(CommonComponents.GUI_CANCEL, button -> this.cancelConfirmation())
+        this.addRenderableWidget(Button.builder(CommonComponents.GUI_CANCEL, button -> this.cancelConfirmationDialog())
                 .bounds(x + buttonWidth + CONTROL_GAP, y, this.controlWidth() - buttonWidth - CONTROL_GAP, CONTROL_HEIGHT)
                 .build());
     }
 
-    private boolean handleConfirmationKeyPressed(@NotNull KeyEvent event) {
-        if (this.confirmation == null) {
-            return false;
-        }
-        if (event.isEscape()) {
-            this.cancelConfirmation();
-            return true;
-        }
-        if (event.isConfirmation()) {
-            this.confirmConfirmation();
-            return true;
-        }
-        return false;
+    private boolean handleConfirmationDialogKeyPressed(@NotNull KeyEvent event) {
+        ConfirmationDialog dialog = this.confirmationDialog;
+        return dialog != null && dialog.keyPressed(this, event);
     }
 
-    private void confirmConfirmation() {
-        Confirmation pending = this.confirmation;
-        if (pending == null) {
+    private void openConfirmationDialog(@NotNull Confirmation confirmation) {
+        this.closeColorPicker();
+        this.confirmationDialog = new ConfirmationDialog(confirmation);
+        this.rebuildPhotoWidgets();
+    }
+
+    private void confirmConfirmationDialog() {
+        ConfirmationDialog dialog = this.confirmationDialog;
+        if (dialog == null) {
             return;
         }
-        this.confirmation = null;
-        if (pending == Confirmation.RESET) {
-            PhotoModeManager.resetToDefaults(Minecraft.getInstance());
-            this.rebuildPhotoWidgets();
-        } else if (pending == Confirmation.HIDE_GUI) {
-            this.setPhotoModeUiHidden(true);
-        } else {
-            PhotoModeManager.close();
-            Minecraft.getInstance().gui.setScreen(null);
-        }
+        this.confirmationDialog = null;
+        dialog.confirm(this);
     }
 
-    private void cancelConfirmation() {
-        this.confirmation = null;
+    private void cancelConfirmationDialog() {
+        this.confirmationDialog = null;
         this.rebuildPhotoWidgets();
     }
 
@@ -1280,14 +1261,15 @@ public class PhotoModeScreen extends Screen {
         RenderingUtils.renderBorder(graphics, this.panelX - 1, this.panelY - 1, PANEL_WIDTH + 2, this.panelHeight + 2, 1, PANEL_BORDER_COLOR);
         graphics.fill(this.panelX, this.panelY, this.panelX + PANEL_WIDTH, this.panelY + this.panelHeight, PANEL_BACKGROUND_COLOR);
 
-        if (this.confirmation != null) {
+        ConfirmationDialog dialog = this.confirmationDialog;
+        if (dialog != null) {
             int contentX = this.panelX + PANEL_PADDING;
             int contentY = this.panelY + PANEL_PADDING;
             int width = this.controlWidth();
             graphics.fill(contentX, contentY, contentX + width, this.panelY + this.panelHeight - PANEL_PADDING - CONTROL_HEIGHT - CONTROL_GAP, SECTION_BACKGROUND_COLOR);
             graphics.outline(contentX, contentY, width, this.panelHeight - PANEL_PADDING * 2 - CONTROL_HEIGHT - CONTROL_GAP, PANEL_BORDER_COLOR);
-            graphics.centeredText(this.font, this.confirmation.title(), contentX + width / 2, contentY + 14, PANEL_ACCENT_COLOR);
-            graphics.textWithWordWrap(this.font, this.confirmationMessage(this.confirmation), contentX + 10, contentY + 36, width - 20, 0xFFFFFFFF);
+            graphics.centeredText(this.font, dialog.title(), contentX + width / 2, contentY + 14, PANEL_ACCENT_COLOR);
+            graphics.textWithWordWrap(this.font, dialog.message(this), contentX + 10, contentY + 36, width - 20, 0xFFFFFFFF);
             return;
         }
 
@@ -1316,9 +1298,9 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void updatePanelBounds() {
-        int actionRowReserve = this.confirmation == null ? CONTROL_HEIGHT + ACTION_ROW_GAP : 0;
+        int actionRowReserve = this.confirmationDialog == null ? CONTROL_HEIGHT + ACTION_ROW_GAP : 0;
         int availablePanelHeight = Math.max(CONTROL_HEIGHT, this.height - SCREEN_MARGIN * 2 - actionRowReserve);
-        this.panelHeight = Math.min(availablePanelHeight, this.confirmation != null ? 118 : this.selectedTab.panelHeight());
+        this.panelHeight = Math.min(availablePanelHeight, this.confirmationDialog != null ? 118 : this.selectedTab.panelHeight());
         this.panelX = Math.max(SCREEN_MARGIN, this.width - PANEL_WIDTH - SCREEN_MARGIN);
         this.panelY = Math.max(SCREEN_MARGIN, this.height - this.panelHeight - SCREEN_MARGIN - actionRowReserve);
     }
@@ -1413,14 +1395,6 @@ public class PhotoModeScreen extends Screen {
         this.colorPicker.setPosition(x, y);
     }
 
-    @NotNull
-    private Component confirmationMessage(@NotNull Confirmation confirmation) {
-        if (confirmation == Confirmation.HIDE_GUI) {
-            return Component.translatable(confirmation.messageKey, this.hideGuiKeyMessage());
-        }
-        return confirmation.message();
-    }
-
     private int actionY() {
         return this.panelY + this.panelHeight + ACTION_ROW_GAP;
     }
@@ -1488,7 +1462,7 @@ public class PhotoModeScreen extends Screen {
         if (this.poseMakerOpen && mouseX >= this.poseMakerPanelX && mouseX <= this.poseMakerPanelX + this.poseMakerPanelWidth && mouseY >= this.poseMakerPanelY && mouseY <= this.poseMakerPanelY + this.poseMakerPanelHeight) {
             return true;
         }
-        if (this.confirmation != null) {
+        if (this.confirmationDialog != null) {
             return false;
         }
         if (this.colorPicker != null && this.colorPicker.contains(mouseX, mouseY)) {
@@ -1653,7 +1627,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void setPhotoModeUiHidden(boolean hidden) {
-        this.confirmation = null;
+        this.confirmationDialog = null;
         this.stopRotatingView();
         if (hidden) {
             this.closeColorPicker();
@@ -1854,13 +1828,76 @@ public class PhotoModeScreen extends Screen {
 
     }
 
+    private static final class ConfirmationDialog {
+
+        private final Confirmation confirmation;
+
+        private ConfirmationDialog(@NotNull Confirmation confirmation) {
+            this.confirmation = confirmation;
+        }
+
+        private boolean keyPressed(@NotNull PhotoModeScreen screen, @NotNull KeyEvent event) {
+            if (event.isEscape()) {
+                screen.cancelConfirmationDialog();
+                return true;
+            }
+            if (event.isConfirmation()) {
+                screen.confirmConfirmationDialog();
+                return true;
+            }
+            return false;
+        }
+
+        @NotNull
+        private Component title() {
+            return this.confirmation.title();
+        }
+
+        @NotNull
+        private Component message(@NotNull PhotoModeScreen screen) {
+            return this.confirmation.message(screen);
+        }
+
+        @NotNull
+        private Component confirmMessage() {
+            return this.confirmation.confirmMessage();
+        }
+
+        private void confirm(@NotNull PhotoModeScreen screen) {
+            this.confirmation.confirm(screen);
+        }
+    }
+
     private enum Confirmation {
-        HIDE_GUI("snappy.photo_mode.confirm.hide_gui.title", "snappy.photo_mode.confirm.hide_gui.message", "snappy.photo_mode.confirm.hide_gui.confirm"),
-        RESET("snappy.photo_mode.confirm.reset.title", "snappy.photo_mode.confirm.reset.message", "snappy.photo_mode.confirm.reset.confirm"),
-        LEAVE("snappy.photo_mode.confirm.leave.title", "snappy.photo_mode.confirm.leave.message", "snappy.photo_mode.confirm.leave.confirm");
+        HIDE_GUI("snappy.photo_mode.confirm.hide_gui.title", "snappy.photo_mode.confirm.hide_gui.message", "snappy.photo_mode.confirm.hide_gui.confirm") {
+            @Override
+            @NotNull
+            Component message(@NotNull PhotoModeScreen screen) {
+                return Component.translatable(this.messageKey, screen.hideGuiKeyMessage());
+            }
+
+            @Override
+            void confirm(@NotNull PhotoModeScreen screen) {
+                screen.setPhotoModeUiHidden(true);
+            }
+        },
+        RESET("snappy.photo_mode.confirm.reset.title", "snappy.photo_mode.confirm.reset.message", "snappy.photo_mode.confirm.reset.confirm") {
+            @Override
+            void confirm(@NotNull PhotoModeScreen screen) {
+                PhotoModeManager.resetToDefaults(Minecraft.getInstance());
+                screen.rebuildPhotoWidgets();
+            }
+        },
+        LEAVE("snappy.photo_mode.confirm.leave.title", "snappy.photo_mode.confirm.leave.message", "snappy.photo_mode.confirm.leave.confirm") {
+            @Override
+            void confirm(@NotNull PhotoModeScreen screen) {
+                PhotoModeManager.close();
+                Minecraft.getInstance().gui.setScreen(null);
+            }
+        };
 
         private final String titleKey;
-        private final String messageKey;
+        protected final String messageKey;
         private final String confirmKey;
 
         Confirmation(@NotNull String titleKey, @NotNull String messageKey, @NotNull String confirmKey) {
@@ -1875,7 +1912,7 @@ public class PhotoModeScreen extends Screen {
         }
 
         @NotNull
-        private Component message() {
+        Component message(@NotNull PhotoModeScreen screen) {
             return Component.translatable(this.messageKey);
         }
 
@@ -1883,6 +1920,8 @@ public class PhotoModeScreen extends Screen {
         private Component confirmMessage() {
             return Component.translatable(this.confirmKey);
         }
+
+        abstract void confirm(@NotNull PhotoModeScreen screen);
     }
 
     private enum ColorPickerTarget {

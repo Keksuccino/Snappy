@@ -6,7 +6,8 @@ public enum PhotoModeHeldItemsMode {
 
     SHOW_BOTH_HANDS("snappy.photo_mode.held_items.show_both_hands", true, true),
     SHOW_ONLY_MAIN_HAND("snappy.photo_mode.held_items.show_only_main_hand", true, false),
-    SHOW_ONLY_OFF_HAND("snappy.photo_mode.held_items.show_only_off_hand", false, true);
+    SHOW_ONLY_OFF_HAND("snappy.photo_mode.held_items.show_only_off_hand", false, true),
+    HIDE_BOTH_HANDS("snappy.photo_mode.held_items.hide_both_hands", false, false);
 
     private final String labelKey;
     private final boolean showMainHand;
