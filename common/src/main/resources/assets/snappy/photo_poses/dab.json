@@ -1,0 +1,28 @@
+{
+  "name": "snappy.photo_mode.pose.dab",
+  "model": {
+    "x": -9.0
+  },
+  "parts": {
+    "head": {
+      "x": 36.0,
+      "y": 33.0
+    },
+    "left_arm": {
+      "x": -134.0,
+      "y": -83.0
+    },
+    "right_arm": {
+      "x": -111.0,
+      "y": -55.0
+    },
+    "left_leg": {
+      "x": -6.0,
+      "y": 6.0
+    },
+    "right_leg": {
+      "x": -13.0,
+      "y": 22.0
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "snappy.photo_mode.pose.cute_posing",
+  "model": {
+    "x": 15.0
+  },
+  "parts": {
+    "head": {
+      "x": 19.0,
+      "y": -67.0,
+      "z": -15.0
+    },
+    "left_arm": {
+      "x": -30.0,
+      "z": 24.0
+    },
+    "right_arm": {
+      "x": -36.0,
+      "y": -13.0,
+      "z": -25.0
+    },
+    "left_leg": {
+      "x": 17.0
+    },
+    "right_leg": {
+      "x": 64.0,
+      "y": 10.0
+    }
+  }
+}
