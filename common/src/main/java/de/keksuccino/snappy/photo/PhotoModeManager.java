@@ -42,6 +42,7 @@ import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EntitySelector;
+import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
@@ -544,6 +545,7 @@ public final class PhotoModeManager {
         }
 
         applySelfPlayerArmorMode(active, state);
+        applySelfPlayerHeldItemsMode(active, state);
 
         Vec3 offset = active.selfPlayerPositionOffset();
         if (hasSelfPlayerTransform(offset)) {
@@ -571,6 +573,30 @@ public final class PhotoModeManager {
             state.chestEquipment = ItemStack.EMPTY;
             state.legsEquipment = ItemStack.EMPTY;
             state.feetEquipment = ItemStack.EMPTY;
+        }
+    }
+
+    private static void applySelfPlayerHeldItemsMode(@NotNull Session active, @NotNull AvatarRenderState state) {
+        PhotoModeHeldItemsMode heldItemsMode = active.heldItemsMode();
+        if (heldItemsMode.showMainHand() && heldItemsMode.showOffHand()) {
+            return;
+        }
+
+        if (!heldItemsMode.showMainHand()) {
+            clearHandItemState(state, state.mainArm);
+        }
+        if (!heldItemsMode.showOffHand()) {
+            clearHandItemState(state, state.mainArm.getOpposite());
+        }
+    }
+
+    private static void clearHandItemState(@NotNull AvatarRenderState state, @NotNull HumanoidArm arm) {
+        if (arm == HumanoidArm.RIGHT) {
+            state.rightHandItemState.clear();
+            state.rightHandItemStack = ItemStack.EMPTY;
+        } else {
+            state.leftHandItemState.clear();
+            state.leftHandItemStack = ItemStack.EMPTY;
         }
     }
 
@@ -839,6 +865,7 @@ public final class PhotoModeManager {
         private boolean hideSelfPlayer;
         private boolean hideOtherPlayers;
         private PhotoModeArmorMode armorMode = PhotoModeArmorMode.SHOW_ALL;
+        private PhotoModeHeldItemsMode heldItemsMode = PhotoModeHeldItemsMode.SHOW_BOTH_HANDS;
         private boolean hideBeaconBeams;
         private boolean paused;
         private boolean photoModeUiHidden;
@@ -924,6 +951,7 @@ public final class PhotoModeManager {
             this.hideSelfPlayer = false;
             this.hideOtherPlayers = false;
             this.armorMode = PhotoModeArmorMode.SHOW_ALL;
+            this.heldItemsMode = PhotoModeHeldItemsMode.SHOW_BOTH_HANDS;
             this.hideBeaconBeams = false;
             this.photoModeUiHidden = false;
             this.gridEnabled = false;
@@ -1357,6 +1385,15 @@ public final class PhotoModeManager {
 
         public void setArmorMode(@NotNull PhotoModeArmorMode armorMode) {
             this.armorMode = armorMode;
+        }
+
+        @NotNull
+        public PhotoModeHeldItemsMode heldItemsMode() {
+            return this.heldItemsMode;
+        }
+
+        public void setHeldItemsMode(@NotNull PhotoModeHeldItemsMode heldItemsMode) {
+            this.heldItemsMode = heldItemsMode;
         }
 
         public boolean hideBeaconBeams() {

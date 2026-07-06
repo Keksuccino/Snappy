@@ -5,6 +5,7 @@ import de.keksuccino.snappy.KeyMappings;
 import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.photo.PhotoModeArmorMode;
 import de.keksuccino.snappy.photo.PhotoModeColorizePreset;
+import de.keksuccino.snappy.photo.PhotoModeHeldItemsMode;
 import de.keksuccino.snappy.photo.PhotoModeManager;
 import de.keksuccino.snappy.photo.PhotoModeStylizePreset;
 import de.keksuccino.snappy.photo.PhotoModeTimePreset;
@@ -141,6 +142,8 @@ public class PhotoModeScreen extends Screen {
     private Button poseButton;
     @Nullable
     private Button armorButton;
+    @Nullable
+    private Button heldItemsButton;
     @Nullable
     private Button timeButton;
     @Nullable
@@ -430,6 +433,7 @@ public class PhotoModeScreen extends Screen {
         this.hideOthersButton = null;
         this.poseButton = null;
         this.armorButton = null;
+        this.heldItemsButton = null;
         this.timeButton = null;
         this.weatherButton = null;
         this.hideBeaconBeamsButton = null;
@@ -605,6 +609,12 @@ public class PhotoModeScreen extends Screen {
             active.setArmorMode(active.armorMode().next());
             this.updateButtonMessages();
         }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.armor.desc"))).build());
+        y += CONTROL_HEIGHT + CONTROL_GAP;
+
+        this.heldItemsButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+            active.setHeldItemsMode(active.heldItemsMode().next());
+            this.updateButtonMessages();
+        }).bounds(x, y, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.held_items.desc"))).build());
     }
 
     private void addLensControls(int y) {
@@ -1214,6 +1224,10 @@ public class PhotoModeScreen extends Screen {
             PhotoModeArmorMode armorMode = active.armorMode();
             this.armorButton.setMessage(optionMessage("snappy.photo_mode.armor", Component.translatable(armorMode.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
         }
+        if (this.heldItemsButton != null) {
+            PhotoModeHeldItemsMode heldItemsMode = active.heldItemsMode();
+            this.heldItemsButton.setMessage(optionMessage("snappy.photo_mode.held_items", Component.translatable(heldItemsMode.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
+        }
         if (this.timeButton != null) {
             PhotoModeTimePreset preset = active.timePreset();
             this.timeButton.setMessage(optionMessage("snappy.photo_mode.time", Component.translatable(preset.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
@@ -1753,7 +1767,7 @@ public class PhotoModeScreen extends Screen {
     private enum Tab {
         GENERAL(GENERAL_ICON, "snappy.photo_mode.tab.general", 313),
         LENS(LENS_ICON, "snappy.photo_mode.tab.lens", 138),
-        PLAYER(PLAYER_ICON, "snappy.photo_mode.tab.player", 288),
+        PLAYER(PLAYER_ICON, "snappy.photo_mode.tab.player", 313),
         ENVIRONMENT(GLOBE_ICON, "snappy.photo_mode.tab.environment", 238);
 
         private final Identifier icon;
