@@ -56,6 +56,7 @@ import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -542,6 +543,8 @@ public final class PhotoModeManager {
             return;
         }
 
+        applySelfPlayerArmorMode(active, state);
+
         Vec3 offset = active.selfPlayerPositionOffset();
         if (hasSelfPlayerTransform(offset)) {
             state.x += offset.x;
@@ -549,6 +552,25 @@ public final class PhotoModeManager {
             state.z += offset.z;
             state.distanceToCameraSq = active.position().distanceToSqr(state.x, state.y, state.z);
             state.lightCoords = lightCoordsAt(entity, entity.getLightProbePosition(partialTicks).add(offset));
+        }
+    }
+
+    private static void applySelfPlayerArmorMode(@NotNull Session active, @NotNull AvatarRenderState state) {
+        PhotoModeArmorMode armorMode = active.armorMode();
+        if (!armorMode.hideHeadSlot() && !armorMode.hideBodySlots()) {
+            return;
+        }
+
+        if (armorMode.hideHeadSlot()) {
+            state.headEquipment = ItemStack.EMPTY;
+            state.headItem.clear();
+            state.wornHeadType = null;
+            state.wornHeadProfile = null;
+        }
+        if (armorMode.hideBodySlots()) {
+            state.chestEquipment = ItemStack.EMPTY;
+            state.legsEquipment = ItemStack.EMPTY;
+            state.feetEquipment = ItemStack.EMPTY;
         }
     }
 
@@ -816,6 +838,7 @@ public final class PhotoModeManager {
         private Vec3 selfPlayerRotationOffset = Vec3.ZERO;
         private boolean hideSelfPlayer;
         private boolean hideOtherPlayers;
+        private PhotoModeArmorMode armorMode = PhotoModeArmorMode.SHOW_ALL;
         private boolean hideBeaconBeams;
         private boolean paused;
         private boolean photoModeUiHidden;
@@ -900,6 +923,7 @@ public final class PhotoModeManager {
             this.selfPlayerRotationOffset = Vec3.ZERO;
             this.hideSelfPlayer = false;
             this.hideOtherPlayers = false;
+            this.armorMode = PhotoModeArmorMode.SHOW_ALL;
             this.hideBeaconBeams = false;
             this.photoModeUiHidden = false;
             this.gridEnabled = false;
@@ -1324,6 +1348,15 @@ public final class PhotoModeManager {
 
         public void setHideOtherPlayers(boolean hideOtherPlayers) {
             this.hideOtherPlayers = hideOtherPlayers;
+        }
+
+        @NotNull
+        public PhotoModeArmorMode armorMode() {
+            return this.armorMode;
+        }
+
+        public void setArmorMode(@NotNull PhotoModeArmorMode armorMode) {
+            this.armorMode = armorMode;
         }
 
         public boolean hideBeaconBeams() {
