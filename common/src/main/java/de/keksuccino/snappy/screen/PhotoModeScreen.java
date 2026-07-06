@@ -1046,7 +1046,6 @@ public class PhotoModeScreen extends Screen {
                     axis
             );
         }
-        index = this.addPoseMakerModelYOffsetSlider(index, sliderY, columnWidth);
         for (PhotoPose.BodyPart part : PhotoPose.BodyPart.values()) {
             PoseMakerRotation rotation = this.poseMakerPartRotations.get(part);
             if (rotation == null) {
@@ -1056,6 +1055,11 @@ public class PhotoModeScreen extends Screen {
                 index = this.addPoseMakerRotationSlider(index, sliderY, columnWidth, part.labelKey(), rotation, axis);
             }
         }
+        this.addPoseMakerModelYOffsetSlider(
+                contentX,
+                sliderY + this.poseMakerRotationSliderRows(this.poseMakerColumns) * (CONTROL_HEIGHT + CONTROL_GAP),
+                contentWidth
+        );
 
         int buttonY = this.poseMakerPanelY + this.poseMakerPanelHeight - PANEL_PADDING - CONTROL_HEIGHT;
         int secondaryButtonY = buttonY - POSE_MAKER_BUTTON_GAP - CONTROL_HEIGHT;
@@ -1113,15 +1117,11 @@ public class PhotoModeScreen extends Screen {
         return index + 1;
     }
 
-    private int addPoseMakerModelYOffsetSlider(int index, int sliderStartY, int columnWidth) {
-        int column = index % this.poseMakerColumns;
-        int row = index / this.poseMakerColumns;
-        int x = this.poseMakerPanelX + PANEL_PADDING + column * (columnWidth + POSE_MAKER_COLUMN_GAP);
-        int y = sliderStartY + row * (CONTROL_HEIGHT + CONTROL_GAP);
+    private void addPoseMakerModelYOffsetSlider(int x, int y, int width) {
         PhotoModeSlider slider = this.addRenderableWidget(new PhotoModeSlider(
                 x,
                 y,
-                columnWidth,
+                width,
                 CONTROL_HEIGHT,
                 PhotoPose.MODEL_Y_OFFSET_MIN,
                 PhotoPose.MODEL_Y_OFFSET_MAX,
@@ -1136,7 +1136,6 @@ public class PhotoModeScreen extends Screen {
                 value -> optionMessage("snappy.photo_mode.pose_maker.model_y_offset", this.poseMakerOffsetValue(value))
         ));
         slider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.pose_maker.model_y_offset.desc")));
-        return index + 1;
     }
 
     private void addActionButton(@NotNull Component message, int x, int y, int width, @NotNull Button.OnPress onPress, @NotNull Component tooltip) {
@@ -1374,7 +1373,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     private int poseMakerDesiredPanelHeight(int columns) {
-        int rows = (this.poseMakerSliderCount() + columns - 1) / columns;
+        int rows = this.poseMakerSliderRows(columns);
         int sliderHeight = rows * CONTROL_HEIGHT + Math.max(0, rows - 1) * CONTROL_GAP;
         return PANEL_PADDING * 2
                 + POSE_MAKER_HEADER_HEIGHT
@@ -1389,8 +1388,16 @@ public class PhotoModeScreen extends Screen {
                 + CONTROL_HEIGHT;
     }
 
-    private int poseMakerSliderCount() {
-        return (PhotoPose.BodyPart.values().length + 1) * PoseMakerAxis.values().length + 1;
+    private int poseMakerSliderRows(int columns) {
+        return this.poseMakerRotationSliderRows(columns) + 1;
+    }
+
+    private int poseMakerRotationSliderRows(int columns) {
+        return (this.poseMakerRotationSliderCount() + columns - 1) / columns;
+    }
+
+    private int poseMakerRotationSliderCount() {
+        return (PhotoPose.BodyPart.values().length + 1) * PoseMakerAxis.values().length;
     }
 
     private int poseMakerControlWidth() {
