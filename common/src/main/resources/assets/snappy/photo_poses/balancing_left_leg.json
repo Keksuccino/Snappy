@@ -1,0 +1,26 @@
+{
+  "name": "snappy.photo_mode.pose.balancing_left_leg",
+  "model": {
+    "z": 27.0
+  },
+  "parts": {
+    "head": {
+      "z": -9.0
+    },
+    "left_arm": {
+      "y": -11.0,
+      "z": -113.0
+    },
+    "right_arm": {
+      "y": 12.0,
+      "z": 108.0
+    },
+    "left_leg": {
+      "z": -27.0
+    },
+    "right_leg": {
+      "y": 8.0,
+      "z": 24.0
+    }
+  }
+}

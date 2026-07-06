@@ -1,0 +1,26 @@
+{
+  "name": "snappy.photo_mode.pose.sitting_leaning_back",
+  "model": {
+    "x": 12.0,
+    "y_offset": -0.59
+  },
+  "parts": {
+    "head": {
+      "x": 12.0
+    },
+    "left_arm": {
+      "x": 12.0
+    },
+    "right_arm": {
+      "x": 12.0
+    },
+    "left_leg": {
+      "x": -78.0,
+      "y": -11.0
+    },
+    "right_leg": {
+      "x": -78.0,
+      "y": 10.0
+    }
+  }
+}
