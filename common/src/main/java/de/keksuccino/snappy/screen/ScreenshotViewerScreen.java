@@ -38,9 +38,8 @@ import java.util.List;
 public class ScreenshotViewerScreen extends Screen {
 
     private static final String TEXTURE_PATH = "dynamic/screenshot_browser/viewer/";
-    private static final int BUTTON_HEIGHT = 20;
     private static final int BUTTON_GAP = 6;
-    private static final int SIDE_BUTTON_MARGIN = 14;
+    private static final int NAVIGATION_BUTTON_GAP = 20;
     private static final int PANORAMA_RENDER_WIDTH = 960;
     private static final int PANORAMA_RENDER_HEIGHT = 540;
     private static final int PANORAMA_PROGRESS_MAX_WIDTH = 360;
@@ -124,9 +123,12 @@ public class ScreenshotViewerScreen extends Screen {
         int centerX = this.width / 2;
 
         int iconButtonWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE;
-        int totalWidth = iconButtonWidth * 4 + BUTTON_GAP * 3;
+        int totalWidth = iconButtonWidth * 6 + BUTTON_GAP * 3 + NAVIGATION_BUTTON_GAP * 2;
         int x = centerX - totalWidth / 2;
 
+        this.previousButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("snappy.viewer.previous"), button -> this.previous(), PREVIOUS_IMAGE_ICON));
+        this.previousButton.setPosition(x, bottomY);
+        x += iconButtonWidth + NAVIGATION_BUTTON_GAP;
         Button backButton = this.addRenderableWidget(new TexturedIconButton(CommonComponents.GUI_BACK, button -> this.onClose(), BACK_ICON));
         backButton.setPosition(x, bottomY);
         x += iconButtonWidth + BUTTON_GAP;
@@ -138,6 +140,9 @@ public class ScreenshotViewerScreen extends Screen {
         x += iconButtonWidth + BUTTON_GAP;
         this.deleteButton = this.addRenderableWidget(new TexturedIconButton(this.deleteMessage(), button -> this.confirmDeleteCurrent(), DELETE_ICON));
         this.deleteButton.setPosition(x, bottomY);
+        x += iconButtonWidth + NAVIGATION_BUTTON_GAP;
+        this.nextButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("snappy.viewer.next"), button -> this.next(), NEXT_IMAGE_ICON));
+        this.nextButton.setPosition(x, bottomY);
 
         this.menuBackgroundSelectionButton = this.addRenderableWidget(new TexturedIconButton(
                 Component.translatable("snappy.viewer.menu_background.tooltip"),
@@ -146,12 +151,6 @@ public class ScreenshotViewerScreen extends Screen {
         ));
         this.menuBackgroundSelectionButton.setPosition(0, bottomY);
         this.menuBackgroundSelectionButton.visible = false;
-
-        int sideY = this.imageAreaY() + this.imageAreaHeight() / 2 - BUTTON_HEIGHT / 2;
-        this.previousButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("snappy.viewer.previous"), button -> this.previous(), PREVIOUS_IMAGE_ICON));
-        this.previousButton.setPosition(SIDE_BUTTON_MARGIN, sideY);
-        this.nextButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("snappy.viewer.next"), button -> this.next(), NEXT_IMAGE_ICON));
-        this.nextButton.setPosition(this.width - SIDE_BUTTON_MARGIN - TexturedIconButton.DEFAULT_BUTTON_SIZE, sideY);
         this.updateButtons();
     }
 

@@ -18,6 +18,7 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -25,7 +26,12 @@ import net.minecraft.client.renderer.SkyRenderer;
 import net.minecraft.client.renderer.state.WindowRenderState;
 import net.minecraft.network.chat.ClickEvent.OpenFile;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
+import net.minecraft.world.attribute.EnvironmentAttributes;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,6 +44,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class PanoramaCaptureManager {
 
     public static final String DEDICATED_SCREENSHOT_DIR = "panorama_screenshots";
+
+    private static final SystemToast.SystemToastId PANORAMA_SUN_WARNING_TOAST_ID_SNAPPY = new SystemToast.SystemToastId(25_000L);
+    private static final double SUN_DISC_DOT_THRESHOLD_SNAPPY = 0.95D;
+    private static final double SUN_TINT_DIRECTION_DOT_THRESHOLD_SNAPPY = 0.75D;
+    private static final double MIN_VISIBLE_SUN_Y_SNAPPY = -0.05D;
 
     private static final float[][] FACE_ROTATIONS = new float[][]{
             {0.0F, 0.0F},
@@ -86,6 +97,7 @@ public final class PanoramaCaptureManager {
         }
 
         showScreenshotMessage(minecraft, Component.translatable("snappy.capture.started", preset.sideSize + "x" + preset.sideSize));
+        showSunDirectionWarningToastIfNeeded(minecraft);
         CaptureContext metadataContext = ScreenshotMetadataManager.capturePanoramaScreenshot(minecraft);
 
         try {
@@ -281,6 +293,44 @@ public final class PanoramaCaptureManager {
         } finally {
             session.finishFace();
         }
+    }
+
+    private static void showSunDirectionWarningToastIfNeeded(@NotNull Minecraft minecraft) {
+        LocalPlayer player = minecraft.player;
+        if (minecraft.level == null || player == null || minecraft.level.dimensionType().skybox() != DimensionType.Skybox.OVERWORLD) {
+            return;
+        }
+
+        Vec3 viewDirection = player.getViewVector(1.0F).normalize();
+        float sunAngle = minecraft.level.environmentAttributes().getValue(EnvironmentAttributes.SUN_ANGLE, player.getEyePosition())
+                * (float) (Math.PI / 180.0);
+        if (!isLookingAtVisibleSun(viewDirection, sunAngle) && !isLookingTowardVanillaSunTint(viewDirection, sunAngle, player)) {
+            return;
+        }
+
+        SystemToast.addOrUpdate(
+                minecraft.gui.toastManager(),
+                PANORAMA_SUN_WARNING_TOAST_ID_SNAPPY,
+                Component.translatable("snappy.capture.sun_warning.title"),
+                Component.translatable("snappy.capture.sun_warning.message")
+        );
+    }
+
+    private static boolean isLookingAtVisibleSun(@NotNull Vec3 viewDirection, float sunAngle) {
+        Vec3 sunDirection = new Vec3(-Mth.sin(sunAngle), Mth.cos(sunAngle), 0.0D);
+        return sunDirection.y >= MIN_VISIBLE_SUN_Y_SNAPPY && viewDirection.dot(sunDirection) >= SUN_DISC_DOT_THRESHOLD_SNAPPY;
+    }
+
+    private static boolean isLookingTowardVanillaSunTint(@NotNull Vec3 viewDirection, float sunAngle, @NotNull LocalPlayer player) {
+        int sunriseAndSunsetColor = player.level()
+                .environmentAttributes()
+                .getValue(EnvironmentAttributes.SUNRISE_SUNSET_COLOR, player.getEyePosition());
+        if (ARGB.alphaFloat(sunriseAndSunsetColor) <= 0.0F) {
+            return false;
+        }
+
+        double sunX = Mth.sin(sunAngle) > 0.0F ? -1.0D : 1.0D;
+        return viewDirection.x * sunX >= SUN_TINT_DIRECTION_DOT_THRESHOLD_SNAPPY;
     }
 
     private static void showScreenshotMessage(@NotNull Minecraft minecraft, @NotNull Component message) {

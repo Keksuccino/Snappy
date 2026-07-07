@@ -77,6 +77,8 @@
   "snappy.capture.success": "Saved panorama screenshot to %s.",
   "snappy.capture.partial_failure": "Panorama screenshot finished, but at least one face could not be saved. Folder: %s",
   "snappy.capture.failure": "Could not take panorama screenshot: %s",
+  "snappy.capture.sun_warning.title": "Sun-facing panorama warning",
+  "snappy.capture.sun_warning.message": "Taking panorama screenshots while facing the sun can give the panorama a wrongly tinted cube face, because many shaders tint the view orange or red when facing the sun at specific times of day. Look away from the sun while taking panorama screenshots to avoid this.",
   "snappy.screenshot_browser.open": "Browse Screenshots",
   "snappy.browser.title": "Screenshots",
   "snappy.browser.grid": "Screenshots",
