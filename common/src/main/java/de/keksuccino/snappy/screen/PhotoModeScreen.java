@@ -81,7 +81,7 @@ public class PhotoModeScreen extends Screen {
     private static final int POSE_MAKER_HEADER_HEIGHT = 14;
     private static final int POSE_MAKER_NAME_LABEL_HEIGHT = 10;
     private static final int POSE_MAKER_BUTTON_GAP = 5;
-    private static final int POSE_MAKER_SPACE_PRESS_COUNT = 5;
+    private static final int POSE_MAKER_SPACE_PRESS_COUNT = 15;
     private static final int PANEL_BACKGROUND_COLOR = ARGB.color(174, 0, 0, 0);
     private static final int PANEL_ACCENT_COLOR = ARGB.color(255, 255, 209, 102);
     private static final int PANEL_BORDER_COLOR = ARGB.color(210, 116, 128, 142);
@@ -118,7 +118,7 @@ public class PhotoModeScreen extends Screen {
     private static final double POSE_MAKER_ROTATION_STEP = 1.0D;
     private static final double POSE_MAKER_MODEL_Y_OFFSET_SNAP_RADIUS = 0.08D;
     private static final double POSE_MAKER_MODEL_Y_OFFSET_STEP = 0.01D;
-    private static final long POSE_MAKER_SPACE_SEQUENCE_MILLIS = 900L;
+    private static final long POSE_MAKER_SPACE_SEQUENCE_MILLIS = 2700L;
     private static final String DEFAULT_POSE_MAKER_NAME_KEY = "snappy.photo_mode.pose.custom";
 
     private Tab selectedTab = Tab.GENERAL;
