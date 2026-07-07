@@ -14,8 +14,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinSodiumBlockRenderer {
 
     @Shadow @Final private int[] vertexColors;
-    @Shadow protected BlockState state;
-    @Shadow protected BlockPos pos;
 
     @Inject(
             method = "tintQuad",
@@ -27,7 +25,12 @@ public class MixinSodiumBlockRenderer {
             remap = false
     )
     private void after_tintQuadGetColors_Snappy(CallbackInfo ci) {
-        PhotoSeasonManager.overrideTintColors(this.state, this.pos, this.vertexColors);
+        AccessorMixinSodiumAbstractBlockRenderContext context = (AccessorMixinSodiumAbstractBlockRenderContext) (Object) this;
+        BlockState state = context.getState_Snappy();
+        BlockPos pos = context.getPos_Snappy();
+        if (state != null && pos != null) {
+            PhotoSeasonManager.overrideTintColors(state, pos, this.vertexColors);
+        }
     }
 
 }
