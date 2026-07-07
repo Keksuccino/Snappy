@@ -3,6 +3,7 @@ package de.keksuccino.snappy.photo;
 import de.keksuccino.snappy.client.render.config.BloomConfig;
 import de.keksuccino.snappy.client.render.config.ColorAdjustmentConfig;
 import de.keksuccino.snappy.client.render.config.DepthOfFieldConfig;
+import de.keksuccino.snappy.client.render.config.FilmEffectsConfig;
 import de.keksuccino.snappy.client.render.config.StylizeConfig;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
@@ -16,6 +17,7 @@ public record PhotoModeState(
         @NotNull PhotoModeColorizePreset colorizePreset,
         @NotNull ColorAdjustmentConfig colorAdjustment,
         @NotNull BloomConfig bloom,
+        @NotNull FilmEffectsConfig filmEffects,
         @NotNull StylizeConfig stylize,
         @NotNull DepthOfFieldConfig depthOfField,
         @NotNull Vec3 selfPlayerPositionOffset,

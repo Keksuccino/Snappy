@@ -96,6 +96,10 @@ public class PhotoModeScreen extends Screen {
     static final double VIGNETTE_SNAP_RADIUS = 0.05D;
     static final double BLOOM_SNAP_RADIUS = 0.03D;
     static final double BLOOM_STEP = 0.01D;
+    static final double FILM_GRAIN_SNAP_RADIUS = 0.03D;
+    static final double FILM_GRAIN_STEP = 0.01D;
+    static final double CHROMATIC_ABERRATION_SNAP_RADIUS = 0.03D;
+    static final double CHROMATIC_ABERRATION_STEP = 0.01D;
     static final double COLOR_ADJUSTMENT_SNAP_RADIUS = 0.03D;
     static final double COLOR_ADJUSTMENT_STEP = 0.01D;
     static final double PLAYER_POSITION_OFFSET_MIN = -5.0D;
@@ -1345,7 +1349,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     private enum Tab {
-        GENERAL(GENERAL_ICON, "snappy.photo_mode.tab.general", 313, new PhotoModeGeneralTabPanel()),
+        GENERAL(GENERAL_ICON, "snappy.photo_mode.tab.general", 363, new PhotoModeGeneralTabPanel()),
         LENS(LENS_ICON, "snappy.photo_mode.tab.lens", 138, new PhotoModeLensTabPanel()),
         PLAYER(PLAYER_ICON, "snappy.photo_mode.tab.player", 313, new PhotoModeActorAppearancePanel()),
         WORLD(WORLD_ICON, "snappy.photo_mode.tab.world", 238, new PhotoModeEnvironmentPanel());

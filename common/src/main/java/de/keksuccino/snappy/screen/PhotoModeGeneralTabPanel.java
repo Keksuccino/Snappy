@@ -121,21 +121,47 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
                 value -> active.setOverexposure((float) value)
         );
 
-        PhotoModeSlider bloomSlider = screen.addTabControl(new PhotoModeSlider(
-                0,
-                0,
+        this.addPercentEffectSlider(
+                screen,
                 width,
-                PhotoModeScreen.CONTROL_HEIGHT,
+                "snappy.photo_mode.bloom",
+                "snappy.photo_mode.bloom.desc",
                 PhotoModeManager.BLOOM_MIN,
                 PhotoModeManager.BLOOM_MAX,
                 active.bloom(),
                 PhotoModeManager.BLOOM_DEFAULT,
                 PhotoModeScreen.BLOOM_SNAP_RADIUS,
                 PhotoModeScreen.BLOOM_STEP,
-                value -> active.setBloom((float) value),
-                value -> PhotoModeScreen.optionMessage("snappy.photo_mode.bloom", Component.translatable("snappy.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(PhotoModeScreen.VALUE_COLOR)))
-        ));
-        bloomSlider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.bloom.desc")));
+                value -> active.setBloom((float) value)
+        );
+
+        this.addPercentEffectSlider(
+                screen,
+                width,
+                "snappy.photo_mode.film_grain",
+                "snappy.photo_mode.film_grain.desc",
+                PhotoModeManager.FILM_GRAIN_MIN,
+                PhotoModeManager.FILM_GRAIN_MAX,
+                active.filmGrain(),
+                PhotoModeManager.FILM_GRAIN_DEFAULT,
+                PhotoModeScreen.FILM_GRAIN_SNAP_RADIUS,
+                PhotoModeScreen.FILM_GRAIN_STEP,
+                value -> active.setFilmGrain((float) value)
+        );
+
+        this.addPercentEffectSlider(
+                screen,
+                width,
+                "snappy.photo_mode.chromatic_aberration",
+                "snappy.photo_mode.chromatic_aberration.desc",
+                PhotoModeManager.CHROMATIC_ABERRATION_MIN,
+                PhotoModeManager.CHROMATIC_ABERRATION_MAX,
+                active.chromaticAberration(),
+                PhotoModeManager.CHROMATIC_ABERRATION_DEFAULT,
+                PhotoModeScreen.CHROMATIC_ABERRATION_SNAP_RADIUS,
+                PhotoModeScreen.CHROMATIC_ABERRATION_STEP,
+                value -> active.setChromaticAberration((float) value)
+        );
 
         screen.colorizeButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
             active.setColorizePreset(active.colorizePreset().next());
@@ -172,6 +198,36 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
                 PhotoModeScreen.COLOR_ADJUSTMENT_STEP,
                 valueConsumer,
                 value -> PhotoModeScreen.optionMessage(labelKey, PhotoModeScreen.signedPercentValue(value))
+        ));
+        slider.setTooltip(Tooltip.create(Component.translatable(tooltipKey)));
+    }
+
+    private void addPercentEffectSlider(
+            @NotNull PhotoModeScreen screen,
+            int width,
+            @NotNull String labelKey,
+            @NotNull String tooltipKey,
+            float minValue,
+            float maxValue,
+            float currentValue,
+            float defaultValue,
+            double snapRadius,
+            double actualStep,
+            @NotNull DoubleConsumer valueConsumer
+    ) {
+        PhotoModeSlider slider = screen.addTabControl(new PhotoModeSlider(
+                0,
+                0,
+                width,
+                PhotoModeScreen.CONTROL_HEIGHT,
+                minValue,
+                maxValue,
+                currentValue,
+                defaultValue,
+                snapRadius,
+                actualStep,
+                valueConsumer,
+                value -> PhotoModeScreen.optionMessage(labelKey, Component.translatable("snappy.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(PhotoModeScreen.VALUE_COLOR)))
         ));
         slider.setTooltip(Tooltip.create(Component.translatable(tooltipKey)));
     }

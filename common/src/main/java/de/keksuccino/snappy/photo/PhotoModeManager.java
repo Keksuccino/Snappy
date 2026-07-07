@@ -14,6 +14,7 @@ import de.keksuccino.snappy.client.render.VisualLightningStormManager;
 import de.keksuccino.snappy.client.render.config.BloomConfig;
 import de.keksuccino.snappy.client.render.config.ColorAdjustmentConfig;
 import de.keksuccino.snappy.client.render.config.DepthOfFieldConfig;
+import de.keksuccino.snappy.client.render.config.FilmEffectsConfig;
 import de.keksuccino.snappy.client.render.config.StylizeConfig;
 import de.keksuccino.snappy.metadata.ScreenshotMetadataManager;
 import de.keksuccino.snappy.photo.PhotoPoseManager.PoseEntry;
@@ -91,6 +92,12 @@ public final class PhotoModeManager {
     public static final float BLOOM_MIN = 0.0F;
     public static final float BLOOM_MAX = 1.0F;
     public static final float BLOOM_DEFAULT = 0.0F;
+    public static final float FILM_GRAIN_MIN = 0.0F;
+    public static final float FILM_GRAIN_MAX = 1.0F;
+    public static final float FILM_GRAIN_DEFAULT = 0.0F;
+    public static final float CHROMATIC_ABERRATION_MIN = 0.0F;
+    public static final float CHROMATIC_ABERRATION_MAX = 1.0F;
+    public static final float CHROMATIC_ABERRATION_DEFAULT = 0.0F;
     public static final double PHOTO_FOG_MIN_DISTANCE = PhotoEnvironmentManager.PHOTO_FOG_MIN_DISTANCE;
     public static final double PHOTO_FOG_MAX_DISTANCE = PhotoEnvironmentManager.PHOTO_FOG_MAX_DISTANCE;
     public static final double PHOTO_FOG_DEFAULT_DISTANCE = PhotoEnvironmentManager.PHOTO_FOG_DEFAULT_DISTANCE;
@@ -127,6 +134,7 @@ public final class PhotoModeManager {
         PhotoModeDepthOfFieldRenderer.close();
         PhotoModeColorAdjustmentRenderer.close();
         PhotoModeBloomRenderer.close();
+        PhotoModeFilmEffectsRenderer.close();
         PhotoModeStylizeRenderer.close();
         session = null;
         PhotoEnvironmentManager.reset(Minecraft.getInstance());
@@ -419,6 +427,19 @@ public final class PhotoModeManager {
         PhotoModeBloomRenderer.process(mainRenderTarget, resourceAllocator, active.bloomConfig());
     }
 
+    public static void processFilmEffects(
+            @NotNull Minecraft minecraft,
+            @NotNull RenderTarget mainRenderTarget,
+            @NotNull GraphicsResourceAllocator resourceAllocator
+    ) {
+        Session active = session;
+        if (active == null || minecraft.level == null || !active.hasFilmEffects()) {
+            return;
+        }
+
+        PhotoModeFilmEffectsRenderer.process(mainRenderTarget, resourceAllocator, active.filmEffectsConfig());
+    }
+
     public static void processStylizeEffect(
             @NotNull Minecraft minecraft,
             @NotNull RenderTarget mainRenderTarget,
@@ -697,6 +718,8 @@ public final class PhotoModeManager {
         private float contrast = CONTRAST_DEFAULT;
         private float overexposure = OVEREXPOSURE_DEFAULT;
         private float bloom = BLOOM_DEFAULT;
+        private float filmGrain = FILM_GRAIN_DEFAULT;
+        private float chromaticAberration = CHROMATIC_ABERRATION_DEFAULT;
         private boolean depthOfFieldEnabled;
         private float depthOfFieldFocusDistance = DEPTH_OF_FIELD_FOCUS_DISTANCE_DEFAULT;
         private float depthOfFieldFocalLength = DEPTH_OF_FIELD_FOCAL_LENGTH_DEFAULT;
@@ -784,6 +807,8 @@ public final class PhotoModeManager {
             this.contrast = CONTRAST_DEFAULT;
             this.overexposure = OVEREXPOSURE_DEFAULT;
             this.bloom = BLOOM_DEFAULT;
+            this.filmGrain = FILM_GRAIN_DEFAULT;
+            this.chromaticAberration = CHROMATIC_ABERRATION_DEFAULT;
             this.depthOfFieldEnabled = false;
             this.depthOfFieldFocusDistance = DEPTH_OF_FIELD_FOCUS_DISTANCE_DEFAULT;
             this.depthOfFieldFocalLength = DEPTH_OF_FIELD_FOCAL_LENGTH_DEFAULT;
@@ -864,6 +889,7 @@ public final class PhotoModeManager {
                     this.colorizePreset,
                     this.colorAdjustmentConfig(),
                     this.bloomConfig(),
+                    this.filmEffectsConfig(),
                     this.stylizeConfig(),
                     this.depthOfFieldConfig(),
                     this.selfPlayerPositionOffset,
@@ -986,12 +1012,32 @@ public final class PhotoModeManager {
             this.bloom = Mth.clamp(bloom, BLOOM_MIN, BLOOM_MAX);
         }
 
+        public float filmGrain() {
+            return this.filmGrain;
+        }
+
+        public void setFilmGrain(float filmGrain) {
+            this.filmGrain = Mth.clamp(filmGrain, FILM_GRAIN_MIN, FILM_GRAIN_MAX);
+        }
+
+        public float chromaticAberration() {
+            return this.chromaticAberration;
+        }
+
+        public void setChromaticAberration(float chromaticAberration) {
+            this.chromaticAberration = Mth.clamp(chromaticAberration, CHROMATIC_ABERRATION_MIN, CHROMATIC_ABERRATION_MAX);
+        }
+
         public boolean hasColorAdjustments() {
             return this.colorAdjustmentConfig().active();
         }
 
         public boolean hasBloom() {
             return this.bloomConfig().active();
+        }
+
+        public boolean hasFilmEffects() {
+            return this.filmEffectsConfig().active();
         }
 
         @NotNull
@@ -1002,6 +1048,11 @@ public final class PhotoModeManager {
         @NotNull
         public BloomConfig bloomConfig() {
             return new BloomConfig(this.bloom);
+        }
+
+        @NotNull
+        public FilmEffectsConfig filmEffectsConfig() {
+            return new FilmEffectsConfig(this.filmGrain, this.chromaticAberration);
         }
 
         @NotNull
