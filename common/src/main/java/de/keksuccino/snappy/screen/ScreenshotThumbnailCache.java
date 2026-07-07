@@ -6,6 +6,8 @@ import de.keksuccino.snappy.screen.ScreenshotImageLoader.LoadedImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,6 +18,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public final class ScreenshotThumbnailCache implements AutoCloseable {
 
+    private static final Logger LOGGER = LogManager.getLogger();
     private static final String TEXTURE_PATH = "dynamic/screenshot_browser/thumbnail/";
     private static final int MAX_MAIN_THREAD_COMPLETIONS_PER_FRAME = 2;
     private static int textureSequence;
@@ -113,7 +116,7 @@ public final class ScreenshotThumbnailCache implements AutoCloseable {
         if (error != null || imageBytes == null) {
             state.status = Status.FAILED;
             if (error != null) {
-                Snappy.getLogger().warn("[SNAPPY] Could not load screenshot thumbnail {}.", entry.path(), error);
+                LOGGER.warn("[SNAPPY] Could not load screenshot thumbnail {}.", entry.path(), error);
             }
             return;
         }
@@ -141,7 +144,7 @@ public final class ScreenshotThumbnailCache implements AutoCloseable {
                 loadedImage.image().close();
             }
             state.status = Status.FAILED;
-            Snappy.getLogger().warn("[SNAPPY] Could not upload screenshot thumbnail {}.", entry.path(), ex);
+            LOGGER.warn("[SNAPPY] Could not upload screenshot thumbnail {}.", entry.path(), ex);
         }
     }
 

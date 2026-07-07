@@ -32,10 +32,6 @@ public class Snappy {
 
     }
 
-    public static Logger getLogger() {
-        return LOGGER;
-    }
-
     public static void updateOptions() {
         options = new Options();
     }

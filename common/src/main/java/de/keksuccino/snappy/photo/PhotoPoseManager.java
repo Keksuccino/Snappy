@@ -5,12 +5,13 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import de.keksuccino.snappy.Snappy;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.GsonHelper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,6 +23,7 @@ import java.util.Map;
 
 public final class PhotoPoseManager {
 
+    private static final Logger LOGGER = LogManager.getLogger();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String POSE_DIRECTORY = "photo_poses";
     private static final String NAME_KEY = "name";
@@ -91,7 +93,7 @@ public final class PhotoPoseManager {
             try (Reader reader = entry.getValue().openAsReader()) {
                 loadedPoses.add(new PoseEntry(toPoseId(resourceId), parseRoot(JsonParser.parseReader(reader))));
             } catch (Exception ex) {
-                Snappy.getLogger().warn("[SNAPPY] Could not load photo pose '{}'.", resourceId, ex);
+                LOGGER.warn("[SNAPPY] Could not load photo pose '{}'.", resourceId, ex);
             }
         }
 

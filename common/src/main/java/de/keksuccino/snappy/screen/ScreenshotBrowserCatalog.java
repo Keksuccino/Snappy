@@ -1,11 +1,12 @@
 package de.keksuccino.snappy.screen;
 
-import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.menu.MenuBackgroundSelectionManager;
 import de.keksuccino.snappy.metadata.ScreenshotMetadataManager;
 import de.keksuccino.snappy.storage.PanoramaScanner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -28,6 +29,7 @@ import java.util.Set;
 
 public final class ScreenshotBrowserCatalog {
 
+    private static final Logger LOGGER = LogManager.getLogger();
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private ScreenshotBrowserCatalog() {
@@ -60,7 +62,7 @@ public final class ScreenshotBrowserCatalog {
                 deleted++;
             } catch (IOException ex) {
                 failed++;
-                Snappy.getLogger().warn("[SNAPPY] Could not delete screenshot {}.", entry.path(), ex);
+                LOGGER.warn("[SNAPPY] Could not delete screenshot {}.", entry.path(), ex);
             }
         }
 
@@ -90,7 +92,7 @@ public final class ScreenshotBrowserCatalog {
                 }
             }
         } catch (IOException ex) {
-            Snappy.getLogger().warn("[SNAPPY] Could not scan normal screenshot folder {}.", root, ex);
+            LOGGER.warn("[SNAPPY] Could not scan normal screenshot folder {}.", root, ex);
         }
     }
 
@@ -112,7 +114,7 @@ public final class ScreenshotBrowserCatalog {
                 }
             }
         } catch (IOException ex) {
-            Snappy.getLogger().warn("[SNAPPY] Could not scan panorama screenshot folder {}.", root, ex);
+            LOGGER.warn("[SNAPPY] Could not scan panorama screenshot folder {}.", root, ex);
         }
     }
 

@@ -6,7 +6,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
-import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.util.file.GameDirectoryUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
@@ -18,6 +17,8 @@ import net.minecraft.util.Util;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.storage.LevelResource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,6 +41,7 @@ import java.util.Optional;
 
 public final class ScreenshotMetadataManager {
 
+    private static final Logger LOGGER = LogManager.getLogger();
     public static final String METADATA_FILE_NAME = "screenshot_metadata.json";
     private static final int FORMAT_VERSION = 1;
     private static final long TICKS_PER_DAY = 24_000L;
@@ -262,7 +264,7 @@ public final class ScreenshotMetadataManager {
                 }
             }
         } catch (Exception ex) {
-            Snappy.getLogger().warn("[SNAPPY] Could not read screenshot metadata from {}.", metadataFile, ex);
+            LOGGER.warn("[SNAPPY] Could not read screenshot metadata from {}.", metadataFile, ex);
         }
     }
 
@@ -298,7 +300,7 @@ public final class ScreenshotMetadataManager {
                 Files.move(temporaryFile, metadataFile, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException ex) {
-            Snappy.getLogger().warn("[SNAPPY] Could not write screenshot metadata to {}.", metadataFile, ex);
+            LOGGER.warn("[SNAPPY] Could not write screenshot metadata to {}.", metadataFile, ex);
         }
     }
 

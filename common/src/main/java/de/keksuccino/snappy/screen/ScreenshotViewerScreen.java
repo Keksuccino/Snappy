@@ -30,6 +30,8 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,6 +40,7 @@ import java.util.List;
 
 public class ScreenshotViewerScreen extends Screen {
 
+    private static final Logger LOGGER = LogManager.getLogger();
     private static final String TEXTURE_PATH = "dynamic/screenshot_browser/viewer/";
     private static final int BUTTON_GAP = 6;
     private static final int NAVIGATION_BUTTON_GAP = 20;
@@ -469,7 +472,7 @@ public class ScreenshotViewerScreen extends Screen {
         this.loadStatus = LoadStatus.FAILED;
         this.statusMessage = Component.translatable("snappy.viewer.load_failed");
         if (error != null) {
-            Snappy.getLogger().warn("[SNAPPY] Could not load screenshot {}.", entry.path(), error);
+            LOGGER.warn("[SNAPPY] Could not load screenshot {}.", entry.path(), error);
         }
     }
 

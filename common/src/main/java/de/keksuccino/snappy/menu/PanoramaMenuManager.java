@@ -8,6 +8,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,6 +18,7 @@ import java.util.List;
 
 public final class PanoramaMenuManager {
 
+    private static final Logger LOGGER = LogManager.getLogger();
     private static final Identifier VANILLA_PANORAMA_BASE = Identifier.withDefaultNamespace("textures/gui/title/background/panorama");
     private static final Identifier DYNAMIC_PANORAMA_ID = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "dynamic/menu_panorama");
     private static final long SCAN_INTERVAL_MS = 5_000L;
@@ -63,7 +66,7 @@ public final class PanoramaMenuManager {
             } catch (Exception ex) {
                 failedFolder = selectedFolder;
                 releaseRegisteredTexture(minecraft);
-                Snappy.getLogger().warn("[SNAPPY] Could not load menu panorama from {}.", selectedFolder, ex);
+                LOGGER.warn("[SNAPPY] Could not load menu panorama from {}.", selectedFolder, ex);
                 return null;
             }
         }

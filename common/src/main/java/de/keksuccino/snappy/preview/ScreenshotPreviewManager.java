@@ -24,6 +24,8 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,6 +37,7 @@ import java.util.Optional;
 
 public final class ScreenshotPreviewManager {
 
+    private static final Logger LOGGER = LogManager.getLogger();
     private static final String VANILLA_SCREENSHOT_SUCCESS_KEY = "screenshot.success";
     private static final String SNAPPY_SCREENSHOT_SUCCESS_KEY = "snappy.capture.success";
     private static final int PREVIEW_WIDTH = 150;
@@ -86,7 +89,7 @@ public final class ScreenshotPreviewManager {
             int previewHeight = Math.max(1, Math.round(NORMAL_TEXTURE_WIDTH * (sourceImage.getHeight() / (float) sourceImage.getWidth())));
             previewImage = ImageProcessingUtils.resizeBilinear(sourceImage, NORMAL_TEXTURE_WIDTH, previewHeight);
         } catch (Exception ex) {
-            Snappy.getLogger().warn("[SNAPPY] Could not prepare normal screenshot preview.", ex);
+            LOGGER.warn("[SNAPPY] Could not prepare normal screenshot preview.", ex);
             return;
         }
 
@@ -115,7 +118,7 @@ public final class ScreenshotPreviewManager {
         try {
             previewFace = ImageProcessingUtils.resizeBilinear(sourceImage, PANORAMA_FACE_SIZE, PANORAMA_FACE_SIZE);
         } catch (Exception ex) {
-            Snappy.getLogger().warn("[SNAPPY] Could not prepare panorama preview face {}.", face, ex);
+            LOGGER.warn("[SNAPPY] Could not prepare panorama preview face {}.", face, ex);
             return;
         }
 
@@ -282,7 +285,7 @@ public final class ScreenshotPreviewManager {
             } else {
                 previewImage.close();
             }
-            Snappy.getLogger().warn("[SNAPPY] Could not upload normal screenshot preview.", ex);
+            LOGGER.warn("[SNAPPY] Could not upload normal screenshot preview.", ex);
         }
     }
 
@@ -297,7 +300,7 @@ public final class ScreenshotPreviewManager {
             setCurrentPreview_Snappy(new PanoramaPreview(texture, Util.getMillis()));
         } catch (Exception ex) {
             closeImages_Snappy(faces);
-            Snappy.getLogger().warn("[SNAPPY] Could not upload panorama screenshot preview.", ex);
+            LOGGER.warn("[SNAPPY] Could not upload panorama screenshot preview.", ex);
         }
     }
 
@@ -510,7 +513,7 @@ public final class ScreenshotPreviewManager {
                 );
                 return true;
             } catch (Exception ex) {
-                Snappy.getLogger().warn("[SNAPPY] Could not render panorama screenshot preview.", ex);
+                LOGGER.warn("[SNAPPY] Could not render panorama screenshot preview.", ex);
                 return false;
             }
         }

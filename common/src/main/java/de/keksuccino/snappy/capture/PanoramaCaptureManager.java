@@ -32,6 +32,8 @@ import net.minecraft.util.Util;
 import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.phys.Vec3;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,6 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class PanoramaCaptureManager {
 
+    private static final Logger LOGGER = LogManager.getLogger();
     private static final SystemToast.SystemToastId PANORAMA_SUN_WARNING_TOAST_ID_SNAPPY = new SystemToast.SystemToastId(25_000L);
     private static final double SUN_DISC_DOT_THRESHOLD_SNAPPY = 0.95D;
     private static final double SUN_TINT_DIRECTION_DOT_THRESHOLD_SNAPPY = 0.75D;
@@ -89,7 +92,7 @@ public final class PanoramaCaptureManager {
             outputDirectory = createOutputDirectory(minecraft);
         } catch (IOException ex) {
             captureInProgress = false;
-            Snappy.getLogger().warn("[SNAPPY] Could not create panorama screenshot folder.", ex);
+            LOGGER.warn("[SNAPPY] Could not create panorama screenshot folder.", ex);
             showScreenshotMessage(minecraft, Component.translatable("snappy.capture.failure", ex.getMessage()));
             return;
         }
@@ -106,7 +109,7 @@ public final class PanoramaCaptureManager {
             activeSession = null;
             activeDimensions = null;
             ScreenshotPreviewManager.finishPanoramaCapture();
-            Snappy.getLogger().error("[SNAPPY] Could not capture panorama.", ex);
+            LOGGER.error("[SNAPPY] Could not capture panorama.", ex);
             showScreenshotMessage(minecraft, Component.translatable("snappy.capture.failure", ex.getMessage()));
         }
     }
@@ -267,13 +270,13 @@ public final class PanoramaCaptureManager {
                 } catch (Exception ex) {
                     session.fail();
                     image.close();
-                    Snappy.getLogger().warn("[SNAPPY] Could not process panorama face {}.", face, ex);
+                    LOGGER.warn("[SNAPPY] Could not process panorama face {}.", face, ex);
                     session.finishFace();
                 }
             });
         } catch (Exception ex) {
             session.fail();
-            Snappy.getLogger().warn("[SNAPPY] Could not copy panorama face {}.", face, ex);
+            LOGGER.warn("[SNAPPY] Could not copy panorama face {}.", face, ex);
             session.finishFace();
         }
     }
@@ -287,7 +290,7 @@ public final class PanoramaCaptureManager {
             closableImage.writeToFile(session.outputDirectory.resolve("panorama_" + face + ".png"));
         } catch (Exception ex) {
             session.fail();
-            Snappy.getLogger().warn("[SNAPPY] Could not save panorama face {}.", face, ex);
+            LOGGER.warn("[SNAPPY] Could not save panorama face {}.", face, ex);
         } finally {
             session.finishFace();
         }

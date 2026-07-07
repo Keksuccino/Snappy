@@ -1,8 +1,9 @@
 package de.keksuccino.snappy.photo;
 
-import de.keksuccino.snappy.Snappy;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.PointerBuffer;
@@ -18,6 +19,7 @@ import java.util.Locale;
 
 public final class PhotoPoseExporter {
 
+    private static final Logger LOGGER = LogManager.getLogger();
     private static final String JSON_EXTENSION = ".json";
     private static final String JSON_FILE_FILTER_PATTERN = "*" + JSON_EXTENSION;
     private static final String JSON_UTI_FILTER_PATTERN = "*.public.json";
@@ -44,7 +46,7 @@ public final class PhotoPoseExporter {
             }
             minecraft.showDebugChat(Component.translatable("snappy.photo_mode.pose_maker.save.success", targetPath.toAbsolutePath().toString()));
         } catch (IOException ex) {
-            Snappy.getLogger().warn("[SNAPPY] Could not save photo pose '{}'.", targetPath, ex);
+            LOGGER.warn("[SNAPPY] Could not save photo pose '{}'.", targetPath, ex);
             minecraft.showDebugChat(Component.translatable("snappy.photo_mode.pose_maker.save.failure", ex.getMessage()));
         }
     }
@@ -62,7 +64,7 @@ public final class PhotoPoseExporter {
             minecraft.showDebugChat(Component.translatable("snappy.photo_mode.pose_maker.load.success", selectedPath.toAbsolutePath().toString()));
             return pose;
         } catch (Exception ex) {
-            Snappy.getLogger().warn("[SNAPPY] Could not load photo pose '{}'.", selectedPath, ex);
+            LOGGER.warn("[SNAPPY] Could not load photo pose '{}'.", selectedPath, ex);
             minecraft.showDebugChat(Component.translatable("snappy.photo_mode.pose_maker.load.failure", ex.getMessage()));
             return null;
         }

@@ -6,11 +6,12 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.storage.PanoramaScanner;
 import de.keksuccino.snappy.util.file.GameDirectoryUtils;
 import net.minecraft.client.Screenshot;
 import net.minecraft.util.Util;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,6 +31,7 @@ import java.util.Set;
 
 public final class MenuBackgroundSelectionManager {
 
+    private static final Logger LOGGER = LogManager.getLogger();
     public static final String SELECTION_FILE_NAME = "menu_background_selection.json";
     private static final int FORMAT_VERSION = 1;
     private static final long VALIDATION_INTERVAL_MS = 5_000L;
@@ -151,7 +153,7 @@ public final class MenuBackgroundSelectionManager {
                 }
             }
         } catch (Exception ex) {
-            Snappy.getLogger().warn("[SNAPPY] Could not read menu background selection from {}.", selectionFile, ex);
+            LOGGER.warn("[SNAPPY] Could not read menu background selection from {}.", selectionFile, ex);
         }
     }
 
@@ -163,7 +165,7 @@ public final class MenuBackgroundSelectionManager {
         try {
             selectedPanoramas.add(normalizeKey(Path.of(key)));
         } catch (InvalidPathException ex) {
-            Snappy.getLogger().warn("[SNAPPY] Ignoring invalid menu background panorama path '{}'.", key);
+            LOGGER.warn("[SNAPPY] Ignoring invalid menu background panorama path '{}'.", key);
         }
     }
 
@@ -189,7 +191,7 @@ public final class MenuBackgroundSelectionManager {
                 Files.move(temporaryFile, selectionFile, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException ex) {
-            Snappy.getLogger().warn("[SNAPPY] Could not write menu background selection to {}.", selectionFile, ex);
+            LOGGER.warn("[SNAPPY] Could not write menu background selection to {}.", selectionFile, ex);
         }
     }
 

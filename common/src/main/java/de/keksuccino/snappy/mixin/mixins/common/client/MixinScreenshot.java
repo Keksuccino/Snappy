@@ -16,6 +16,8 @@ import net.minecraft.client.Screenshot;
 import net.minecraft.network.chat.ClickEvent.OpenFile;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -28,6 +30,9 @@ import java.util.function.Consumer;
 
 @Mixin(Screenshot.class)
 public class MixinScreenshot {
+
+    @Unique
+    private static final Logger LOGGER_SNAPPY = LogManager.getLogger();
 
     @WrapOperation(method = "grab(Lnet/minecraft/client/Minecraft;Z)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Screenshot;grab(Ljava/io/File;Lcom/mojang/blaze3d/pipeline/RenderTarget;Ljava/util/function/Consumer;)V"))
     private static void wrap_grabNormalScreenshot_Snappy(
@@ -93,7 +98,7 @@ public class MixinScreenshot {
                             .withStyle(style -> style.withClickEvent(new OpenFile(file.getAbsoluteFile())));
                     callback.accept(Component.translatable("screenshot.success", component));
                 } catch (Exception ex) {
-                    Snappy.getLogger().warn("[SNAPPY] Could not save screenshot.", ex);
+                    LOGGER_SNAPPY.warn("[SNAPPY] Could not save screenshot.", ex);
                     callback.accept(Component.translatable("screenshot.failure", ex.getMessage()));
                 }
             });
