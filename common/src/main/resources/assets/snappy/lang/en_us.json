@@ -55,7 +55,7 @@
   "snappy.options.preview_mode.desc": "Chooses which screenshot types show a small preview in the top-left corner for 10 seconds after capture.",
   "snappy.options.preview_mode.both": "Panoramas & Normal Screenshots",
   "snappy.options.preview_mode.panoramas_only": "Only Panoramas",
-  "snappy.options.preview_mode.normal_only": "Show Only Normal Screenshots",
+  "snappy.options.preview_mode.normal_only": "Only Normal Screenshots",
   "snappy.options.preview_mode.disabled": "No Preview",
   "snappy.options.screenshot_chat_messages": "Screenshot Chat Messages: %s",
   "snappy.options.screenshot_chat_messages.desc": "Shows or hides chat messages from normal and panorama screenshots. Screenshots are still saved either way.",

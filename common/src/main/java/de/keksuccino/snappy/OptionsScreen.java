@@ -653,8 +653,8 @@ public class OptionsScreen extends Screen {
             OptionsScreen.this.updateOptionButtonWidths();
             int topY = Math.max(screenRectangle.top() + 4, Math.min(50, screenRectangle.bottom() - BUTTON_HEIGHT));
             this.scrollableLayout.setMinWidth(OptionsScreen.this.getButtonWidth());
-            this.scrollableLayout.setMaxHeight(Math.max(BUTTON_HEIGHT, screenRectangle.bottom() - topY));
             this.scrollableLayout.arrangeElements();
+            this.scrollableLayout.setMaxHeight(Math.max(BUTTON_HEIGHT, screenRectangle.bottom() - topY));
             this.scrollableLayout.setPosition((OptionsScreen.this.width - this.scrollableLayout.getWidth()) / 2, topY);
         }
 
