@@ -21,6 +21,8 @@ description='''${mod_description}'''
 [[mixins]]
 config = "${mod_id}.mixins.json"
 [[mixins]]
+config = "${mod_id}.sodium_compat.mixins.json"
+[[mixins]]
 config = "${mod_id}.neoforge.mixins.json"
 
 [[dependencies.${mod_id}]]

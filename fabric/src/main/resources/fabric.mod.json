@@ -25,6 +25,7 @@
   },
   "mixins": [
     "${mod_id}.mixins.json",
+    "${mod_id}.sodium_compat.mixins.json",
     "${mod_id}.fabric.mixins.json"
   ],
   "depends": {
