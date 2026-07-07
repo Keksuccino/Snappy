@@ -108,7 +108,7 @@ final class PhotoModeStylizeRenderer {
     }
 
     private static void drawStylizePass(@NotNull Resources renderResources, @NotNull RenderTarget source, @NotNull RenderTarget output) {
-        ShaderEffectPass.drawScreenQuad(
+        ShaderEffectPass.drawSingleSamplerPass(
                 "Snappy photo stylize",
                 renderResources.postProjectionMatrixBuffer,
                 renderResources.samplerInfoBuffer,

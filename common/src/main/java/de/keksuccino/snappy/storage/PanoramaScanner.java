@@ -20,12 +20,16 @@ public final class PanoramaScanner {
     }
 
     public static boolean isValidPanoramaFolder(@NotNull Path folder) {
-        if (!Files.isDirectory(folder, LinkOption.NOFOLLOW_LINKS)) {
+        return isValidPanoramaFolder(folder, LinkPolicy.NOFOLLOW_LINKS);
+    }
+
+    public static boolean isValidPanoramaFolder(@NotNull Path folder, @NotNull LinkPolicy linkPolicy) {
+        if (!Files.isDirectory(folder, linkPolicy.options())) {
             return false;
         }
 
         for (int face = 0; face < PANORAMA_FACE_COUNT; face++) {
-            if (!Files.isRegularFile(facePath(folder, face), LinkOption.NOFOLLOW_LINKS)) {
+            if (!Files.isRegularFile(facePath(folder, face), linkPolicy.options())) {
                 return false;
             }
         }
@@ -35,23 +39,36 @@ public final class PanoramaScanner {
 
     @NotNull
     public static List<Path> scanPanoramaFolders(Path @NotNull ... roots) {
+        return scanPanoramaFolders(LinkPolicy.NOFOLLOW_LINKS, ModifiedTimePolicy.FOLDER_AND_FACES, roots);
+    }
+
+    @NotNull
+    public static List<Path> scanPanoramaFolders(
+            @NotNull LinkPolicy linkPolicy,
+            @NotNull ModifiedTimePolicy modifiedTimePolicy,
+            Path @NotNull ... roots
+    ) {
         List<Path> panoramas = new ArrayList<>();
         for (Path root : roots) {
-            addPanoramaFolders(root, panoramas);
+            addPanoramaFolders(root, panoramas, linkPolicy);
         }
-        panoramas.sort(Comparator.comparingLong(PanoramaScanner::panoramaModifiedMillis).thenComparing(Path::toString));
+        panoramas.sort(Comparator.comparingLong((Path path) -> panoramaModifiedMillis(path, linkPolicy, modifiedTimePolicy)).thenComparing(Path::toString));
         return List.copyOf(panoramas);
     }
 
     public static void addPanoramaFolders(@NotNull Path root, @NotNull List<Path> result) {
-        if (!Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS)) {
+        addPanoramaFolders(root, result, LinkPolicy.NOFOLLOW_LINKS);
+    }
+
+    public static void addPanoramaFolders(@NotNull Path root, @NotNull List<Path> result, @NotNull LinkPolicy linkPolicy) {
+        if (!Files.isDirectory(root, linkPolicy.options())) {
             return;
         }
 
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(root)) {
             for (Path path : stream) {
                 Path normalized = path.toAbsolutePath().normalize();
-                if (isValidPanoramaFolder(normalized) && !result.contains(normalized)) {
+                if (isValidPanoramaFolder(normalized, linkPolicy) && !result.contains(normalized)) {
                     result.add(normalized);
                 }
             }
@@ -61,16 +78,31 @@ public final class PanoramaScanner {
     }
 
     public static long panoramaModifiedMillis(@NotNull Path folder) {
-        long modified = lastModifiedMillis(folder);
+        return panoramaModifiedMillis(folder, LinkPolicy.NOFOLLOW_LINKS, ModifiedTimePolicy.FOLDER_AND_FACES);
+    }
+
+    public static long panoramaModifiedMillis(
+            @NotNull Path folder,
+            @NotNull LinkPolicy linkPolicy,
+            @NotNull ModifiedTimePolicy modifiedTimePolicy
+    ) {
+        long modified = lastModifiedMillis(folder, linkPolicy);
+        if (modifiedTimePolicy == ModifiedTimePolicy.FOLDER_ONLY) {
+            return modified;
+        }
         for (int face = 0; face < PANORAMA_FACE_COUNT; face++) {
-            modified = Math.max(modified, lastModifiedMillis(facePath(folder, face)));
+            modified = Math.max(modified, lastModifiedMillis(facePath(folder, face), linkPolicy));
         }
         return modified;
     }
 
     public static long lastModifiedMillis(@NotNull Path path) {
+        return lastModifiedMillis(path, LinkPolicy.NOFOLLOW_LINKS);
+    }
+
+    public static long lastModifiedMillis(@NotNull Path path, @NotNull LinkPolicy linkPolicy) {
         try {
-            return Files.getLastModifiedTime(path, LinkOption.NOFOLLOW_LINKS).toMillis();
+            return Files.getLastModifiedTime(path, linkPolicy.options()).toMillis();
         } catch (IOException ex) {
             return 0L;
         }
@@ -79,6 +111,26 @@ public final class PanoramaScanner {
     @NotNull
     public static Path facePath(@NotNull Path folder, int face) {
         return folder.resolve("panorama_" + face + ".png");
+    }
+
+    public enum LinkPolicy {
+        FOLLOW_LINKS,
+        NOFOLLOW_LINKS(LinkOption.NOFOLLOW_LINKS);
+
+        private final LinkOption[] options;
+
+        LinkPolicy(LinkOption... options) {
+            this.options = options;
+        }
+
+        private LinkOption[] options() {
+            return this.options;
+        }
+    }
+
+    public enum ModifiedTimePolicy {
+        FOLDER_ONLY,
+        FOLDER_AND_FACES
     }
 
 }

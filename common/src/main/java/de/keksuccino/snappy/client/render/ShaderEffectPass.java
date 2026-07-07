@@ -87,15 +87,12 @@ public final class ShaderEffectPass {
     public static void drawScreenQuad(
             @NotNull String label,
             @NotNull ProjectionMatrixBuffer projectionMatrixBuffer,
-            @NotNull MappableRingBuffer samplerInfoBuffer,
             @NotNull RenderPipeline pipeline,
-            @NotNull RenderTarget source,
             @NotNull RenderTarget output,
-            @NotNull Consumer<RenderPass> customUniformBinder
+            @NotNull Consumer<RenderPass> uniformAndTextureBinder
     ) {
-        GpuTextureView sourceColor = source.getColorTextureView();
         GpuTextureView outputColor = output.getColorTextureView();
-        if (sourceColor == null || outputColor == null) {
+        if (outputColor == null) {
             return;
         }
 
@@ -113,13 +110,33 @@ public final class ShaderEffectPass {
         )) {
             renderPass.setPipeline(pipeline);
             RenderSystem.bindDefaultUniforms(renderPass);
-            renderPass.setUniform("SamplerInfo", samplerInfoBuffer.currentBuffer());
-            customUniformBinder.accept(renderPass);
-            renderPass.bindTexture("InSampler", sourceColor, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+            uniformAndTextureBinder.accept(renderPass);
             renderPass.draw(3, 1, 0, 0);
         } finally {
             RenderSystem.restoreProjectionMatrix();
         }
+    }
+
+    public static void drawSingleSamplerPass(
+            @NotNull String label,
+            @NotNull ProjectionMatrixBuffer projectionMatrixBuffer,
+            @NotNull MappableRingBuffer samplerInfoBuffer,
+            @NotNull RenderPipeline pipeline,
+            @NotNull RenderTarget source,
+            @NotNull RenderTarget output,
+            @NotNull Consumer<RenderPass> customUniformBinder
+    ) {
+        GpuTextureView sourceColor = source.getColorTextureView();
+        GpuTextureView outputColor = output.getColorTextureView();
+        if (sourceColor == null || outputColor == null) {
+            return;
+        }
+
+        drawScreenQuad(label, projectionMatrixBuffer, pipeline, output, renderPass -> {
+            renderPass.setUniform("SamplerInfo", samplerInfoBuffer.currentBuffer());
+            customUniformBinder.accept(renderPass);
+            renderPass.bindTexture("InSampler", sourceColor, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+        });
     }
 
     public static void drawCopyPass(
@@ -130,7 +147,7 @@ public final class ShaderEffectPass {
             @NotNull RenderTarget source,
             @NotNull RenderTarget output
     ) {
-        drawScreenQuad(label, projectionMatrixBuffer, samplerInfoBuffer, copyPipeline, source, output, renderPass -> {
+        drawSingleSamplerPass(label, projectionMatrixBuffer, samplerInfoBuffer, copyPipeline, source, output, renderPass -> {
         });
     }
 

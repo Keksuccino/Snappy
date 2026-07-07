@@ -1,7 +1,6 @@
 package de.keksuccino.snappy.photo;
 
 import com.mojang.blaze3d.GpuFormat;
-import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.buffers.Std140SizeCalculator;
@@ -14,8 +13,6 @@ import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
 import com.mojang.blaze3d.resource.RenderTargetDescriptor;
 import com.mojang.blaze3d.resource.ResourceHandle;
 import com.mojang.blaze3d.shaders.UniformType;
-import com.mojang.blaze3d.systems.CommandEncoder;
-import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.systems.SamplerCache;
 import com.mojang.blaze3d.textures.FilterMode;
@@ -24,7 +21,6 @@ import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.client.render.ShaderEffectPass;
 import de.keksuccino.snappy.client.render.config.DepthOfFieldConfig;
 import net.minecraft.client.renderer.MappableRingBuffer;
-import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
@@ -34,9 +30,6 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Vector4fc;
-
-import java.util.Optional;
-import java.util.OptionalDouble;
 
 final class PhotoModeDepthOfFieldRenderer {
 
@@ -84,14 +77,9 @@ final class PhotoModeDepthOfFieldRenderer {
                     .withUniform("SamplerInfo", UniformType.UNIFORM_BUFFER)
                     .build())
             .build();
-    private static final Projection POST_PROJECTION = new Projection();
     private static final Matrix4f INVERSE_PROJECTION = new Matrix4f();
     @Nullable
     private static Resources resources;
-
-    static {
-        POST_PROJECTION.setupOrtho(0.1F, 1000.0F, 1.0F, 1.0F, false);
-    }
 
     private PhotoModeDepthOfFieldRenderer() {
     }
@@ -105,7 +93,7 @@ final class PhotoModeDepthOfFieldRenderer {
     ) {
         GpuTextureView mainColor = mainRenderTarget.getColorTextureView();
         GpuTextureView mainDepth = mainRenderTarget.getDepthTextureView();
-        if (mainColor == null || mainDepth == null || mainRenderTarget.width <= 0 || mainRenderTarget.height <= 0 || !ensurePipelinesAvailable()) {
+        if (!config.active() || mainColor == null || mainDepth == null || mainRenderTarget.width <= 0 || mainRenderTarget.height <= 0 || !ensurePipelinesAvailable()) {
             return;
         }
 
@@ -198,29 +186,13 @@ final class PhotoModeDepthOfFieldRenderer {
             return;
         }
 
-        POST_PROJECTION.setSize(output.width, output.height);
-        GpuBufferSlice projectionBuffer = renderResources.postProjectionMatrixBuffer.getBuffer(POST_PROJECTION);
-        RenderSystem.backupProjectionMatrix();
-        RenderSystem.setProjectionMatrix(projectionBuffer, ProjectionType.ORTHOGRAPHIC);
-        CommandEncoder commandEncoder = RenderSystem.getDevice().createCommandEncoder();
         SamplerCache samplerCache = RenderSystem.getSamplerCache();
-        try (RenderPass renderPass = commandEncoder.createRenderPass(
-                () -> "Snappy photo depth of field",
-                outputColor,
-                Optional.empty(),
-                null,
-                OptionalDouble.empty()
-        )) {
-            renderPass.setPipeline(DOF_PIPELINE);
-            RenderSystem.bindDefaultUniforms(renderPass);
+        ShaderEffectPass.drawScreenQuad("Snappy photo depth of field", renderResources.postProjectionMatrixBuffer, DOF_PIPELINE, output, renderPass -> {
             renderPass.setUniform("SamplerInfo", renderResources.samplerInfoBuffer.currentBuffer());
             renderPass.setUniform("DepthOfFieldConfig", renderResources.dofConfigBuffer.currentBuffer());
             renderPass.bindTexture("ColorSampler", sourceColor, samplerCache.getClampToEdge(FilterMode.LINEAR));
             renderPass.bindTexture("DepthSampler", sourceDepth, samplerCache.getClampToEdge(FilterMode.NEAREST));
-            renderPass.draw(3, 1, 0, 0);
-        } finally {
-            RenderSystem.restoreProjectionMatrix();
-        }
+        });
     }
 
     private static void drawResolvePass(
@@ -236,29 +208,13 @@ final class PhotoModeDepthOfFieldRenderer {
             return;
         }
 
-        POST_PROJECTION.setSize(output.width, output.height);
-        GpuBufferSlice projectionBuffer = renderResources.postProjectionMatrixBuffer.getBuffer(POST_PROJECTION);
-        RenderSystem.backupProjectionMatrix();
-        RenderSystem.setProjectionMatrix(projectionBuffer, ProjectionType.ORTHOGRAPHIC);
-        CommandEncoder commandEncoder = RenderSystem.getDevice().createCommandEncoder();
         SamplerCache samplerCache = RenderSystem.getSamplerCache();
-        try (RenderPass renderPass = commandEncoder.createRenderPass(
-                () -> "Snappy photo depth of field resolve",
-                outputColor,
-                Optional.empty(),
-                null,
-                OptionalDouble.empty()
-        )) {
-            renderPass.setPipeline(RESOLVE_PIPELINE);
-            RenderSystem.bindDefaultUniforms(renderPass);
+        ShaderEffectPass.drawScreenQuad("Snappy photo depth of field resolve", renderResources.postProjectionMatrixBuffer, RESOLVE_PIPELINE, output, renderPass -> {
             renderPass.setUniform("SamplerInfo", renderResources.samplerInfoBuffer.currentBuffer());
             renderPass.setUniform("DepthOfFieldConfig", renderResources.dofConfigBuffer.currentBuffer());
             renderPass.bindTexture("ColorSampler", sourceColor, samplerCache.getClampToEdge(FilterMode.LINEAR));
             renderPass.bindTexture("DepthSampler", sourceDepth, samplerCache.getClampToEdge(FilterMode.NEAREST));
-            renderPass.draw(3, 1, 0, 0);
-        } finally {
-            RenderSystem.restoreProjectionMatrix();
-        }
+        });
     }
 
     private static void drawCopyPass(@NotNull Resources renderResources, @NotNull RenderTarget source, @NotNull RenderTarget output) {
@@ -268,26 +224,10 @@ final class PhotoModeDepthOfFieldRenderer {
             return;
         }
 
-        POST_PROJECTION.setSize(output.width, output.height);
-        GpuBufferSlice projectionBuffer = renderResources.postProjectionMatrixBuffer.getBuffer(POST_PROJECTION);
-        RenderSystem.backupProjectionMatrix();
-        RenderSystem.setProjectionMatrix(projectionBuffer, ProjectionType.ORTHOGRAPHIC);
-        CommandEncoder commandEncoder = RenderSystem.getDevice().createCommandEncoder();
-        try (RenderPass renderPass = commandEncoder.createRenderPass(
-                () -> "Snappy photo depth of field copy",
-                outputColor,
-                Optional.empty(),
-                null,
-                OptionalDouble.empty()
-        )) {
-            renderPass.setPipeline(COPY_PIPELINE);
-            RenderSystem.bindDefaultUniforms(renderPass);
+        ShaderEffectPass.drawScreenQuad("Snappy photo depth of field copy", renderResources.postProjectionMatrixBuffer, COPY_PIPELINE, output, renderPass -> {
             renderPass.setUniform("SamplerInfo", renderResources.samplerInfoBuffer.currentBuffer());
             renderPass.bindTexture("InSampler", sourceColor, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
-            renderPass.draw(3, 1, 0, 0);
-        } finally {
-            RenderSystem.restoreProjectionMatrix();
-        }
+        });
     }
 
     @NotNull

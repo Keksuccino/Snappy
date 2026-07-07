@@ -1,7 +1,6 @@
 package de.keksuccino.snappy.photo;
 
 import com.mojang.blaze3d.GpuFormat;
-import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.buffers.Std140SizeCalculator;
@@ -14,8 +13,6 @@ import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
 import com.mojang.blaze3d.resource.RenderTargetDescriptor;
 import com.mojang.blaze3d.resource.ResourceHandle;
 import com.mojang.blaze3d.shaders.UniformType;
-import com.mojang.blaze3d.systems.CommandEncoder;
-import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.systems.SamplerCache;
 import com.mojang.blaze3d.textures.FilterMode;
@@ -24,16 +21,12 @@ import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.client.render.ShaderEffectPass;
 import de.keksuccino.snappy.client.render.config.BloomConfig;
 import net.minecraft.client.renderer.MappableRingBuffer;
-import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4fc;
-
-import java.util.Optional;
-import java.util.OptionalDouble;
 
 final class PhotoModeBloomRenderer {
 
@@ -112,13 +105,8 @@ final class PhotoModeBloomRenderer {
                     .withUniform("SamplerInfo", UniformType.UNIFORM_BUFFER)
                     .build())
             .build();
-    private static final Projection POST_PROJECTION = new Projection();
     @Nullable
     private static Resources resources;
-
-    static {
-        POST_PROJECTION.setupOrtho(0.1F, 1000.0F, 1.0F, 1.0F, false);
-    }
 
     private PhotoModeBloomRenderer() {
     }
@@ -346,29 +334,16 @@ final class PhotoModeBloomRenderer {
         }
 
         writeSamplerInfo(samplerInfoBuffer, output, source);
-        POST_PROJECTION.setSize(output.width, output.height);
-        GpuBufferSlice projectionBuffer = renderResources.postProjectionMatrixBuffer.getBuffer(POST_PROJECTION);
-        RenderSystem.backupProjectionMatrix();
-        RenderSystem.setProjectionMatrix(projectionBuffer, ProjectionType.ORTHOGRAPHIC);
-        CommandEncoder commandEncoder = RenderSystem.getDevice().createCommandEncoder();
-        try (RenderPass renderPass = commandEncoder.createRenderPass(
-                () -> name,
-                outputColor,
-                Optional.empty(),
-                null,
-                OptionalDouble.empty()
-        )) {
-            renderPass.setPipeline(pipeline);
-            RenderSystem.bindDefaultUniforms(renderPass);
-            renderPass.setUniform("SamplerInfo", samplerInfoBuffer.currentBuffer());
-            if (bindBloomConfig) {
-                renderPass.setUniform("BloomConfig", renderResources.bloomConfigBuffer.currentBuffer());
-            }
-            renderPass.bindTexture("InSampler", sourceColor, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
-            renderPass.draw(3, 1, 0, 0);
+        try {
+            ShaderEffectPass.drawScreenQuad(name, renderResources.postProjectionMatrixBuffer, pipeline, output, renderPass -> {
+                renderPass.setUniform("SamplerInfo", samplerInfoBuffer.currentBuffer());
+                if (bindBloomConfig) {
+                    renderPass.setUniform("BloomConfig", renderResources.bloomConfigBuffer.currentBuffer());
+                }
+                renderPass.bindTexture("InSampler", sourceColor, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+            });
         } finally {
             samplerInfoBuffer.rotate();
-            RenderSystem.restoreProjectionMatrix();
         }
     }
 
@@ -388,30 +363,17 @@ final class PhotoModeBloomRenderer {
         }
 
         writeCompositeSamplerInfo(renderResources, output, scene, nearBloom, wideBloom);
-        POST_PROJECTION.setSize(output.width, output.height);
-        GpuBufferSlice projectionBuffer = renderResources.postProjectionMatrixBuffer.getBuffer(POST_PROJECTION);
-        RenderSystem.backupProjectionMatrix();
-        RenderSystem.setProjectionMatrix(projectionBuffer, ProjectionType.ORTHOGRAPHIC);
-        CommandEncoder commandEncoder = RenderSystem.getDevice().createCommandEncoder();
         SamplerCache samplerCache = RenderSystem.getSamplerCache();
-        try (RenderPass renderPass = commandEncoder.createRenderPass(
-                () -> "Snappy photo bloom composite",
-                outputColor,
-                Optional.empty(),
-                null,
-                OptionalDouble.empty()
-        )) {
-            renderPass.setPipeline(COMPOSITE_PIPELINE);
-            RenderSystem.bindDefaultUniforms(renderPass);
-            renderPass.setUniform("SamplerInfo", renderResources.compositeSamplerInfoBuffer.currentBuffer());
-            renderPass.setUniform("BloomConfig", renderResources.bloomConfigBuffer.currentBuffer());
-            renderPass.bindTexture("SceneSampler", sceneColor, samplerCache.getClampToEdge(FilterMode.NEAREST));
-            renderPass.bindTexture("BloomNearSampler", nearBloomColor, samplerCache.getClampToEdge(FilterMode.LINEAR));
-            renderPass.bindTexture("BloomWideSampler", wideBloomColor, samplerCache.getClampToEdge(FilterMode.LINEAR));
-            renderPass.draw(3, 1, 0, 0);
+        try {
+            ShaderEffectPass.drawScreenQuad("Snappy photo bloom composite", renderResources.postProjectionMatrixBuffer, COMPOSITE_PIPELINE, output, renderPass -> {
+                renderPass.setUniform("SamplerInfo", renderResources.compositeSamplerInfoBuffer.currentBuffer());
+                renderPass.setUniform("BloomConfig", renderResources.bloomConfigBuffer.currentBuffer());
+                renderPass.bindTexture("SceneSampler", sceneColor, samplerCache.getClampToEdge(FilterMode.NEAREST));
+                renderPass.bindTexture("BloomNearSampler", nearBloomColor, samplerCache.getClampToEdge(FilterMode.LINEAR));
+                renderPass.bindTexture("BloomWideSampler", wideBloomColor, samplerCache.getClampToEdge(FilterMode.LINEAR));
+            });
         } finally {
             renderResources.compositeSamplerInfoBuffer.rotate();
-            RenderSystem.restoreProjectionMatrix();
         }
     }
 
@@ -423,26 +385,13 @@ final class PhotoModeBloomRenderer {
         }
 
         writeSamplerInfo(renderResources.copySamplerInfoBuffer, output, source);
-        POST_PROJECTION.setSize(output.width, output.height);
-        GpuBufferSlice projectionBuffer = renderResources.postProjectionMatrixBuffer.getBuffer(POST_PROJECTION);
-        RenderSystem.backupProjectionMatrix();
-        RenderSystem.setProjectionMatrix(projectionBuffer, ProjectionType.ORTHOGRAPHIC);
-        CommandEncoder commandEncoder = RenderSystem.getDevice().createCommandEncoder();
-        try (RenderPass renderPass = commandEncoder.createRenderPass(
-                () -> "Snappy photo bloom copy",
-                outputColor,
-                Optional.empty(),
-                null,
-                OptionalDouble.empty()
-        )) {
-            renderPass.setPipeline(COPY_PIPELINE);
-            RenderSystem.bindDefaultUniforms(renderPass);
-            renderPass.setUniform("SamplerInfo", renderResources.copySamplerInfoBuffer.currentBuffer());
-            renderPass.bindTexture("InSampler", sourceColor, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
-            renderPass.draw(3, 1, 0, 0);
+        try {
+            ShaderEffectPass.drawScreenQuad("Snappy photo bloom copy", renderResources.postProjectionMatrixBuffer, COPY_PIPELINE, output, renderPass -> {
+                renderPass.setUniform("SamplerInfo", renderResources.copySamplerInfoBuffer.currentBuffer());
+                renderPass.bindTexture("InSampler", sourceColor, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+            });
         } finally {
             renderResources.copySamplerInfoBuffer.rotate();
-            RenderSystem.restoreProjectionMatrix();
         }
     }
 

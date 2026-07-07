@@ -1,6 +1,5 @@
 package de.keksuccino.snappy.client.render;
 
-import de.keksuccino.snappy.photo.PhotoModeManager;
 import de.keksuccino.snappy.photo.PhotoModeWeatherPreset;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -49,7 +48,7 @@ public final class VisualLightningStormManager {
     private boolean nextLiveStrikeFar;
     private boolean pausedStaticMode;
 
-    public void tick(@NotNull Minecraft minecraft, @NotNull PhotoModeManager.Session active) {
+    public void tick(@NotNull Minecraft minecraft, @NotNull StormState active) {
         ClientLevel level = minecraft.level;
         if (level == null || minecraft.player == null || active.weatherPreset() != PhotoModeWeatherPreset.THUNDERING) {
             this.clear(level);
@@ -57,7 +56,7 @@ public final class VisualLightningStormManager {
         }
 
         this.prune(level);
-        boolean paused = active.paused() && PhotoModeManager.canPause(minecraft);
+        boolean paused = active.paused() && canPause(minecraft);
         if (paused) {
             if (!this.pausedStaticMode) {
                 this.clear(level);
@@ -98,7 +97,7 @@ public final class VisualLightningStormManager {
         this.nextLiveStrikeTicks = 0;
     }
 
-    private void fillPausedStaticBolts(@NotNull Minecraft minecraft, @NotNull PhotoModeManager.Session active) {
+    private void fillPausedStaticBolts(@NotNull Minecraft minecraft, @NotNull StormState active) {
         int missingStrikes = PAUSED_STATIC_LIGHTNING_COUNT - this.entityIds.size();
         int startSlot = this.entityIds.size();
         for (int strike = 0; strike < missingStrikes; strike++) {
@@ -125,7 +124,7 @@ public final class VisualLightningStormManager {
         return slot % (VERY_FAR_LIGHTNING_INTERVAL * 2) == VERY_FAR_LIGHTNING_INTERVAL ? StrikeDistance.VERY_FAR : StrikeDistance.FAR;
     }
 
-    private boolean spawnVisualLightning(@NotNull Minecraft minecraft, @NotNull PhotoModeManager.Session active, @NotNull StrikeDistance distance) {
+    private boolean spawnVisualLightning(@NotNull Minecraft minecraft, @NotNull StormState active, @NotNull StrikeDistance distance) {
         ClientLevel level = minecraft.level;
         if (level == null) {
             return false;
@@ -152,7 +151,7 @@ public final class VisualLightningStormManager {
     }
 
     @Nullable
-    private Vec3 chooseStrikePosition(@NotNull Minecraft minecraft, @NotNull PhotoModeManager.Session active, @NotNull StrikeDistance distance) {
+    private Vec3 chooseStrikePosition(@NotNull Minecraft minecraft, @NotNull StormState active, @NotNull StrikeDistance distance) {
         ClientLevel level = minecraft.level;
         Player player = minecraft.player;
         if (level == null || player == null) {
@@ -234,6 +233,22 @@ public final class VisualLightningStormManager {
             }
         }
         return 0;
+    }
+
+    private static boolean canPause(@NotNull Minecraft minecraft) {
+        return minecraft.hasSingleplayerServer() && minecraft.getSingleplayerServer() != null && !minecraft.getSingleplayerServer().isPublished();
+    }
+
+    public interface StormState {
+
+        @NotNull
+        Vec3 position();
+
+        @NotNull
+        PhotoModeWeatherPreset weatherPreset();
+
+        boolean paused();
+
     }
 
     private enum StrikeDistance {

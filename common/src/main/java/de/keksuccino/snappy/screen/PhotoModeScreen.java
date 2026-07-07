@@ -40,7 +40,6 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.EnumMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
@@ -55,9 +54,9 @@ public class PhotoModeScreen extends Screen {
     private static final Identifier LENS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_lens_icon_15x15.png");
     private static final Identifier WORLD_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_world_icon_15x15.png");
     private static final int PANEL_WIDTH = 236;
-    private static final int PANEL_PADDING = 8;
-    private static final int CONTROL_HEIGHT = 20;
-    private static final int CONTROL_GAP = 5;
+    static final int PANEL_PADDING = 8;
+    static final int CONTROL_HEIGHT = 20;
+    static final int CONTROL_GAP = 5;
     private static final int TAB_GAP = 4;
     private static final int TAB_SCROLLBAR_SPACING = 2;
     private static final int TAB_SCROLLBAR_RESERVE = AbstractScrollArea.SCROLLBAR_WIDTH + TAB_SCROLLBAR_SPACING;
@@ -76,43 +75,43 @@ public class PhotoModeScreen extends Screen {
     private static final int ACTION_LEAVE_MIN_WIDTH = 64;
     private static final int POSE_MAKER_MIN_COLUMN_WIDTH = 108;
     private static final int POSE_MAKER_MAX_COLUMN_WIDTH = 162;
-    private static final int POSE_MAKER_COLUMN_GAP = 6;
+    static final int POSE_MAKER_COLUMN_GAP = 6;
     private static final int POSE_MAKER_MIN_COLUMNS = 2;
     private static final int POSE_MAKER_MAX_COLUMNS = 4;
     private static final int POSE_MAKER_HEADER_HEIGHT = 14;
     private static final int POSE_MAKER_NAME_LABEL_HEIGHT = 10;
-    private static final int POSE_MAKER_BUTTON_GAP = 5;
+    static final int POSE_MAKER_BUTTON_GAP = 5;
     private static final int POSE_MAKER_SPACE_PRESS_COUNT = 15;
     private static final int PANEL_BACKGROUND_COLOR = ARGB.color(174, 0, 0, 0);
     private static final int PANEL_ACCENT_COLOR = ARGB.color(255, 255, 209, 102);
     private static final int PANEL_BORDER_COLOR = ARGB.color(210, 116, 128, 142);
     private static final int SECTION_BACKGROUND_COLOR = ARGB.color(82, 24, 28, 34);
     private static final int GRID_LINE_COLOR = ARGB.color(112, 255, 255, 255);
-    private static final int VALUE_COLOR = 0xFFFFAA00;
+    static final int VALUE_COLOR = 0xFFFFAA00;
     private static final int NO_HOVER_MOUSE_POSITION = -1;
-    private static final double FOV_SNAP_RADIUS = 2.0D;
-    private static final double ROLL_SNAP_RADIUS = 5.0D;
-    private static final double VIGNETTE_SNAP_RADIUS = 0.05D;
-    private static final double BLOOM_SNAP_RADIUS = 0.03D;
-    private static final double BLOOM_STEP = 0.01D;
-    private static final double COLOR_ADJUSTMENT_SNAP_RADIUS = 0.03D;
-    private static final double COLOR_ADJUSTMENT_STEP = 0.01D;
-    private static final double PLAYER_POSITION_OFFSET_MIN = -5.0D;
-    private static final double PLAYER_POSITION_OFFSET_MAX = 5.0D;
-    private static final double PLAYER_POSITION_OFFSET_SNAP_RADIUS = 0.08D;
-    private static final double PLAYER_POSITION_OFFSET_STEP = 0.01D;
-    private static final double PLAYER_ROTATION_OFFSET_MIN = -180.0D;
-    private static final double PLAYER_ROTATION_OFFSET_MAX = 180.0D;
-    private static final double PLAYER_ROTATION_OFFSET_SNAP_RADIUS = 5.0D;
-    private static final double FOG_INTENSITY_SNAP_RADIUS = 0.05D;
-    private static final double FOG_DISTANCE_SNAP_RADIUS = 4.0D;
-    private static final double FOG_DISTANCE_STEP = 1.0D;
-    private static final double DEPTH_OF_FIELD_FOCUS_DISTANCE_SNAP_RADIUS = 0.05D;
-    private static final double DEPTH_OF_FIELD_FOCUS_DISTANCE_STEP = 0.01D;
-    private static final double DEPTH_OF_FIELD_FOCAL_LENGTH_SNAP_RADIUS = 1.0D;
-    private static final double DEPTH_OF_FIELD_FOCAL_LENGTH_STEP = 1.0D;
-    private static final double DEPTH_OF_FIELD_APERTURE_SNAP_RADIUS = 0.1D;
-    private static final double DEPTH_OF_FIELD_APERTURE_STEP = 0.1D;
+    static final double FOV_SNAP_RADIUS = 2.0D;
+    static final double ROLL_SNAP_RADIUS = 5.0D;
+    static final double VIGNETTE_SNAP_RADIUS = 0.05D;
+    static final double BLOOM_SNAP_RADIUS = 0.03D;
+    static final double BLOOM_STEP = 0.01D;
+    static final double COLOR_ADJUSTMENT_SNAP_RADIUS = 0.03D;
+    static final double COLOR_ADJUSTMENT_STEP = 0.01D;
+    static final double PLAYER_POSITION_OFFSET_MIN = -5.0D;
+    static final double PLAYER_POSITION_OFFSET_MAX = 5.0D;
+    static final double PLAYER_POSITION_OFFSET_SNAP_RADIUS = 0.08D;
+    static final double PLAYER_POSITION_OFFSET_STEP = 0.01D;
+    static final double PLAYER_ROTATION_OFFSET_MIN = -180.0D;
+    static final double PLAYER_ROTATION_OFFSET_MAX = 180.0D;
+    static final double PLAYER_ROTATION_OFFSET_SNAP_RADIUS = 5.0D;
+    static final double FOG_INTENSITY_SNAP_RADIUS = 0.05D;
+    static final double FOG_DISTANCE_SNAP_RADIUS = 4.0D;
+    static final double FOG_DISTANCE_STEP = 1.0D;
+    static final double DEPTH_OF_FIELD_FOCUS_DISTANCE_SNAP_RADIUS = 0.05D;
+    static final double DEPTH_OF_FIELD_FOCUS_DISTANCE_STEP = 0.01D;
+    static final double DEPTH_OF_FIELD_FOCAL_LENGTH_SNAP_RADIUS = 1.0D;
+    static final double DEPTH_OF_FIELD_FOCAL_LENGTH_STEP = 1.0D;
+    static final double DEPTH_OF_FIELD_APERTURE_SNAP_RADIUS = 0.1D;
+    static final double DEPTH_OF_FIELD_APERTURE_STEP = 0.1D;
     private static final double POSE_MAKER_ROTATION_MIN = -180.0D;
     private static final double POSE_MAKER_ROTATION_MAX = 180.0D;
     private static final double POSE_MAKER_ROTATION_SNAP_RADIUS = 5.0D;
@@ -131,63 +130,63 @@ public class PhotoModeScreen extends Screen {
     private int panelY;
     private int panelHeight;
     private boolean poseMakerOpen;
-    private int poseMakerPanelX;
-    private int poseMakerPanelY;
-    private int poseMakerPanelWidth;
-    private int poseMakerPanelHeight;
-    private int poseMakerColumns;
+    int poseMakerPanelX;
+    int poseMakerPanelY;
+    int poseMakerPanelWidth;
+    int poseMakerPanelHeight;
+    int poseMakerColumns;
     private boolean poseMakerSpaceDown;
     private int poseMakerSpacePresses;
     private long poseMakerFirstSpacePressMillis;
-    private String poseMakerNameKey = DEFAULT_POSE_MAKER_NAME_KEY;
-    private final PoseMakerRotation poseMakerModelRotation = new PoseMakerRotation();
-    private double poseMakerModelYOffset;
-    private final Map<PhotoPose.BodyPart, PoseMakerRotation> poseMakerPartRotations = new EnumMap<>(PhotoPose.BodyPart.class);
+    String poseMakerNameKey = DEFAULT_POSE_MAKER_NAME_KEY;
+    final PoseMakerRotation poseMakerModelRotation = new PoseMakerRotation();
+    double poseMakerModelYOffset;
+    final Map<PhotoPose.BodyPart, PoseMakerRotation> poseMakerPartRotations = new EnumMap<>(PhotoPose.BodyPart.class);
     private final PhotoModePoseMakerPanel poseMakerPanel = new PhotoModePoseMakerPanel();
     @Nullable
     private LinearLayout tabControlLayout;
     @Nullable
-    private Button pauseButton;
+    Button pauseButton;
     @Nullable
-    private Button gridButton;
+    Button gridButton;
     @Nullable
-    private Button hideSelfButton;
+    Button hideSelfButton;
     @Nullable
-    private Button hideOthersButton;
+    Button hideOthersButton;
     @Nullable
-    private Button poseButton;
+    Button poseButton;
     @Nullable
-    private Button armorButton;
+    Button armorButton;
     @Nullable
-    private Button heldItemsButton;
+    Button heldItemsButton;
     @Nullable
-    private Button timeButton;
+    Button timeButton;
     @Nullable
-    private Button weatherButton;
+    Button weatherButton;
     @Nullable
-    private Button hideBeaconBeamsButton;
+    Button hideBeaconBeamsButton;
     @Nullable
-    private Button colorizeButton;
+    Button colorizeButton;
     @Nullable
-    private Button stylizeButton;
+    Button stylizeButton;
     @Nullable
-    private Button depthOfFieldButton;
+    Button depthOfFieldButton;
     @Nullable
-    private PhotoModeSlider depthOfFieldFocalLengthSlider;
+    PhotoModeSlider depthOfFieldFocalLengthSlider;
     @Nullable
-    private PhotoModeSlider depthOfFieldApertureSlider;
+    PhotoModeSlider depthOfFieldApertureSlider;
     @Nullable
-    private PhotoModeSlider depthOfFieldFocusDistanceSlider;
+    PhotoModeSlider depthOfFieldFocusDistanceSlider;
     @Nullable
-    private PhotoModeColorButton skyColorButton;
+    PhotoModeColorButton skyColorButton;
     @Nullable
-    private PhotoModeColorButton fogColorButton;
+    PhotoModeColorButton fogColorButton;
     @Nullable
     private PhotoModeColorPicker colorPicker;
     @Nullable
     private ColorPickerTarget colorPickerTarget;
     @Nullable
-    private EditBox poseMakerNameKeyBox;
+    EditBox poseMakerNameKeyBox;
 
     public PhotoModeScreen() {
         super(Component.translatable("snappy.photo_mode.title"));
@@ -484,7 +483,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     @NotNull
-    private <T extends AbstractWidget> T addTabControl(@NotNull T widget) {
+    <T extends AbstractWidget> T addTabControl(@NotNull T widget) {
         LinearLayout controls = this.tabControlLayout;
         if (controls == null) {
             throw new IllegalStateException("Tab controls can only be added while rebuilding the photo mode tab body.");
@@ -493,396 +492,9 @@ public class PhotoModeScreen extends Screen {
         return widget;
     }
 
-    void addGeneralControls() {
-        int width = this.tabControlWidth();
-        PhotoModeManager.Session active = PhotoModeManager.session();
-        if (active == null) {
-            return;
-        }
-
-        this.addTabControl(new PhotoModeSlider(
-                0,
-                0,
-                width,
-                CONTROL_HEIGHT,
-                30.0D,
-                110.0D,
-                active.fieldOfView(),
-                Minecraft.getInstance().options.fov().get().doubleValue(),
-                FOV_SNAP_RADIUS,
-                value -> active.setFieldOfView((float) value),
-                value -> optionMessage("snappy.photo_mode.fov", Component.literal(String.format(Locale.ROOT, "%.0f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
-        ));
-
-        this.addTabControl(new PhotoModeSlider(
-                0,
-                0,
-                width,
-                CONTROL_HEIGHT,
-                -180.0D,
-                180.0D,
-                active.roll(),
-                0.0D,
-                ROLL_SNAP_RADIUS,
-                value -> active.setRoll((float) value),
-                value -> optionMessage("snappy.photo_mode.roll", Component.translatable("snappy.photo_mode.degrees", String.format(Locale.ROOT, "%.0f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
-        ));
-
-        this.addColorEffectControls(width, active);
-
-        this.gridButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            active.setGridEnabled(!active.gridEnabled());
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.grid.desc"))).build());
-    }
-
-    void addPlayerControls() {
-        int width = this.tabControlWidth();
-        PhotoModeManager.Session active = PhotoModeManager.session();
-        if (active == null) {
-            return;
-        }
-
-        this.hideSelfButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            active.setHideSelfPlayer(!active.hideSelfPlayer());
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).build());
-
-        this.hideOthersButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            active.setHideOtherPlayers(!active.hideOtherPlayers());
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).build());
-
-        this.poseButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            active.cyclePose();
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.pose.desc"))).build());
-
-        this.addPlayerTransformSlider(
-                width,
-                PLAYER_POSITION_OFFSET_MIN,
-                PLAYER_POSITION_OFFSET_MAX,
-                active.selfPlayerPositionOffsetX(),
-                PLAYER_POSITION_OFFSET_SNAP_RADIUS,
-                PLAYER_POSITION_OFFSET_STEP,
-                active::setSelfPlayerPositionOffsetX,
-                value -> optionMessage("snappy.photo_mode.player_offset_x", this.blockValue(value))
-        );
-
-        this.addPlayerTransformSlider(
-                width,
-                PLAYER_POSITION_OFFSET_MIN,
-                PLAYER_POSITION_OFFSET_MAX,
-                active.selfPlayerPositionOffsetY(),
-                PLAYER_POSITION_OFFSET_SNAP_RADIUS,
-                PLAYER_POSITION_OFFSET_STEP,
-                active::setSelfPlayerPositionOffsetY,
-                value -> optionMessage("snappy.photo_mode.player_offset_y", this.blockValue(value))
-        );
-
-        this.addPlayerTransformSlider(
-                width,
-                PLAYER_POSITION_OFFSET_MIN,
-                PLAYER_POSITION_OFFSET_MAX,
-                active.selfPlayerPositionOffsetZ(),
-                PLAYER_POSITION_OFFSET_SNAP_RADIUS,
-                PLAYER_POSITION_OFFSET_STEP,
-                active::setSelfPlayerPositionOffsetZ,
-                value -> optionMessage("snappy.photo_mode.player_offset_z", this.blockValue(value))
-        );
-
-        this.addPlayerTransformSlider(
-                width,
-                PLAYER_ROTATION_OFFSET_MIN,
-                PLAYER_ROTATION_OFFSET_MAX,
-                active.selfPlayerRotationOffsetX(),
-                PLAYER_ROTATION_OFFSET_SNAP_RADIUS,
-                0.0D,
-                active::setSelfPlayerRotationOffsetX,
-                value -> optionMessage("snappy.photo_mode.player_rotation_x", this.degreeValue(value))
-        );
-
-        this.addPlayerTransformSlider(
-                width,
-                PLAYER_ROTATION_OFFSET_MIN,
-                PLAYER_ROTATION_OFFSET_MAX,
-                active.selfPlayerRotationOffsetY(),
-                PLAYER_ROTATION_OFFSET_SNAP_RADIUS,
-                0.0D,
-                active::setSelfPlayerRotationOffsetY,
-                value -> optionMessage("snappy.photo_mode.player_rotation_y", this.degreeValue(value))
-        );
-
-        this.addPlayerTransformSlider(
-                width,
-                PLAYER_ROTATION_OFFSET_MIN,
-                PLAYER_ROTATION_OFFSET_MAX,
-                active.selfPlayerRotationOffsetZ(),
-                PLAYER_ROTATION_OFFSET_SNAP_RADIUS,
-                0.0D,
-                active::setSelfPlayerRotationOffsetZ,
-                value -> optionMessage("snappy.photo_mode.player_rotation_z", this.degreeValue(value))
-        );
-
-        this.armorButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            active.setArmorMode(active.armorMode().next());
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.armor.desc"))).build());
-
-        this.heldItemsButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            active.setHeldItemsMode(active.heldItemsMode().next());
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.held_items.desc"))).build());
-    }
-
-    void addLensControls() {
-        int width = this.tabControlWidth();
-        PhotoModeManager.Session active = PhotoModeManager.session();
-        if (active == null) {
-            return;
-        }
-
-        this.depthOfFieldButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            active.setDepthOfFieldEnabled(!active.depthOfFieldEnabled());
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.depth_of_field.desc"))).build());
-
-        this.depthOfFieldFocalLengthSlider = this.addTabControl(new PhotoModeSlider(
-                0,
-                0,
-                width,
-                CONTROL_HEIGHT,
-                PhotoModeManager.DEPTH_OF_FIELD_FOCAL_LENGTH_MIN,
-                PhotoModeManager.DEPTH_OF_FIELD_FOCAL_LENGTH_MAX,
-                active.depthOfFieldFocalLength(),
-                PhotoModeManager.DEPTH_OF_FIELD_FOCAL_LENGTH_DEFAULT,
-                DEPTH_OF_FIELD_FOCAL_LENGTH_SNAP_RADIUS,
-                DEPTH_OF_FIELD_FOCAL_LENGTH_STEP,
-                value -> active.setDepthOfFieldFocalLength((float) value),
-                value -> optionMessage("snappy.photo_mode.dof_focal_length", Component.translatable("snappy.photo_mode.millimeters", String.format(Locale.ROOT, "%.0f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
-        ));
-        this.depthOfFieldFocalLengthSlider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.dof_focal_length.desc")));
-
-        this.depthOfFieldApertureSlider = this.addTabControl(new PhotoModeSlider(
-                0,
-                0,
-                width,
-                CONTROL_HEIGHT,
-                PhotoModeManager.DEPTH_OF_FIELD_APERTURE_MIN,
-                PhotoModeManager.DEPTH_OF_FIELD_APERTURE_MAX,
-                active.depthOfFieldAperture(),
-                PhotoModeManager.DEPTH_OF_FIELD_APERTURE_DEFAULT,
-                DEPTH_OF_FIELD_APERTURE_SNAP_RADIUS,
-                DEPTH_OF_FIELD_APERTURE_STEP,
-                value -> active.setDepthOfFieldAperture((float) value),
-                value -> optionMessage("snappy.photo_mode.dof_aperture", Component.translatable("snappy.photo_mode.aperture", String.format(Locale.ROOT, "%.1f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
-        ));
-        this.depthOfFieldApertureSlider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.dof_aperture.desc")));
-
-        this.depthOfFieldFocusDistanceSlider = this.addTabControl(new PhotoModeSlider(
-                0,
-                0,
-                width,
-                CONTROL_HEIGHT,
-                PhotoModeManager.DEPTH_OF_FIELD_FOCUS_DISTANCE_MIN,
-                PhotoModeManager.DEPTH_OF_FIELD_FOCUS_DISTANCE_MAX,
-                active.depthOfFieldFocusDistance(),
-                PhotoModeManager.DEPTH_OF_FIELD_FOCUS_DISTANCE_DEFAULT,
-                DEPTH_OF_FIELD_FOCUS_DISTANCE_SNAP_RADIUS,
-                DEPTH_OF_FIELD_FOCUS_DISTANCE_STEP,
-                value -> active.setDepthOfFieldFocusDistance((float) value),
-                value -> optionMessage("snappy.photo_mode.dof_focus_distance", Component.translatable("snappy.photo_mode.blocks", String.format(Locale.ROOT, "%.2f", value)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
-        ));
-        this.depthOfFieldFocusDistanceSlider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.dof_focus_distance.desc")));
-    }
-
-    private void addColorEffectControls(int width, @NotNull PhotoModeManager.Session active) {
-        PhotoModeSlider vignetteSlider = this.addTabControl(new PhotoModeSlider(
-                0,
-                0,
-                width,
-                CONTROL_HEIGHT,
-                0.0D,
-                1.0D,
-                active.vignette(),
-                0.0D,
-                VIGNETTE_SNAP_RADIUS,
-                value -> active.setVignette((float) value),
-                value -> optionMessage("snappy.photo_mode.vignette", Component.translatable("snappy.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
-        ));
-        vignetteSlider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.vignette.desc")));
-
-        this.addColorAdjustmentSlider(
-                width,
-                "snappy.photo_mode.gamma",
-                "snappy.photo_mode.gamma.desc",
-                PhotoModeManager.GAMMA_MIN,
-                PhotoModeManager.GAMMA_MAX,
-                active.gamma(),
-                PhotoModeManager.GAMMA_DEFAULT,
-                value -> active.setGamma((float) value)
-        );
-
-        this.addColorAdjustmentSlider(
-                width,
-                "snappy.photo_mode.saturation",
-                "snappy.photo_mode.saturation.desc",
-                PhotoModeManager.SATURATION_MIN,
-                PhotoModeManager.SATURATION_MAX,
-                active.saturation(),
-                PhotoModeManager.SATURATION_DEFAULT,
-                value -> active.setSaturation((float) value)
-        );
-
-        this.addColorAdjustmentSlider(
-                width,
-                "snappy.photo_mode.contrast",
-                "snappy.photo_mode.contrast.desc",
-                PhotoModeManager.CONTRAST_MIN,
-                PhotoModeManager.CONTRAST_MAX,
-                active.contrast(),
-                PhotoModeManager.CONTRAST_DEFAULT,
-                value -> active.setContrast((float) value)
-        );
-
-        this.addColorAdjustmentSlider(
-                width,
-                "snappy.photo_mode.overexposure",
-                "snappy.photo_mode.overexposure.desc",
-                PhotoModeManager.OVEREXPOSURE_MIN,
-                PhotoModeManager.OVEREXPOSURE_MAX,
-                active.overexposure(),
-                PhotoModeManager.OVEREXPOSURE_DEFAULT,
-                value -> active.setOverexposure((float) value)
-        );
-
-        PhotoModeSlider bloomSlider = this.addTabControl(new PhotoModeSlider(
-                0,
-                0,
-                width,
-                CONTROL_HEIGHT,
-                PhotoModeManager.BLOOM_MIN,
-                PhotoModeManager.BLOOM_MAX,
-                active.bloom(),
-                PhotoModeManager.BLOOM_DEFAULT,
-                BLOOM_SNAP_RADIUS,
-                BLOOM_STEP,
-                value -> active.setBloom((float) value),
-                value -> optionMessage("snappy.photo_mode.bloom", Component.translatable("snappy.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
-        ));
-        bloomSlider.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.bloom.desc")));
-
-        this.colorizeButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            active.setColorizePreset(active.colorizePreset().next());
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.colorize.desc"))).build());
-
-        this.stylizeButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            active.setStylizePreset(active.stylizePreset().next());
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.stylize.desc"))).build());
-    }
-
-    private void addColorAdjustmentSlider(
-            int width,
-            @NotNull String labelKey,
-            @NotNull String tooltipKey,
-            float minValue,
-            float maxValue,
-            float currentValue,
-            float defaultValue,
-            @NotNull DoubleConsumer valueConsumer
-    ) {
-        PhotoModeSlider slider = this.addTabControl(new PhotoModeSlider(
-                0,
-                0,
-                width,
-                CONTROL_HEIGHT,
-                minValue,
-                maxValue,
-                currentValue,
-                defaultValue,
-                COLOR_ADJUSTMENT_SNAP_RADIUS,
-                COLOR_ADJUSTMENT_STEP,
-                valueConsumer,
-                value -> optionMessage(labelKey, signedPercentValue(value))
-        ));
-        slider.setTooltip(Tooltip.create(Component.translatable(tooltipKey)));
-    }
-
-    void addWorldControls() {
-        int width = this.tabControlWidth();
-        PhotoModeManager.Session active = PhotoModeManager.session();
-        if (active == null) {
-            return;
-        }
-
-        this.pauseButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            PhotoModeManager.togglePaused(Minecraft.getInstance());
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.pause.desc"))).build());
-
-        this.timeButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            active.setTimePreset(active.timePreset().next());
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.time.desc"))).build());
-
-        this.weatherButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            active.setWeatherPreset(active.weatherPreset().next());
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.weather.desc"))).build());
-
-        this.hideBeaconBeamsButton = this.addTabControl(Button.builder(Component.empty(), button -> {
-            active.setHideBeaconBeams(!active.hideBeaconBeams());
-            this.updateButtonMessages();
-        }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.hide_beacon_beams.desc"))).build());
-
-        this.skyColorButton = this.addPhotoColorButton(
-                width,
-                ColorPickerTarget.SKY,
-                active::skyColorOverride,
-                active::skyColor,
-                PhotoModeScreen::emptyColor,
-                active::setSkyColor
-        );
-
-        this.addTabControl(new PhotoModeSlider(
-                0,
-                0,
-                width,
-                CONTROL_HEIGHT,
-                0.0D,
-                1.0D,
-                active.fogIntensity(),
-                0.0D,
-                FOG_INTENSITY_SNAP_RADIUS,
-                value -> active.setFogIntensity((float) value),
-                value -> optionMessage("snappy.photo_mode.fog_intensity", Component.translatable("snappy.photo_mode.percent", Math.round(value * 100.0D)).withStyle(Style.EMPTY.withColor(VALUE_COLOR)))
-        ));
-
-        this.addTabControl(new PhotoModeSlider(
-                0,
-                0,
-                width,
-                CONTROL_HEIGHT,
-                PhotoModeManager.PHOTO_FOG_MIN_DISTANCE,
-                PhotoModeManager.PHOTO_FOG_MAX_DISTANCE,
-                active.fogDistance(),
-                PhotoModeManager.PHOTO_FOG_DEFAULT_DISTANCE,
-                FOG_DISTANCE_SNAP_RADIUS,
-                FOG_DISTANCE_STEP,
-                value -> active.setFogDistance((float) value),
-                value -> optionMessage("snappy.photo_mode.fog_distance", this.blockValue(value))
-        ));
-
-        this.fogColorButton = this.addPhotoColorButton(
-                width,
-                ColorPickerTarget.FOG,
-                active::fogColorOverride,
-                active::fogColor,
-                PhotoModeScreen::emptyColor,
-                active::setFogColor
-        );
+    @NotNull
+    <T extends AbstractWidget> T addPhotoWidget(@NotNull T widget) {
+        return this.addRenderableWidget(widget);
     }
 
     private void addActionButtons() {
@@ -926,7 +538,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     @NotNull
-    private PhotoModeColorButton addPhotoColorButton(
+    PhotoModeColorButton addPhotoColorButton(
             int width,
             @NotNull ColorPickerTarget target,
             @NotNull Supplier<@Nullable Integer> colorSupplier,
@@ -983,7 +595,7 @@ public class PhotoModeScreen extends Screen {
         ).build());
     }
 
-    private void addPlayerTransformSlider(
+    void addPlayerTransformSlider(
             int width,
             double minValue,
             double maxValue,
@@ -1009,75 +621,7 @@ public class PhotoModeScreen extends Screen {
         ));
     }
 
-    void addPoseMakerWidgets() {
-        int contentX = this.poseMakerPanelX + PANEL_PADDING;
-        int contentWidth = this.poseMakerControlWidth();
-        int y = this.poseMakerNameBoxY();
-
-        this.poseMakerNameKeyBox = this.addRenderableWidget(new EditBox(
-                this.font,
-                contentX,
-                y,
-                contentWidth,
-                CONTROL_HEIGHT,
-                Component.translatable("snappy.photo_mode.pose_maker.name_key")
-        ));
-        this.poseMakerNameKeyBox.setMaxLength(256);
-        this.poseMakerNameKeyBox.setHint(Component.translatable("snappy.photo_mode.pose_maker.name_key_hint"));
-        this.poseMakerNameKeyBox.setValue(this.poseMakerNameKey);
-        this.poseMakerNameKeyBox.setResponder(value -> {
-            this.poseMakerNameKey = value;
-            this.syncPoseMakerPreview();
-        });
-
-        int columnWidth = this.poseMakerColumnWidth();
-        int sliderY = this.poseMakerSliderStartY();
-        int index = 0;
-        for (PoseMakerAxis axis : PoseMakerAxis.values()) {
-            index = this.addPoseMakerRotationSlider(
-                    index,
-                    sliderY,
-                    columnWidth,
-                    "snappy.photo_mode.pose_maker.part.model",
-                    this.poseMakerModelRotation,
-                    axis
-            );
-        }
-        for (PhotoPose.BodyPart part : PhotoPose.BodyPart.values()) {
-            PoseMakerRotation rotation = this.poseMakerPartRotations.get(part);
-            if (rotation == null) {
-                continue;
-            }
-            for (PoseMakerAxis axis : PoseMakerAxis.values()) {
-                index = this.addPoseMakerRotationSlider(index, sliderY, columnWidth, part.labelKey(), rotation, axis);
-            }
-        }
-        this.addPoseMakerModelYOffsetSlider(
-                contentX,
-                sliderY + this.poseMakerRotationSliderRows(this.poseMakerColumns) * (CONTROL_HEIGHT + CONTROL_GAP),
-                contentWidth
-        );
-
-        int buttonY = this.poseMakerPanelY + this.poseMakerPanelHeight - PANEL_PADDING - CONTROL_HEIGHT;
-        int secondaryButtonY = buttonY - POSE_MAKER_BUTTON_GAP - CONTROL_HEIGHT;
-        int buttonWidth = (contentWidth - POSE_MAKER_BUTTON_GAP) / 2;
-        this.addRenderableWidget(Button.builder(Component.translatable("snappy.photo_mode.pose_maker.reset"), button -> this.resetPoseMakerSliders())
-                .bounds(contentX, secondaryButtonY, buttonWidth, CONTROL_HEIGHT)
-                .build());
-        this.addRenderableWidget(Button.builder(Component.translatable("snappy.photo_mode.pose_maker.load"), button -> this.loadPoseMakerPose())
-                .bounds(contentX + buttonWidth + POSE_MAKER_BUTTON_GAP, secondaryButtonY, contentWidth - buttonWidth - POSE_MAKER_BUTTON_GAP, CONTROL_HEIGHT)
-                .build());
-        this.addRenderableWidget(Button.builder(Component.translatable("snappy.photo_mode.pose_maker.save"), button -> {
-            if (this.minecraft != null) {
-                PhotoPoseExporter.saveWithNativeDialog(this.minecraft, this.createPoseMakerPose());
-            }
-        }).bounds(contentX, buttonY, buttonWidth, CONTROL_HEIGHT).build());
-        this.addRenderableWidget(Button.builder(Component.translatable("snappy.photo_mode.pose_maker.close"), button -> this.closePoseMaker())
-                .bounds(contentX + buttonWidth + POSE_MAKER_BUTTON_GAP, buttonY, contentWidth - buttonWidth - POSE_MAKER_BUTTON_GAP, CONTROL_HEIGHT)
-                .build());
-    }
-
-    private int addPoseMakerRotationSlider(
+    int addPoseMakerRotationSlider(
             int index,
             int sliderStartY,
             int columnWidth,
@@ -1114,7 +658,7 @@ public class PhotoModeScreen extends Screen {
         return index + 1;
     }
 
-    private void addPoseMakerModelYOffsetSlider(int x, int y, int width) {
+    void addPoseMakerModelYOffsetSlider(int x, int y, int width) {
         PhotoModeSlider slider = this.addRenderableWidget(new PhotoModeSlider(
                 x,
                 y,
@@ -1183,7 +727,7 @@ public class PhotoModeScreen extends Screen {
         this.rebuildPhotoWidgets();
     }
 
-    private void updateButtonMessages() {
+    void updateButtonMessages() {
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active == null) {
             return;
@@ -1389,7 +933,7 @@ public class PhotoModeScreen extends Screen {
         return this.poseMakerRotationSliderRows(columns) + 1;
     }
 
-    private int poseMakerRotationSliderRows(int columns) {
+    int poseMakerRotationSliderRows(int columns) {
         return (this.poseMakerRotationSliderCount() + columns - 1) / columns;
     }
 
@@ -1397,11 +941,11 @@ public class PhotoModeScreen extends Screen {
         return (PhotoPose.BodyPart.values().length + 1) * PoseMakerAxis.values().length;
     }
 
-    private int poseMakerControlWidth() {
+    int poseMakerControlWidth() {
         return this.poseMakerPanelWidth - PANEL_PADDING * 2;
     }
 
-    private int poseMakerColumnWidth() {
+    int poseMakerColumnWidth() {
         return (this.poseMakerControlWidth() - (this.poseMakerColumns - 1) * POSE_MAKER_COLUMN_GAP) / this.poseMakerColumns;
     }
 
@@ -1409,11 +953,11 @@ public class PhotoModeScreen extends Screen {
         return this.poseMakerPanelY + PANEL_PADDING + POSE_MAKER_HEADER_HEIGHT + CONTROL_GAP;
     }
 
-    private int poseMakerNameBoxY() {
+    int poseMakerNameBoxY() {
         return this.poseMakerNameLabelY() + POSE_MAKER_NAME_LABEL_HEIGHT;
     }
 
-    private int poseMakerSliderStartY() {
+    int poseMakerSliderStartY() {
         return this.poseMakerNameBoxY() + CONTROL_HEIGHT + CONTROL_GAP;
     }
 
@@ -1482,7 +1026,7 @@ public class PhotoModeScreen extends Screen {
         return PANEL_WIDTH - PANEL_PADDING * 2;
     }
 
-    private int tabControlWidth() {
+    int tabControlWidth() {
         return Math.max(1, this.controlWidth() - TAB_SCROLLBAR_RESERVE);
     }
 
@@ -1546,7 +1090,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     @Nullable
-    private static Integer emptyColor() {
+    static Integer emptyColor() {
         return null;
     }
 
@@ -1582,13 +1126,13 @@ public class PhotoModeScreen extends Screen {
         this.rebuildPhotoWidgets();
     }
 
-    private void closePoseMaker() {
+    void closePoseMaker() {
         this.poseMakerOpen = false;
         this.clearPoseMakerPreview();
         this.rebuildPhotoWidgets();
     }
 
-    private void syncPoseMakerPreview() {
+    void syncPoseMakerPreview() {
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active != null && this.poseMakerOpen) {
             active.setPoseMakerPose(this.createPoseMakerPose());
@@ -1602,7 +1146,7 @@ public class PhotoModeScreen extends Screen {
         }
     }
 
-    private void resetPoseMakerSliders() {
+    void resetPoseMakerSliders() {
         this.poseMakerModelRotation.reset();
         this.poseMakerModelYOffset = 0.0D;
         for (PoseMakerRotation rotation : this.poseMakerPartRotations.values()) {
@@ -1612,7 +1156,7 @@ public class PhotoModeScreen extends Screen {
         this.rebuildPhotoWidgets();
     }
 
-    private void loadPoseMakerPose() {
+    void loadPoseMakerPose() {
         if (this.minecraft == null) {
             return;
         }
@@ -1638,7 +1182,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     @NotNull
-    private PhotoPose createPoseMakerPose() {
+    PhotoPose createPoseMakerPose() {
         Map<PhotoPose.BodyPart, PhotoPose.PartRotation> rotations = PhotoPose.emptyRotationMap();
         for (PhotoPose.BodyPart part : PhotoPose.BodyPart.values()) {
             PoseMakerRotation rotation = this.poseMakerPartRotations.get(part);
@@ -1730,17 +1274,17 @@ public class PhotoModeScreen extends Screen {
     }
 
     @NotNull
-    private static Component optionMessage(@NotNull String key, @NotNull Component value) {
+    static Component optionMessage(@NotNull String key, @NotNull Component value) {
         return UIFormatting.optionMessage(key, value);
     }
 
     @NotNull
-    private static Component optionMessage(@NotNull String key, @NotNull Object... args) {
+    static Component optionMessage(@NotNull String key, @NotNull Object... args) {
         return UIFormatting.optionMessage(key, args);
     }
 
     @NotNull
-    private static Component signedPercentValue(double value) {
+    static Component signedPercentValue(double value) {
         return UIFormatting.signedPercentValue("snappy.photo_mode.percent", value, VALUE_COLOR);
     }
 
@@ -1764,17 +1308,17 @@ public class PhotoModeScreen extends Screen {
     }
 
     @NotNull
-    private Component blockValue(double value) {
+    Component blockValue(double value) {
         return UIFormatting.fixedTranslatable("snappy.photo_mode.blocks", value, "%.2f", VALUE_COLOR);
     }
 
     @NotNull
-    private Component poseMakerOffsetValue(double value) {
+    Component poseMakerOffsetValue(double value) {
         return UIFormatting.fixedLiteral(value, "%+.2f", VALUE_COLOR);
     }
 
     @NotNull
-    private Component degreeValue(double value) {
+    Component degreeValue(double value) {
         return UIFormatting.fixedTranslatable("snappy.photo_mode.degrees", value, "%.0f", VALUE_COLOR);
     }
 
@@ -1816,7 +1360,7 @@ public class PhotoModeScreen extends Screen {
         }
     }
 
-    private enum PoseMakerAxis {
+    enum PoseMakerAxis {
         X("X"),
         Y("Y"),
         Z("Z");
@@ -1833,7 +1377,7 @@ public class PhotoModeScreen extends Screen {
         }
     }
 
-    private static final class PoseMakerRotation {
+    static final class PoseMakerRotation {
 
         private double x;
         private double y;
@@ -1971,7 +1515,7 @@ public class PhotoModeScreen extends Screen {
         abstract void confirm(@NotNull PhotoModeScreen screen);
     }
 
-    private enum ColorPickerTarget {
+    enum ColorPickerTarget {
         SKY("snappy.photo_mode.sky_color_picker"),
         FOG("snappy.photo_mode.fog_color_picker");
 

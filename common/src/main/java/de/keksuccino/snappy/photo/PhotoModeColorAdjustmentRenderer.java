@@ -108,7 +108,7 @@ final class PhotoModeColorAdjustmentRenderer {
     }
 
     private static void drawAdjustmentPass(@NotNull Resources renderResources, @NotNull RenderTarget source, @NotNull RenderTarget output) {
-        ShaderEffectPass.drawScreenQuad(
+        ShaderEffectPass.drawSingleSamplerPass(
                 "Snappy photo color adjustments",
                 renderResources.postProjectionMatrixBuffer,
                 renderResources.samplerInfoBuffer,

@@ -142,6 +142,8 @@ public final class PanoramaMenuManager {
 
         Path gameDirectory = minecraft.gameDirectory.toPath();
         cachedPanoramas = PanoramaScanner.scanPanoramaFolders(
+                PanoramaScanner.LinkPolicy.FOLLOW_LINKS,
+                PanoramaScanner.ModifiedTimePolicy.FOLDER_ONLY,
                 gameDirectory.resolve(PanoramaCaptureManager.DEDICATED_SCREENSHOT_DIR),
                 gameDirectory.resolve(Screenshot.SCREENSHOT_DIR)
         );

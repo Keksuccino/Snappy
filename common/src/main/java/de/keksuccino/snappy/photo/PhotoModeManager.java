@@ -220,7 +220,7 @@ public final class PhotoModeManager {
         if (active != null) {
             active.tickVisualEffects(minecraft);
         }
-        PhotoEnvironmentManager.tickWorldVisualRefresh(minecraft, active);
+        PhotoEnvironmentManager.tickWorldVisualRefresh(minecraft, environmentState(active));
     }
 
     public static void updateMovement(@NotNull Minecraft minecraft) {
@@ -278,7 +278,7 @@ public final class PhotoModeManager {
     }
 
     public static void beginWorldOverrideScope() {
-        PhotoEnvironmentManager.beginWorldOverrideScope(session);
+        PhotoEnvironmentManager.beginWorldOverrideScope(environmentState(session));
     }
 
     public static void endWorldOverrideScope() {
@@ -286,23 +286,23 @@ public final class PhotoModeManager {
     }
 
     public static long overrideClockTicks(long original) {
-        return PhotoEnvironmentManager.overrideClockTicks(session, original);
+        return PhotoEnvironmentManager.overrideClockTicks(environmentState(session), original);
     }
 
     public static float overrideRainLevel(float original) {
-        return PhotoEnvironmentManager.overrideRainLevel(session, original);
+        return PhotoEnvironmentManager.overrideRainLevel(environmentState(session), original);
     }
 
     public static float overrideThunderLevel(float original) {
-        return PhotoEnvironmentManager.overrideThunderLevel(session, original);
+        return PhotoEnvironmentManager.overrideThunderLevel(environmentState(session), original);
     }
 
     public static long overrideGameTime(long original) {
-        return PhotoEnvironmentManager.overrideGameTime(session, original);
+        return PhotoEnvironmentManager.overrideGameTime(environmentState(session), original);
     }
 
     public static void applyFogOverrides(@NotNull FogData fog, int renderDistanceInChunks) {
-        PhotoEnvironmentManager.applyFogOverrides(session, fog, renderDistanceInChunks);
+        PhotoEnvironmentManager.applyFogOverrides(environmentState(session), fog, renderDistanceInChunks);
     }
 
     public static boolean shouldSuppressWorldRefreshSound(@NotNull SoundSource source) {
@@ -310,11 +310,11 @@ public final class PhotoModeManager {
     }
 
     public static void afterExtractRenderState(@NotNull GameRenderState gameRenderState) {
-        PhotoEnvironmentManager.afterExtractRenderState(session, gameRenderState);
+        PhotoEnvironmentManager.afterExtractRenderState(environmentState(session), gameRenderState);
     }
 
     public static int overrideSkyColor(int sampledSkyColor) {
-        return PhotoEnvironmentManager.overrideSkyColor(session, sampledSkyColor);
+        return PhotoEnvironmentManager.overrideSkyColor(environmentState(session), sampledSkyColor);
     }
 
     public static void extractVignette(@NotNull GuiGraphicsExtractor graphics, int width, int height) {
@@ -671,13 +671,18 @@ public final class PhotoModeManager {
     }
 
     private static void requestWorldVisualRefresh(@NotNull Minecraft minecraft) {
-        PhotoEnvironmentManager.requestWorldVisualRefresh(minecraft, session);
+        PhotoEnvironmentManager.requestWorldVisualRefresh(minecraft, environmentState(session));
+    }
+
+    @Nullable
+    private static PhotoEnvironmentManager.EnvironmentState environmentState(@Nullable Session active) {
+        return active == null ? null : active.environmentState();
     }
 
     public record CameraState(@NotNull Vec3 position, float yaw, float pitch, float roll) {
     }
 
-    public static final class Session implements PhotoModeCameraController.MutableCamera {
+    public static final class Session {
 
         private Vec3 position;
         private float yaw;
@@ -721,6 +726,9 @@ public final class PhotoModeManager {
         @Nullable
         private PhotoPose poseMakerPose;
         private final PhotoModeCameraController cameraController = new PhotoModeCameraController();
+        private final PhotoModeCameraController.MutableCamera mutableCamera = new CameraAdapter();
+        private final PhotoEnvironmentManager.EnvironmentState environmentState = new EnvironmentAdapter();
+        private final VisualLightningStormManager.StormState lightningState = new LightningAdapter();
         private final VisualLightningStormManager visualLightningStorm = new VisualLightningStormManager();
         private long visualGameTimeOffsetTicks;
         private int worldVisualTicksRemaining;
@@ -806,7 +814,7 @@ public final class PhotoModeManager {
         }
 
         private void tickVisualEffects(@NotNull Minecraft minecraft) {
-            this.visualLightningStorm.tick(minecraft, this);
+            this.visualLightningStorm.tick(minecraft, this.lightningState);
         }
 
         private void clearVisualEffects(@Nullable ClientLevel level) {
@@ -822,11 +830,11 @@ public final class PhotoModeManager {
         }
 
         public void updateMovement(@NotNull Minecraft minecraft) {
-            this.cameraController.updateMovement(minecraft, this);
+            this.cameraController.updateMovement(minecraft, this.mutableCamera);
         }
 
         public void zoomFromScroll(@NotNull Minecraft minecraft, double scrollY) {
-            this.cameraController.zoomFromScroll(minecraft, this, scrollY);
+            this.cameraController.zoomFromScroll(minecraft, this.mutableCamera, scrollY);
         }
 
         private void setBoundInputState(@NotNull InputConstants.Key key, boolean down) {
@@ -834,12 +842,12 @@ public final class PhotoModeManager {
         }
 
         public void rotate(double dx, double dy) {
-            this.cameraController.rotate(this, dx, dy);
+            this.cameraController.rotate(this.mutableCamera, dx, dy);
         }
 
         @NotNull
         public Vec3 forwardVector() {
-            return this.cameraController.forwardVector(this);
+            return this.cameraController.forwardVector(this.mutableCamera);
         }
 
         @NotNull
@@ -874,8 +882,13 @@ public final class PhotoModeManager {
                     this.fogDistance,
                     this.fogColor(),
                     this.skyColor(),
-                    this.poseId()
+                    this.snapshotPoseId()
             );
+        }
+
+        @NotNull
+        private PhotoEnvironmentManager.EnvironmentState environmentState() {
+            return this.environmentState;
         }
 
         @NotNull
@@ -883,27 +896,12 @@ public final class PhotoModeManager {
             return this.position;
         }
 
-        @Override
-        public void setPosition(@NotNull Vec3 position) {
-            this.position = position;
-        }
-
         public float yaw() {
             return this.yaw;
         }
 
-        @Override
-        public void setYaw(float yaw) {
-            this.yaw = yaw;
-        }
-
         public float pitch() {
             return this.pitch;
-        }
-
-        @Override
-        public void setPitch(float pitch) {
-            this.pitch = pitch;
         }
 
         public float roll() {
@@ -1272,31 +1270,6 @@ public final class PhotoModeManager {
             this.poseMakerPose = poseMakerPose;
         }
 
-        public int overrideSkyColor(int sampledSkyColor) {
-            this.sampledSkyColor = ARGB.opaque(sampledSkyColor);
-            return this.skyColor();
-        }
-
-        public void sampleFogColor(@NotNull FogData fog) {
-            this.sampledFogColor = ARGB.colorFromFloat(1.0F, fog.color.x(), fog.color.y(), fog.color.z());
-        }
-
-        public long visualGameTimeOffsetTicks() {
-            return this.visualGameTimeOffsetTicks;
-        }
-
-        public int worldVisualTicksRemaining() {
-            return this.worldVisualTicksRemaining;
-        }
-
-        public void setWorldVisualTicksRemaining(int worldVisualTicksRemaining) {
-            this.worldVisualTicksRemaining = Math.max(0, worldVisualTicksRemaining);
-        }
-
-        public void advanceVisualGameTime(long ticks) {
-            this.visualGameTimeOffsetTicks += Math.max(0L, ticks);
-        }
-
         @Nullable
         public Identifier poseId() {
             if (this.poseId != null && !PhotoPoseManager.hasPose(this.poseId)) {
@@ -1327,6 +1300,143 @@ public final class PhotoModeManager {
         }
 
         @Nullable
+        private Identifier snapshotPoseId() {
+            return this.poseId != null && PhotoPoseManager.hasPose(this.poseId) ? this.poseId : null;
+        }
+
+        private final class CameraAdapter implements PhotoModeCameraController.MutableCamera {
+
+            @NotNull
+            @Override
+            public Vec3 position() {
+                return Session.this.position;
+            }
+
+            @Override
+            public void setPosition(@NotNull Vec3 position) {
+                if (isFinite(position)) {
+                    Session.this.position = position;
+                }
+            }
+
+            @Override
+            public float yaw() {
+                return Session.this.yaw;
+            }
+
+            @Override
+            public void setYaw(float yaw) {
+                Session.this.yaw = Float.isFinite(yaw) ? Mth.wrapDegrees(yaw) : 0.0F;
+            }
+
+            @Override
+            public float pitch() {
+                return Session.this.pitch;
+            }
+
+            @Override
+            public void setPitch(float pitch) {
+                Session.this.pitch = Mth.clamp(Float.isFinite(pitch) ? pitch : 0.0F, -89.5F, 89.5F);
+            }
+
+        }
+
+        private final class EnvironmentAdapter implements PhotoEnvironmentManager.EnvironmentState {
+
+            @NotNull
+            @Override
+            public Vec3 position() {
+                return Session.this.position;
+            }
+
+            @NotNull
+            @Override
+            public PhotoModeTimePreset timePreset() {
+                return Session.this.timePreset;
+            }
+
+            @NotNull
+            @Override
+            public PhotoModeWeatherPreset weatherPreset() {
+                return Session.this.weatherPreset;
+            }
+
+            @Override
+            public float fogIntensity() {
+                return Session.this.fogIntensity;
+            }
+
+            @Override
+            public float fogDistance() {
+                return Session.this.fogDistance;
+            }
+
+            @Nullable
+            @Override
+            public Integer fogColorOverride() {
+                return Session.this.fogColorOverride;
+            }
+
+            @Override
+            public boolean paused() {
+                return Session.this.paused;
+            }
+
+            @Override
+            public long visualGameTimeOffsetTicks() {
+                return Session.this.visualGameTimeOffsetTicks;
+            }
+
+            @Override
+            public int worldVisualTicksRemaining() {
+                return Session.this.worldVisualTicksRemaining;
+            }
+
+            @Override
+            public void setWorldVisualTicksRemaining(int ticks) {
+                Session.this.worldVisualTicksRemaining = Math.max(0, ticks);
+            }
+
+            @Override
+            public void advanceVisualGameTime(long ticks) {
+                Session.this.visualGameTimeOffsetTicks += Math.max(0L, ticks);
+            }
+
+            @Override
+            public void sampleFogColor(@NotNull FogData fog) {
+                Session.this.sampledFogColor = ARGB.colorFromFloat(1.0F, fog.color.x(), fog.color.y(), fog.color.z());
+            }
+
+            @Override
+            public int overrideSkyColor(int sampledSkyColor) {
+                Session.this.sampledSkyColor = ARGB.opaque(sampledSkyColor);
+                return Session.this.skyColor();
+            }
+
+        }
+
+        private final class LightningAdapter implements VisualLightningStormManager.StormState {
+
+            @NotNull
+            @Override
+            public Vec3 position() {
+                return Session.this.position;
+            }
+
+            @NotNull
+            @Override
+            public PhotoModeWeatherPreset weatherPreset() {
+                return Session.this.weatherPreset;
+            }
+
+            @Override
+            public boolean paused() {
+                return Session.this.paused;
+            }
+
+        }
+
+        @Nullable
         private PhotoPose activePose() {
             if (this.poseMakerPose != null) {
                 return this.poseMakerPose;
@@ -1343,6 +1453,10 @@ public final class PhotoModeManager {
         private double activePoseYOffset() {
             PhotoPose pose = this.activePose();
             return pose == null ? 0.0D : pose.modelYOffset();
+        }
+
+        private static boolean isFinite(@NotNull Vec3 position) {
+            return Double.isFinite(position.x) && Double.isFinite(position.y) && Double.isFinite(position.z);
         }
 
     }

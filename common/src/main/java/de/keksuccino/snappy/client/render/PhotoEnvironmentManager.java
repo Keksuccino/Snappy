@@ -1,6 +1,5 @@
 package de.keksuccino.snappy.client.render;
 
-import de.keksuccino.snappy.photo.PhotoModeManager;
 import de.keksuccino.snappy.photo.PhotoModeTimePreset;
 import de.keksuccino.snappy.photo.PhotoModeWeatherPreset;
 import net.minecraft.client.Camera;
@@ -42,7 +41,7 @@ public final class PhotoEnvironmentManager {
         refreshWorldCaches(minecraft, null, true);
     }
 
-    public static void beginWorldOverrideScope(@Nullable PhotoModeManager.Session active) {
+    public static void beginWorldOverrideScope(@Nullable EnvironmentState active) {
         worldOverrideScope = active != null;
     }
 
@@ -50,23 +49,23 @@ public final class PhotoEnvironmentManager {
         worldOverrideScope = false;
     }
 
-    public static long overrideClockTicks(@Nullable PhotoModeManager.Session active, long original) {
+    public static long overrideClockTicks(@Nullable EnvironmentState active, long original) {
         return active != null && worldOverrideScope ? active.timePreset().clockTicks() : original;
     }
 
-    public static float overrideRainLevel(@Nullable PhotoModeManager.Session active, float original) {
+    public static float overrideRainLevel(@Nullable EnvironmentState active, float original) {
         return active != null && worldOverrideScope ? active.weatherPreset().rainLevel() : original;
     }
 
-    public static float overrideThunderLevel(@Nullable PhotoModeManager.Session active, float original) {
+    public static float overrideThunderLevel(@Nullable EnvironmentState active, float original) {
         return active != null && worldOverrideScope ? active.weatherPreset().thunderLevel() : original;
     }
 
-    public static long overrideGameTime(@Nullable PhotoModeManager.Session active, long original) {
+    public static long overrideGameTime(@Nullable EnvironmentState active, long original) {
         return active != null && worldOverrideScope ? original + active.visualGameTimeOffsetTicks() : original;
     }
 
-    public static void applyFogOverrides(@Nullable PhotoModeManager.Session active, @NotNull FogData fog, int renderDistanceInChunks) {
+    public static void applyFogOverrides(@Nullable EnvironmentState active, @NotNull FogData fog, int renderDistanceInChunks) {
         if (active == null) {
             return;
         }
@@ -100,7 +99,7 @@ public final class PhotoEnvironmentManager {
         return suppressWorldRefreshSounds && source == SoundSource.WEATHER;
     }
 
-    public static void afterExtractRenderState(@Nullable PhotoModeManager.Session active, @NotNull GameRenderState gameRenderState) {
+    public static void afterExtractRenderState(@Nullable EnvironmentState active, @NotNull GameRenderState gameRenderState) {
         if (active == null) {
             return;
         }
@@ -111,23 +110,23 @@ public final class PhotoEnvironmentManager {
         gameRenderState.lightmapRenderState.needsUpdate = true;
     }
 
-    public static int overrideSkyColor(@Nullable PhotoModeManager.Session active, int sampledSkyColor) {
+    public static int overrideSkyColor(@Nullable EnvironmentState active, int sampledSkyColor) {
         return active == null || suppressSkyColorOverride ? sampledSkyColor : active.overrideSkyColor(sampledSkyColor);
     }
 
-    public static void requestWorldVisualRefresh(@NotNull Minecraft minecraft, @Nullable PhotoModeManager.Session active) {
+    public static void requestWorldVisualRefresh(@NotNull Minecraft minecraft, @Nullable EnvironmentState active) {
         if (active == null) {
             return;
         }
 
         active.setWorldVisualTicksRemaining(WORLD_FOLLOWUP_TICKS);
-        runWithWorldOverrideScope(active, () -> refreshWorldCaches(minecraft, active, true));
+        runWithWorldOverrideScope(() -> refreshWorldCaches(minecraft, active, true));
         if (shouldRunPausedWorldVisualRefresh(minecraft, active)) {
             runPausedWorldVisualTicks(minecraft, active, WORLD_FAST_FORWARD_TICKS);
         }
     }
 
-    public static void tickWorldVisualRefresh(@NotNull Minecraft minecraft, @Nullable PhotoModeManager.Session active) {
+    public static void tickWorldVisualRefresh(@NotNull Minecraft minecraft, @Nullable EnvironmentState active) {
         if (active != null && active.worldVisualTicksRemaining() > 0 && shouldRunPausedWorldVisualRefresh(minecraft, active)) {
             runPausedWorldVisualTicks(minecraft, active, 1);
             active.setWorldVisualTicksRemaining(active.worldVisualTicksRemaining() - 1);
@@ -183,15 +182,15 @@ public final class PhotoEnvironmentManager {
         }
     }
 
-    private static boolean shouldRunPausedWorldVisualRefresh(@NotNull Minecraft minecraft, @NotNull PhotoModeManager.Session active) {
+    private static boolean shouldRunPausedWorldVisualRefresh(@NotNull Minecraft minecraft, @NotNull EnvironmentState active) {
         return active.paused()
-                && PhotoModeManager.canPause(minecraft)
+                && canPause(minecraft)
                 && minecraft.level != null
                 && minecraft.player != null
                 && minecraft.level.tickRateManager().runsNormally();
     }
 
-    private static void runPausedWorldVisualTicks(@NotNull Minecraft minecraft, @NotNull PhotoModeManager.Session active, int ticks) {
+    private static void runPausedWorldVisualTicks(@NotNull Minecraft minecraft, @NotNull EnvironmentState active, int ticks) {
         ClientLevel level = minecraft.level;
         if (level == null || minecraft.player == null || ticks <= 0 || !shouldRunPausedWorldVisualRefresh(minecraft, active)) {
             return;
@@ -215,7 +214,7 @@ public final class PhotoEnvironmentManager {
         }
     }
 
-    private static void runWithWorldOverrideScope(@NotNull PhotoModeManager.Session active, @NotNull Runnable runnable) {
+    private static void runWithWorldOverrideScope(@NotNull Runnable runnable) {
         boolean previousWorldOverrideScope = worldOverrideScope;
         worldOverrideScope = true;
         try {
@@ -227,7 +226,7 @@ public final class PhotoEnvironmentManager {
 
     private static void refreshWorldCaches(
             @NotNull Minecraft minecraft,
-            @Nullable PhotoModeManager.Session active,
+            @Nullable EnvironmentState active,
             boolean resetProbe
     ) {
         ClientLevel level = minecraft.level;
@@ -244,6 +243,44 @@ public final class PhotoEnvironmentManager {
         }
 
         camera.attributeProbe().tick(level, active == null ? camera.position() : active.position());
+    }
+
+    private static boolean canPause(@NotNull Minecraft minecraft) {
+        return minecraft.hasSingleplayerServer() && minecraft.getSingleplayerServer() != null && !minecraft.getSingleplayerServer().isPublished();
+    }
+
+    public interface EnvironmentState {
+
+        @NotNull
+        Vec3 position();
+
+        @NotNull
+        PhotoModeTimePreset timePreset();
+
+        @NotNull
+        PhotoModeWeatherPreset weatherPreset();
+
+        float fogIntensity();
+
+        float fogDistance();
+
+        @Nullable
+        Integer fogColorOverride();
+
+        boolean paused();
+
+        long visualGameTimeOffsetTicks();
+
+        int worldVisualTicksRemaining();
+
+        void setWorldVisualTicksRemaining(int ticks);
+
+        void advanceVisualGameTime(long ticks);
+
+        void sampleFogColor(@NotNull FogData fog);
+
+        int overrideSkyColor(int sampledSkyColor);
+
     }
 
 }
