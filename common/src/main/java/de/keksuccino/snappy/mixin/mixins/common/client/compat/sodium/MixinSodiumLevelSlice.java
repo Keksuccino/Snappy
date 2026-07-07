@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import de.keksuccino.snappy.client.render.PhotoSeasonManager;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.Level;
@@ -58,6 +59,7 @@ public class MixinSodiumLevelSlice {
 
     @Shadow @Final private static int SECTION_ARRAY_LENGTH;
 
+    @Shadow @Final private ClientLevel level;
     @Shadow @Final private BlockState[][] blockArrays;
     @Shadow private int originBlockX;
     @Shadow private int originBlockY;
@@ -89,6 +91,7 @@ public class MixinSodiumLevelSlice {
     private BlockState modify_getBlockStateReturn_Snappy(BlockState original, int x, int y, int z) {
         return PhotoSeasonManager.overrideRenderBlockStateAt(
                 (BlockAndTintGetter) (Object) this,
+                this.level,
                 this::getRawBlockState_Snappy,
                 x,
                 y,

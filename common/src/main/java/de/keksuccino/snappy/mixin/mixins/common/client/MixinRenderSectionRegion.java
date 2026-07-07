@@ -2,6 +2,7 @@ package de.keksuccino.snappy.mixin.mixins.common.client;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import de.keksuccino.snappy.client.render.PhotoSeasonManager;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.chunk.RenderSectionRegion;
 import net.minecraft.client.renderer.chunk.SectionCopy;
@@ -38,6 +39,7 @@ public class MixinRenderSectionRegion {
     @Shadow @Final private int minSectionX;
     @Shadow @Final private int minSectionY;
     @Shadow @Final private int minSectionZ;
+    @Shadow @Final private ClientLevel level;
 
     @Shadow
     private SectionCopy getSection(int sectionX, int sectionY, int sectionZ) {
@@ -48,6 +50,7 @@ public class MixinRenderSectionRegion {
     private BlockState modify_getBlockStateReturn_Snappy(BlockState original, BlockPos pos) {
         return PhotoSeasonManager.overrideRenderBlockState(
                 (BlockAndTintGetter) (Object) this,
+                this.level,
                 this::getRawBlockState_Snappy,
                 pos,
                 original

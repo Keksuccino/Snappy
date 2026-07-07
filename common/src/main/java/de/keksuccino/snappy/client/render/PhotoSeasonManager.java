@@ -16,6 +16,7 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -23,7 +24,9 @@ import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.SnowyBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.levelgen.Heightmap;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class PhotoSeasonManager {
 
@@ -103,8 +106,19 @@ public final class PhotoSeasonManager {
             @NotNull BlockPos pos,
             @NotNull BlockState original
     ) {
+        return overrideRenderBlockState(level, null, rawStates, pos, original);
+    }
+
+    @NotNull
+    public static BlockState overrideRenderBlockState(
+            @NotNull BlockAndTintGetter level,
+            @Nullable LevelReader heightLevel,
+            @NotNull RawBlockStateGetter rawStates,
+            @NotNull BlockPos pos,
+            @NotNull BlockState original
+    ) {
         PhotoModeSeason season = PhotoModeManager.season();
-        return overrideRenderBlockStateAt(level, rawStates, pos.getX(), pos.getY(), pos.getZ(), original, season);
+        return overrideRenderBlockStateAt(level, heightLevel, rawStates, pos.getX(), pos.getY(), pos.getZ(), original, season);
     }
 
     @NotNull
@@ -116,12 +130,26 @@ public final class PhotoSeasonManager {
             int z,
             @NotNull BlockState original
     ) {
-        return overrideRenderBlockStateAt(level, rawStates, x, y, z, original, PhotoModeManager.season());
+        return overrideRenderBlockStateAt(level, null, rawStates, x, y, z, original);
+    }
+
+    @NotNull
+    public static BlockState overrideRenderBlockStateAt(
+            @NotNull BlockAndTintGetter level,
+            @Nullable LevelReader heightLevel,
+            @NotNull RawBlockStateGetter rawStates,
+            int x,
+            int y,
+            int z,
+            @NotNull BlockState original
+    ) {
+        return overrideRenderBlockStateAt(level, heightLevel, rawStates, x, y, z, original, PhotoModeManager.season());
     }
 
     @NotNull
     private static BlockState overrideRenderBlockStateAt(
             @NotNull BlockAndTintGetter level,
+            @Nullable LevelReader heightLevel,
             @NotNull RawBlockStateGetter rawStates,
             int x,
             int y,
@@ -139,10 +167,10 @@ public final class PhotoSeasonManager {
         if (!season.addsSnow()) {
             return original;
         }
-        if (shouldAddSnowLayer(level, rawStates, x, y, z, original)) {
+        if (shouldAddSnowLayer(level, heightLevel, rawStates, x, y, z, original)) {
             return SNOW_LAYER_STATE;
         }
-        return withWinterSnowyProperty(level, rawStates, x, y, z, original);
+        return withWinterSnowyProperty(level, heightLevel, rawStates, x, y, z, original);
     }
 
     public static int overrideTintColor(@NotNull BlockState state, @NotNull BlockPos pos, int originalColor) {
@@ -228,6 +256,7 @@ public final class PhotoSeasonManager {
     @NotNull
     private static BlockState withWinterSnowyProperty(
             @NotNull BlockAndTintGetter level,
+            @Nullable LevelReader heightLevel,
             @NotNull RawBlockStateGetter rawStates,
             int x,
             int y,
@@ -241,12 +270,13 @@ public final class PhotoSeasonManager {
         BlockState aboveState = rawStates.getRawBlockState(x, y + 1, z);
         boolean snowy = aboveState.is(Blocks.SNOW)
                 || aboveState.is(Blocks.SNOW_BLOCK)
-                || shouldAddSnowLayer(level, rawStates, x, y + 1, z, aboveState);
+                || shouldAddSnowLayer(level, heightLevel, rawStates, x, y + 1, z, aboveState);
         return original.setValue(SnowyBlock.SNOWY, snowy);
     }
 
     private static boolean shouldAddSnowLayer(
             @NotNull BlockAndTintGetter level,
+            @Nullable LevelReader heightLevel,
             @NotNull RawBlockStateGetter rawStates,
             int x,
             int y,
@@ -256,10 +286,49 @@ public final class PhotoSeasonManager {
         if (!canUseVisualSnowPosition(original) || y <= level.getMinY() || y >= level.getMinY() + level.getHeight()) {
             return false;
         }
+        if (!isOpenToSnowfall(level, heightLevel, rawStates, x, y, z)) {
+            return false;
+        }
 
         BlockPos belowPos = new BlockPos(x, y - 1, z);
         BlockState belowState = rawStates.getRawBlockState(x, y - 1, z);
         return canSupportVisualSnowLayer(level, belowPos, belowState);
+    }
+
+    private static boolean isOpenToSnowfall(
+            @NotNull BlockAndTintGetter level,
+            @Nullable LevelReader heightLevel,
+            @NotNull RawBlockStateGetter rawStates,
+            int x,
+            int y,
+            int z
+    ) {
+        if (heightLevel != null) {
+            return heightLevel.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) == y;
+        }
+
+        BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos(x, y, z);
+        if (!level.canSeeSky(mutablePos)) {
+            return false;
+        }
+
+        int maxY = level.getMinY() + level.getHeight();
+        for (int scanY = y + 1; scanY < maxY; scanY++) {
+            mutablePos.setY(scanY);
+            BlockState state = rawStates.getRawBlockState(x, scanY, z);
+            if (isMotionBlockingForSnowfall(level, mutablePos, state)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isMotionBlockingForSnowfall(
+            @NotNull BlockGetter level,
+            @NotNull BlockPos pos,
+            @NotNull BlockState state
+    ) {
+        return state.isCollisionShapeFullBlock(level, pos) || !state.getFluidState().isEmpty();
     }
 
     private static boolean canUseVisualSnowPosition(@NotNull BlockState original) {
