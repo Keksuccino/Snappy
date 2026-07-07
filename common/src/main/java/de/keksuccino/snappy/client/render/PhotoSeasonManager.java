@@ -33,16 +33,17 @@ public final class PhotoSeasonManager {
     private static final BlockState AIR_STATE = Blocks.AIR.defaultBlockState();
     private static final BlockState SNOW_LAYER_STATE = Blocks.SNOW.defaultBlockState();
     private static final BlockState GRASS_BLOCK_STATE = Blocks.GRASS_BLOCK.defaultBlockState().setValue(SnowyBlock.SNOWY, false);
-    private static final int[] AUTUMN_LEAF_COLORS = {
-            0xFFD99A2B,
-            0xFFC86422,
-            0xFFB9472B,
-            0xFFD4B640,
-            0xFFA86B2A,
-            0xFF9B3A24,
-            0xFFC98229,
-            0xFF8D5A2D
+    private static final int[][] AUTUMN_LEAF_COLOR_FAMILIES = {
+            {0xFF9E3324, 0xFFB6462A, 0xFF862A1E},
+            {0xFFC05A1C, 0xFFD07120, 0xFFA84A18},
+            {0xFFD19B2E, 0xFFE0B140, 0xFFB98125},
+            {0xFF7A4824, 0xFF8D582B, 0xFF60351F},
+            {0xFFB26724, 0xFF9A4F20, 0xFFC17B2A}
     };
+    private static final int AUTUMN_LEAF_BLOB_SIZE_XZ = 9;
+    private static final int AUTUMN_LEAF_BLOB_SIZE_Y = 6;
+    private static final int AUTUMN_LEAF_BLOB_VERTICAL_WEIGHT = 2;
+    private static final float AUTUMN_LEAF_TINT_WEIGHT = 0.97F;
     private static final int[] WINTER_LEAF_COLORS = {
             0xFF8EA89B,
             0xFF7F988D,
@@ -174,15 +175,15 @@ public final class PhotoSeasonManager {
     }
 
     public static int overrideTintColor(@NotNull BlockState state, @NotNull BlockPos pos, int originalColor) {
-        if (originalColor == -1 || !isGreenHeavy(originalColor)) {
+        if (originalColor == -1) {
             return originalColor;
         }
 
         PhotoModeSeason season = PhotoModeManager.season();
-        if (season.hasAutumnFoliage() && isLeafBlock(state)) {
-            return paletteColor(AUTUMN_LEAF_COLORS, state, pos, originalColor, 0.88F);
+        if (season.hasAutumnFoliage() && isLeafBlock(state) && isAutumnLeafTintCandidate(originalColor)) {
+            return autumnLeafColor(pos, originalColor);
         }
-        if (season.hasWinterTint()) {
+        if (season.hasWinterTint() && isGreenHeavy(originalColor)) {
             if (isLeafBlock(state)) {
                 return paletteColor(WINTER_LEAF_COLORS, state, pos, originalColor, 0.72F);
             }
@@ -394,6 +395,64 @@ public final class PhotoSeasonManager {
                 || belowState.is(Blocks.SNOW) && belowState.getValue(SnowLayerBlock.LAYERS) == SnowLayerBlock.MAX_HEIGHT;
     }
 
+    private static int autumnLeafColor(@NotNull BlockPos pos, int originalColor) {
+        long blobSeed = autumnLeafBlobSeed(pos);
+        int[] family = AUTUMN_LEAF_COLOR_FAMILIES[seedIndex(blobSeed, AUTUMN_LEAF_COLOR_FAMILIES.length)];
+        int target = family[seedIndex(blobSeed >>> 17, family.length)];
+        return ARGB.srgbLerp(AUTUMN_LEAF_TINT_WEIGHT, ARGB.opaque(originalColor), target);
+    }
+
+    private static long autumnLeafBlobSeed(@NotNull BlockPos pos) {
+        int baseCellX = Math.floorDiv(pos.getX(), AUTUMN_LEAF_BLOB_SIZE_XZ);
+        int baseCellY = Math.floorDiv(pos.getY(), AUTUMN_LEAF_BLOB_SIZE_Y);
+        int baseCellZ = Math.floorDiv(pos.getZ(), AUTUMN_LEAF_BLOB_SIZE_XZ);
+        long bestSeed = 0L;
+        long bestDistance = Long.MAX_VALUE;
+
+        for (int cellY = baseCellY - 1; cellY <= baseCellY + 1; cellY++) {
+            for (int cellZ = baseCellZ - 1; cellZ <= baseCellZ + 1; cellZ++) {
+                for (int cellX = baseCellX - 1; cellX <= baseCellX + 1; cellX++) {
+                    long seed = mixSeed(cellX, cellY, cellZ);
+                    int anchorX = cellX * AUTUMN_LEAF_BLOB_SIZE_XZ + seedOffset(seed, AUTUMN_LEAF_BLOB_SIZE_XZ);
+                    int anchorY = cellY * AUTUMN_LEAF_BLOB_SIZE_Y + seedOffset(seed >>> 21, AUTUMN_LEAF_BLOB_SIZE_Y);
+                    int anchorZ = cellZ * AUTUMN_LEAF_BLOB_SIZE_XZ + seedOffset(seed >>> 42, AUTUMN_LEAF_BLOB_SIZE_XZ);
+                    long dx = pos.getX() - anchorX;
+                    long dy = (long) (pos.getY() - anchorY) * AUTUMN_LEAF_BLOB_VERTICAL_WEIGHT;
+                    long dz = pos.getZ() - anchorZ;
+                    long distance = dx * dx + dy * dy + dz * dz;
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                        bestSeed = seed;
+                    }
+                }
+            }
+        }
+
+        return bestSeed;
+    }
+
+    private static long mixSeed(int x, int y, int z) {
+        long seed = 0x9E3779B97F4A7C15L;
+        seed ^= (long) x * 0xBF58476D1CE4E5B9L;
+        seed = Long.rotateLeft(seed, 27);
+        seed ^= (long) y * 0x94D049BB133111EBL;
+        seed = Long.rotateLeft(seed, 31);
+        seed ^= (long) z * 0xD6E8FEB86659FD93L;
+        seed ^= seed >>> 30;
+        seed *= 0xBF58476D1CE4E5B9L;
+        seed ^= seed >>> 27;
+        seed *= 0x94D049BB133111EBL;
+        return seed ^ seed >>> 31;
+    }
+
+    private static int seedOffset(long seed, int size) {
+        return Math.floorMod((int) (seed ^ seed >>> 32), size);
+    }
+
+    private static int seedIndex(long seed, int size) {
+        return seedOffset(seed, size);
+    }
+
     private static int paletteColor(@NotNull int[] palette, @NotNull BlockState state, @NotNull BlockPos pos, int originalColor, float weight) {
         int target = palette[paletteIndex(palette, state, pos)];
         return ARGB.srgbLerp(weight, ARGB.opaque(originalColor), target);
@@ -410,6 +469,13 @@ public final class PhotoSeasonManager {
         int blue = ARGB.blue(color);
         int nextHighest = Math.max(red, blue);
         return green >= 64 && green - nextHighest >= 14 && green > red * 1.07F && green > blue * 1.07F;
+    }
+
+    private static boolean isAutumnLeafTintCandidate(int color) {
+        int red = ARGB.red(color);
+        int green = ARGB.green(color);
+        int blue = ARGB.blue(color);
+        return green >= 58 && green >= red * 0.92F && green > blue * 1.08F && red <= green * 1.18F;
     }
 
     private static boolean isLeafBlock(@NotNull BlockState state) {
