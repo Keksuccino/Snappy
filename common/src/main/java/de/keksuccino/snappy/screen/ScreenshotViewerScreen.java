@@ -12,6 +12,7 @@ import de.keksuccino.snappy.preview.PreviewCubeMapTexture;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.DeletionResult;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
 import de.keksuccino.snappy.screen.ScreenshotImageLoader.LoadedImage;
+import de.keksuccino.snappy.util.file.ExternalFileOpener;
 import de.keksuccino.snappy.util.rendering.RenderingUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -285,7 +286,11 @@ public class ScreenshotViewerScreen extends Screen {
     private void showOutsideMinecraft() {
         ScreenshotEntry entry = this.currentEntry();
         if (entry != null) {
-            Util.getPlatform().openFile(entry.outsidePath().toFile().getAbsoluteFile());
+            if (entry.isPanorama()) {
+                ExternalFileOpener.openPath(entry.outsidePath());
+            } else {
+                ExternalFileOpener.revealFile(entry.outsidePath());
+            }
         }
     }
 
