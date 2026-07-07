@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(BeaconRenderer.class)
 public class MixinBeaconRenderer {
 
-    /** @reason Hide real beacon beams visually while keeping beacon block entity state untouched. */
+    /** @reason Skip beacon beam rendering when photo mode disables beacon beams, keeping beacon block entity state untouched. */
     @Inject(method = "submit", at = @At("HEAD"), cancellable = true)
     private void before_submit_Snappy(BeaconRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera, CallbackInfo info) {
         if (state.blockEntityType == BlockEntityTypes.BEACON && PhotoModeManager.shouldHideBeaconBeams()) {

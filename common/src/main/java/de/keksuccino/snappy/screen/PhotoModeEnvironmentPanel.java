@@ -33,10 +33,10 @@ final class PhotoModeEnvironmentPanel implements PhotoModeTabPanel {
             screen.updateButtonMessages();
         }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.weather.desc"))).build());
 
-        screen.hideBeaconBeamsButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
-            active.setHideBeaconBeams(!active.hideBeaconBeams());
+        screen.beaconBeamsButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
+            active.setBeaconBeamsEnabled(!active.beaconBeamsEnabled());
             screen.updateButtonMessages();
-        }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.hide_beacon_beams.desc"))).build());
+        }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.beacon_beams.desc"))).build());
 
         screen.skyColorButton = screen.addPhotoColorButton(
                 width,

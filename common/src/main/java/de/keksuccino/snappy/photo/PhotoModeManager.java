@@ -454,7 +454,7 @@ public final class PhotoModeManager {
 
     public static boolean shouldHideBeaconBeams() {
         Session active = session;
-        return active != null && active.hideBeaconBeams();
+        return active != null && active.hideBeaconBeams;
     }
 
     public static void applySelfPlayerRenderStateOverrides(@NotNull Entity entity, @NotNull AvatarRenderState state, float partialTicks) {
@@ -1167,12 +1167,12 @@ public final class PhotoModeManager {
             this.heldItemsMode = heldItemsMode;
         }
 
-        public boolean hideBeaconBeams() {
-            return this.hideBeaconBeams;
+        public boolean beaconBeamsEnabled() {
+            return !this.hideBeaconBeams;
         }
 
-        public void setHideBeaconBeams(boolean hideBeaconBeams) {
-            this.hideBeaconBeams = hideBeaconBeams;
+        public void setBeaconBeamsEnabled(boolean beaconBeamsEnabled) {
+            this.hideBeaconBeams = !beaconBeamsEnabled;
         }
 
         public boolean paused() {

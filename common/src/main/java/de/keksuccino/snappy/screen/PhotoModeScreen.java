@@ -167,7 +167,7 @@ public class PhotoModeScreen extends Screen {
     @Nullable
     Button weatherButton;
     @Nullable
-    Button hideBeaconBeamsButton;
+    Button beaconBeamsButton;
     @Nullable
     Button colorizeButton;
     @Nullable
@@ -455,7 +455,7 @@ public class PhotoModeScreen extends Screen {
         this.heldItemsButton = null;
         this.timeButton = null;
         this.weatherButton = null;
-        this.hideBeaconBeamsButton = null;
+        this.beaconBeamsButton = null;
         this.colorizeButton = null;
         this.stylizeButton = null;
         this.depthOfFieldButton = null;
@@ -793,8 +793,8 @@ public class PhotoModeScreen extends Screen {
             PhotoModeWeatherPreset preset = active.weatherPreset();
             this.weatherButton.setMessage(optionMessage("snappy.photo_mode.weather", Component.translatable(preset.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
         }
-        if (this.hideBeaconBeamsButton != null) {
-            this.hideBeaconBeamsButton.setMessage(optionMessage("snappy.photo_mode.hide_beacon_beams", enabledValue(active.hideBeaconBeams())));
+        if (this.beaconBeamsButton != null) {
+            this.beaconBeamsButton.setMessage(optionMessage("snappy.photo_mode.beacon_beams", enabledValue(active.beaconBeamsEnabled())));
         }
         if (this.colorizeButton != null) {
             PhotoModeColorizePreset preset = active.colorizePreset();
