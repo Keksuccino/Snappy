@@ -40,24 +40,24 @@ public class MixinGameRenderer {
 
     @Inject(method = "extract", at = @At("HEAD"))
     private void before_extract_Snappy(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo info) {
-        PhotoModeManager.beginEnvironmentOverrideScope();
+        PhotoModeManager.beginWorldOverrideScope();
     }
 
     @Inject(method = "extract", at = @At("TAIL"))
     private void after_extract_Snappy(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo info) {
         PhotoModeManager.afterExtractRenderState(this.gameRenderState);
-        PhotoModeManager.endEnvironmentOverrideScope();
+        PhotoModeManager.endWorldOverrideScope();
     }
 
     @Inject(method = "renderLevel", at = @At("HEAD"))
     private void before_renderLevel_Snappy(DeltaTracker deltaTracker, CallbackInfo info) {
-        PhotoModeManager.beginEnvironmentOverrideScope();
+        PhotoModeManager.beginWorldOverrideScope();
     }
 
     @Inject(method = "renderLevel", at = @At("TAIL"))
     private void after_renderLevel_Snappy(DeltaTracker deltaTracker, CallbackInfo info) {
         PanoramaCaptureManager.afterRenderLevel();
-        PhotoModeManager.endEnvironmentOverrideScope();
+        PhotoModeManager.endWorldOverrideScope();
     }
 
     @WrapOperation(

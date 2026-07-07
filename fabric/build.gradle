@@ -44,7 +44,7 @@ dependencies {
     implementation "maven.modrinth:V6LLU8Gf:yyyqupBe" // Katters Structures
     implementation "maven.modrinth:rYlnn25U:bSQbtn5T" // AdoraBuild: Structures
     implementation "maven.modrinth:OQAgZMH1:cvepxaBC" // MVS - Moog's Voyager Structures
-    implementation "maven.modrinth:h1E7sQNL:brx1YJeR" // Customizable Player Models
+    //implementation "maven.modrinth:h1E7sQNL:brx1YJeR" // Customizable Player Models
 
 }
 

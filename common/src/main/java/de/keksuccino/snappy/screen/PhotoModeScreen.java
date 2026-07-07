@@ -52,7 +52,7 @@ public class PhotoModeScreen extends Screen {
     private static final Identifier GENERAL_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/general_camera_icon_15x15.png");
     private static final Identifier PLAYER_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/player_head_icon_15x15.png");
     private static final Identifier LENS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/lens_icon_15x15.png");
-    private static final Identifier GLOBE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/globe_icon_15x15.png");
+    private static final Identifier WORLD_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/world_icon_15x15.png");
     private static final int PANEL_WIDTH = 236;
     private static final int PANEL_PADDING = 8;
     private static final int CONTROL_HEIGHT = 20;
@@ -433,7 +433,7 @@ public class PhotoModeScreen extends Screen {
             case GENERAL -> this.addGeneralControls();
             case PLAYER -> this.addPlayerControls();
             case LENS -> this.addLensControls();
-            case ENVIRONMENT -> this.addEnvironmentControls();
+            case WORLD -> this.addWorldControls();
         }
         this.addTabControlScrollArea();
         this.addActionButtons();
@@ -813,7 +813,7 @@ public class PhotoModeScreen extends Screen {
         slider.setTooltip(Tooltip.create(Component.translatable(tooltipKey)));
     }
 
-    private void addEnvironmentControls() {
+    private void addWorldControls() {
         int width = this.tabControlWidth();
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active == null) {
@@ -1793,7 +1793,7 @@ public class PhotoModeScreen extends Screen {
         GENERAL(GENERAL_ICON, "snappy.photo_mode.tab.general", 313),
         LENS(LENS_ICON, "snappy.photo_mode.tab.lens", 138),
         PLAYER(PLAYER_ICON, "snappy.photo_mode.tab.player", 313),
-        ENVIRONMENT(GLOBE_ICON, "snappy.photo_mode.tab.environment", 238);
+        WORLD(WORLD_ICON, "snappy.photo_mode.tab.world", 238);
 
         private final Identifier icon;
         private final String labelKey;

@@ -114,8 +114,8 @@ public final class PhotoModeManager {
     public static final double PHOTO_FOG_DEFAULT_DISTANCE = 64.0D;
     private static final int PHOTO_FOG_FALLBACK_COLOR = ARGB.color(168, 184, 196);
     private static final int PHOTO_SKY_FALLBACK_COLOR = ARGB.color(120, 169, 255);
-    private static final int ENVIRONMENT_FAST_FORWARD_TICKS = 40;
-    private static final int ENVIRONMENT_FOLLOWUP_TICKS = 5;
+    private static final int WORLD_FAST_FORWARD_TICKS = 40;
+    private static final int WORLD_FOLLOWUP_TICKS = 5;
     private static final int VISUAL_LIGHTNING_ENTITY_ID_START = Integer.MIN_VALUE + 4096;
     private static final int VISUAL_LIGHTNING_ENTITY_ID_END = -1_800_000_000;
     private static final int LIVE_LIGHTNING_MIN_DELAY_TICKS = 20;
@@ -135,8 +135,8 @@ public final class PhotoModeManager {
 
     @Nullable
     private static Session session;
-    private static boolean environmentOverrideScope;
-    private static boolean suppressEnvironmentRefreshSounds;
+    private static boolean worldOverrideScope;
+    private static boolean suppressWorldRefreshSounds;
     private static boolean suppressSkyColorOverride;
     private static final Matrix4f depthOfFieldProjectionMatrix = new Matrix4f();
     private static boolean depthOfFieldProjectionMatrixAvailable;
@@ -157,7 +157,7 @@ public final class PhotoModeManager {
         }
         PhotoPoseManager.reload();
         session = Session.create(minecraft);
-        requestEnvironmentVisualRefresh(minecraft);
+        requestWorldVisualRefresh(minecraft);
         minecraft.gui.setScreen(new PhotoModeScreen());
     }
 
@@ -171,9 +171,9 @@ public final class PhotoModeManager {
         PhotoModeBloomRenderer.close();
         PhotoModeStylizeRenderer.close();
         session = null;
-        environmentOverrideScope = false;
-        suppressEnvironmentRefreshSounds = false;
-        refreshEnvironmentCaches(Minecraft.getInstance(), true);
+        worldOverrideScope = false;
+        suppressWorldRefreshSounds = false;
+        refreshWorldCaches(Minecraft.getInstance(), true);
     }
 
     public static boolean isActive() {
@@ -258,9 +258,9 @@ public final class PhotoModeManager {
         if (active != null) {
             active.tickVisualEffects(minecraft);
         }
-        if (active != null && active.environmentVisualTicksRemaining > 0 && shouldRunPausedEnvironmentVisualRefresh(minecraft)) {
-            runPausedEnvironmentVisualTicks(minecraft, 1);
-            active.environmentVisualTicksRemaining--;
+        if (active != null && active.worldVisualTicksRemaining > 0 && shouldRunPausedWorldVisualRefresh(minecraft)) {
+            runPausedWorldVisualTicks(minecraft, 1);
+            active.worldVisualTicksRemaining--;
         }
     }
 
@@ -318,32 +318,32 @@ public final class PhotoModeManager {
         return active == null ? null : active.cameraState();
     }
 
-    public static void beginEnvironmentOverrideScope() {
-        environmentOverrideScope = session != null;
+    public static void beginWorldOverrideScope() {
+        worldOverrideScope = session != null;
     }
 
-    public static void endEnvironmentOverrideScope() {
-        environmentOverrideScope = false;
+    public static void endWorldOverrideScope() {
+        worldOverrideScope = false;
     }
 
     public static long overrideClockTicks(long original) {
         Session active = session;
-        return active != null && environmentOverrideScope ? active.timePreset().clockTicks() : original;
+        return active != null && worldOverrideScope ? active.timePreset().clockTicks() : original;
     }
 
     public static float overrideRainLevel(float original) {
         Session active = session;
-        return active != null && environmentOverrideScope ? active.weatherPreset().rainLevel() : original;
+        return active != null && worldOverrideScope ? active.weatherPreset().rainLevel() : original;
     }
 
     public static float overrideThunderLevel(float original) {
         Session active = session;
-        return active != null && environmentOverrideScope ? active.weatherPreset().thunderLevel() : original;
+        return active != null && worldOverrideScope ? active.weatherPreset().thunderLevel() : original;
     }
 
     public static long overrideGameTime(long original) {
         Session active = session;
-        return active != null && environmentOverrideScope ? original + active.visualGameTimeOffsetTicks : original;
+        return active != null && worldOverrideScope ? original + active.visualGameTimeOffsetTicks : original;
     }
 
     public static void applyFogOverrides(@NotNull FogData fog, int renderDistanceInChunks) {
@@ -377,8 +377,8 @@ public final class PhotoModeManager {
         fog.cloudEnd = Math.min(fog.cloudEnd, end);
     }
 
-    public static boolean shouldSuppressEnvironmentRefreshSound(@NotNull SoundSource source) {
-        return suppressEnvironmentRefreshSounds && source == SoundSource.WEATHER;
+    public static boolean shouldSuppressWorldRefreshSound(@NotNull SoundSource source) {
+        return suppressWorldRefreshSounds && source == SoundSource.WEATHER;
     }
 
     public static void afterExtractRenderState(@NotNull GameRenderState gameRenderState) {
@@ -751,20 +751,20 @@ public final class PhotoModeManager {
         return LightCoordsUtil.pack(blockLight, skyLight);
     }
 
-    private static void requestEnvironmentVisualRefresh(@NotNull Minecraft minecraft) {
+    private static void requestWorldVisualRefresh(@NotNull Minecraft minecraft) {
         Session active = session;
         if (active == null) {
             return;
         }
 
-        active.environmentVisualTicksRemaining = ENVIRONMENT_FOLLOWUP_TICKS;
-        runWithEnvironmentOverrideScope(() -> refreshEnvironmentCaches(minecraft, true));
-        if (shouldRunPausedEnvironmentVisualRefresh(minecraft)) {
-            runPausedEnvironmentVisualTicks(minecraft, ENVIRONMENT_FAST_FORWARD_TICKS);
+        active.worldVisualTicksRemaining = WORLD_FOLLOWUP_TICKS;
+        runWithWorldOverrideScope(() -> refreshWorldCaches(minecraft, true));
+        if (shouldRunPausedWorldVisualRefresh(minecraft)) {
+            runPausedWorldVisualTicks(minecraft, WORLD_FAST_FORWARD_TICKS);
         }
     }
 
-    private static boolean shouldRunPausedEnvironmentVisualRefresh(@NotNull Minecraft minecraft) {
+    private static boolean shouldRunPausedWorldVisualRefresh(@NotNull Minecraft minecraft) {
         Session active = session;
         return active != null
                 && active.paused()
@@ -774,42 +774,42 @@ public final class PhotoModeManager {
                 && minecraft.level.tickRateManager().runsNormally();
     }
 
-    private static void runPausedEnvironmentVisualTicks(@NotNull Minecraft minecraft, int ticks) {
+    private static void runPausedWorldVisualTicks(@NotNull Minecraft minecraft, int ticks) {
         Session active = session;
         ClientLevel level = minecraft.level;
-        if (active == null || level == null || minecraft.player == null || ticks <= 0 || !shouldRunPausedEnvironmentVisualRefresh(minecraft)) {
+        if (active == null || level == null || minecraft.player == null || ticks <= 0 || !shouldRunPausedWorldVisualRefresh(minecraft)) {
             return;
         }
 
         // Visual-only catch-up: do not call ClientLevel.tick() or touch the integrated server.
-        boolean previousEnvironmentOverrideScope = environmentOverrideScope;
-        boolean previousSuppressEnvironmentRefreshSounds = suppressEnvironmentRefreshSounds;
-        environmentOverrideScope = true;
-        suppressEnvironmentRefreshSounds = true;
+        boolean previousWorldOverrideScope = worldOverrideScope;
+        boolean previousSuppressWorldRefreshSounds = suppressWorldRefreshSounds;
+        worldOverrideScope = true;
+        suppressWorldRefreshSounds = true;
         try {
             for (int tick = 0; tick < ticks; tick++) {
                 active.advanceVisualGameTime(1L);
-                refreshEnvironmentCaches(minecraft, false);
+                refreshWorldCaches(minecraft, false);
                 level.tickWeatherEffects();
                 minecraft.particleEngine.tick();
             }
         } finally {
-            environmentOverrideScope = previousEnvironmentOverrideScope;
-            suppressEnvironmentRefreshSounds = previousSuppressEnvironmentRefreshSounds;
+            worldOverrideScope = previousWorldOverrideScope;
+            suppressWorldRefreshSounds = previousSuppressWorldRefreshSounds;
         }
     }
 
-    private static void runWithEnvironmentOverrideScope(@NotNull Runnable runnable) {
-        boolean previousEnvironmentOverrideScope = environmentOverrideScope;
-        environmentOverrideScope = session != null;
+    private static void runWithWorldOverrideScope(@NotNull Runnable runnable) {
+        boolean previousWorldOverrideScope = worldOverrideScope;
+        worldOverrideScope = session != null;
         try {
             runnable.run();
         } finally {
-            environmentOverrideScope = previousEnvironmentOverrideScope;
+            worldOverrideScope = previousWorldOverrideScope;
         }
     }
 
-    private static void refreshEnvironmentCaches(@NotNull Minecraft minecraft, boolean resetProbe) {
+    private static void refreshWorldCaches(@NotNull Minecraft minecraft, boolean resetProbe) {
         ClientLevel level = minecraft.level;
         if (level == null) {
             return;
@@ -891,7 +891,7 @@ public final class PhotoModeManager {
         private final Set<InputConstants.Key> activeBoundInputs = new HashSet<>();
         private final VisualLightningStorm visualLightningStorm = new VisualLightningStorm();
         private long visualGameTimeOffsetTicks;
-        private int environmentVisualTicksRemaining;
+        private int worldVisualTicksRemaining;
         private long lastMovementMillis;
 
         private Session(
@@ -969,11 +969,11 @@ public final class PhotoModeManager {
             this.fogColorOverride = null;
             this.visualLightningStorm.clear(minecraft.level);
             this.visualGameTimeOffsetTicks = 0L;
-            this.environmentVisualTicksRemaining = 0;
+            this.worldVisualTicksRemaining = 0;
             this.activeBoundInputs.clear();
             this.paused = canPause(minecraft);
             this.lastMovementMillis = Util.getMillis();
-            requestEnvironmentVisualRefresh(minecraft);
+            requestWorldVisualRefresh(minecraft);
         }
 
         private void tickVisualEffects(@NotNull Minecraft minecraft) {
@@ -1440,7 +1440,7 @@ public final class PhotoModeManager {
         public void setTimePreset(@NotNull PhotoModeTimePreset timePreset) {
             if (this.timePreset != timePreset) {
                 this.timePreset = timePreset;
-                requestEnvironmentVisualRefresh(Minecraft.getInstance());
+                requestWorldVisualRefresh(Minecraft.getInstance());
             }
         }
 
@@ -1453,7 +1453,7 @@ public final class PhotoModeManager {
             if (this.weatherPreset != weatherPreset) {
                 this.weatherPreset = weatherPreset;
                 this.visualLightningStorm.clear(Minecraft.getInstance().level);
-                requestEnvironmentVisualRefresh(Minecraft.getInstance());
+                requestWorldVisualRefresh(Minecraft.getInstance());
             }
         }
 

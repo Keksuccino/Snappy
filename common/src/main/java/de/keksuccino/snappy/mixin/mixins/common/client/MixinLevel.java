@@ -26,7 +26,7 @@ public class MixinLevel {
 
     @Inject(method = "playLocalSound(Lnet/minecraft/core/BlockPos;Lnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZ)V", at = @At("HEAD"), cancellable = true)
     private void cancel_playLocalSound_Snappy(BlockPos pos, SoundEvent sound, SoundSource source, float volume, float pitch, boolean distanceDelay, CallbackInfo info) {
-        if (PhotoModeManager.shouldSuppressEnvironmentRefreshSound(source)) {
+        if (PhotoModeManager.shouldSuppressWorldRefreshSound(source)) {
             info.cancel();
         }
     }

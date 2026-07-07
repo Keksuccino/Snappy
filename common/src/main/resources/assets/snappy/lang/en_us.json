@@ -165,7 +165,7 @@
   "snappy.photo_mode.tab.general": "General",
   "snappy.photo_mode.tab.player": "Player",
   "snappy.photo_mode.tab.lens": "Lens",
-  "snappy.photo_mode.tab.environment": "Environment",
+  "snappy.photo_mode.tab.world": "World",
   "snappy.photo_mode.pause": "Game: %s",
   "snappy.photo_mode.pause.desc": "Pauses or unpauses the integrated singleplayer game while photo mode stays usable.",
   "snappy.photo_mode.pause.paused": "Paused",
