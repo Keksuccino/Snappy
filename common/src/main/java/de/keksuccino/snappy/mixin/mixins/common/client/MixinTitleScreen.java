@@ -41,7 +41,7 @@ public abstract class MixinTitleScreen extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void after_init_Snappy(CallbackInfo ci) {
-        if (!SnappyButtons.shouldShowScreenshotButtons()) {
+        if (!SnappyButtons.shouldShowScreenshotBrowserButton()) {
             return;
         }
         if (this.friends == null) {

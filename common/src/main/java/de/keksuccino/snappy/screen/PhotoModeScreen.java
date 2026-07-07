@@ -2,6 +2,7 @@ package de.keksuccino.snappy.screen;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import de.keksuccino.snappy.KeyMappings;
+import de.keksuccino.snappy.OptionsScreen;
 import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.client.gui.UIFormatting;
 import de.keksuccino.snappy.photo.PhotoModeArmorMode;
@@ -53,6 +54,7 @@ public class PhotoModeScreen extends Screen {
     private static final Identifier PLAYER_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_player_icon_15x15.png");
     private static final Identifier LENS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_lens_icon_15x15.png");
     private static final Identifier WORLD_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_world_icon_15x15.png");
+    private static final Identifier SETTINGS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/settings_icon_15x15.png");
     private static final int PANEL_WIDTH = 236;
     static final int PANEL_PADDING = 8;
     static final int CONTROL_HEIGHT = 20;
@@ -124,6 +126,7 @@ public class PhotoModeScreen extends Screen {
     private Tab selectedTab = Tab.GENERAL;
     @Nullable
     private ConfirmationDialog confirmationDialog;
+    private boolean keepPhotoModeOpenAfterRemoval;
     private boolean rotatingView;
     private boolean cameraCursorGrabbed;
     private int panelX;
@@ -395,6 +398,10 @@ public class PhotoModeScreen extends Screen {
     @Override
     public void removed() {
         this.stopRotatingView();
+        if (this.keepPhotoModeOpenAfterRemoval) {
+            this.keepPhotoModeOpenAfterRemoval = false;
+            return;
+        }
         this.clearPoseMakerPreview();
         PhotoModeManager.close();
     }
@@ -428,6 +435,7 @@ public class PhotoModeScreen extends Screen {
             button.setTooltip(Tooltip.create(tab.message()));
             x += TexturedIconButton.DEFAULT_BUTTON_SIZE + TAB_GAP;
         }
+        this.addSettingsButton(y);
 
         this.tabControlLayout = LinearLayout.vertical().spacing(CONTROL_GAP);
         this.selectedTab.panel().addControls(this);
@@ -480,6 +488,20 @@ public class PhotoModeScreen extends Screen {
         scrollableLayout.arrangeElements();
         scrollableLayout.setPosition(this.panelX + PANEL_PADDING, this.tabBodyY());
         scrollableLayout.visitWidgets(this::addRenderableWidget);
+    }
+
+    private void addSettingsButton(int y) {
+        TexturedIconButton button = this.addRenderableWidget(new TexturedIconButton(
+                Component.translatable("snappy.browser.settings"),
+                ignored -> this.openOptionsScreen(),
+                SETTINGS_ICON
+        ));
+        button.setPosition(this.panelX + PANEL_WIDTH - PANEL_PADDING - TexturedIconButton.DEFAULT_BUTTON_SIZE, y);
+    }
+
+    private void openOptionsScreen() {
+        this.keepPhotoModeOpenAfterRemoval = true;
+        Minecraft.getInstance().gui.setScreen(new OptionsScreen(this));
     }
 
     @NotNull

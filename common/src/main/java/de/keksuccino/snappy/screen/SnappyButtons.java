@@ -16,8 +16,12 @@ public final class SnappyButtons {
     private SnappyButtons() {
     }
 
-    public static boolean shouldShowScreenshotButtons() {
-        return !Snappy.getOptions().areScreenshotButtonsHidden();
+    public static boolean shouldShowScreenshotBrowserButton() {
+        return Snappy.getOptions().isScreenshotBrowserButtonEnabled();
+    }
+
+    public static boolean shouldShowPhotoModeButton() {
+        return Snappy.getOptions().isPhotoModeButtonEnabled();
     }
 
     public static TexturedIconButton screenshotBrowser(@NotNull Screen parent) {

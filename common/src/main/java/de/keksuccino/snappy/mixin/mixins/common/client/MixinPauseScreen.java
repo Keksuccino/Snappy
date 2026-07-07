@@ -24,9 +24,13 @@ public class MixinPauseScreen {
             LayoutSettings layoutSettings,
             Operation<LayoutElement> original
     ) {
-        if (SnappyButtons.shouldShowScreenshotButtons() && widget instanceof LinearLayout iconButtonRow) {
-            iconButtonRow.addChild(SnappyButtons.screenshotBrowser((Screen) (Object) this));
-            iconButtonRow.addChild(SnappyButtons.photoMode());
+        if (widget instanceof LinearLayout iconButtonRow) {
+            if (SnappyButtons.shouldShowScreenshotBrowserButton()) {
+                iconButtonRow.addChild(SnappyButtons.screenshotBrowser((Screen) (Object) this));
+            }
+            if (SnappyButtons.shouldShowPhotoModeButton()) {
+                iconButtonRow.addChild(SnappyButtons.photoMode());
+            }
         }
         return original.call(instance, widget, columnWidth, layoutSettings);
     }

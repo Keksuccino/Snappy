@@ -19,8 +19,8 @@ import net.minecraft.client.gui.layouts.Layout;
 import net.minecraft.client.gui.layouts.LayoutElement;
 import net.minecraft.client.gui.layouts.LayoutSettings;
 import net.minecraft.client.gui.layouts.LinearLayout;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
-import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -30,6 +30,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.FormattedCharSequence;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,6 +47,7 @@ public class OptionsScreen extends Screen {
     protected static final int KEYBIND_GAP = 5;
     protected static final int OPTION_ROW_ADVANCE = 26;
     protected static final int OPTION_SECTION_PADDING_TOP = 10;
+    protected static final int BUTTONS_DISABLED_WARNING_COLOR = 0xFFFFAA00;
     protected static final Identifier TAB_HEADER_BACKGROUND = Identifier.withDefaultNamespace("textures/gui/tab_header_background.png");
     protected static final KeybindSetting PANORAMA_KEYBIND = new KeybindSetting(
             KeyMappings.KEY_TAKE_PANORAMA,
@@ -87,6 +89,12 @@ public class OptionsScreen extends Screen {
     @Nullable
     private Button cycleIntervalButton;
     @Nullable
+    private Button screenshotBrowserButtonVisibilityButton;
+    @Nullable
+    private Button photoModeButtonVisibilityButton;
+    @Nullable
+    private ButtonVisibilityWarningWidget buttonVisibilityWarningWidget;
+    @Nullable
     private MenuTabBar tabNavigationBar;
     @Nullable
     private KeyMapping waitingForKeybind;
@@ -104,6 +112,9 @@ public class OptionsScreen extends Screen {
         this.layout.removeChildren();
         this.fullWidthOptionButtons.clear();
         this.keybindControls.clear();
+        this.screenshotBrowserButtonVisibilityButton = null;
+        this.photoModeButtonVisibilityButton = null;
+        this.buttonVisibilityWarningWidget = null;
 
         OptionsTab generalTab = this.buildGeneralTab();
         OptionsTab panoramasTab = this.buildPanoramasTab();
@@ -123,6 +134,7 @@ public class OptionsScreen extends Screen {
         this.updateCycleIntervalButton();
         this.updateKeybindButtons();
         this.tabNavigationBar.selectTab(0, false);
+        this.updateVanillaScreenButtonVisibilityControls();
         this.repositionElements();
 
     }
@@ -133,7 +145,12 @@ public class OptionsScreen extends Screen {
         this.addFullWidthOption(tab, this.buildHideHudInNormalScreenshotsButton());
         this.addFullWidthOption(tab, this.buildScreenshotChatMessagesButton());
         this.addFullWidthOption(tab, this.buildPreviewModeButton());
-        this.addFullWidthOption(tab, this.buildScreenshotButtonsVisibilityButton(), settings -> settings.paddingTop(OPTION_SECTION_PADDING_TOP));
+        this.screenshotBrowserButtonVisibilityButton = this.buildScreenshotBrowserButtonVisibilityButton();
+        this.photoModeButtonVisibilityButton = this.buildPhotoModeButtonVisibilityButton();
+        this.buttonVisibilityWarningWidget = new ButtonVisibilityWarningWidget();
+        this.addFullWidthOption(tab, this.screenshotBrowserButtonVisibilityButton, settings -> settings.paddingTop(OPTION_SECTION_PADDING_TOP));
+        this.addFullWidthOption(tab, this.photoModeButtonVisibilityButton);
+        tab.addChild(this.buttonVisibilityWarningWidget);
         return tab;
     }
 
@@ -274,10 +291,23 @@ public class OptionsScreen extends Screen {
     }
 
     @NotNull
-    protected Button buildScreenshotButtonsVisibilityButton() {
-        return Button.builder(this.screenshotButtonsVisibilityMessage(), button -> this.toggleScreenshotButtonsVisibility(button))
-                .bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable("snappy.options.screenshot_buttons_visibility.desc"))).build();
+    protected Button buildScreenshotBrowserButtonVisibilityButton() {
+        return Button.builder(this.screenshotBrowserButtonVisibilityMessage(), button -> {
+                    Options options = Snappy.getOptions();
+                    options.setScreenshotBrowserButtonEnabled(!options.isScreenshotBrowserButtonEnabled());
+                    this.updateVanillaScreenButtonVisibilityControls();
+                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.translatable("snappy.options.screenshot_browser_button.desc"))).build();
+    }
+
+    @NotNull
+    protected Button buildPhotoModeButtonVisibilityButton() {
+        return Button.builder(this.photoModeButtonVisibilityMessage(), button -> {
+                    Options options = Snappy.getOptions();
+                    options.setPhotoModeButtonEnabled(!options.isPhotoModeButtonEnabled());
+                    this.updateVanillaScreenButtonVisibilityControls();
+                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.translatable("snappy.options.photo_mode_button.desc"))).build();
     }
 
     protected void updateCycleIntervalButton() {
@@ -300,10 +330,26 @@ public class OptionsScreen extends Screen {
         }
     }
 
+    protected void updateVanillaScreenButtonVisibilityControls() {
+        if (this.screenshotBrowserButtonVisibilityButton != null) {
+            this.screenshotBrowserButtonVisibilityButton.setMessage(this.screenshotBrowserButtonVisibilityMessage());
+        }
+        if (this.photoModeButtonVisibilityButton != null) {
+            this.photoModeButtonVisibilityButton.setMessage(this.photoModeButtonVisibilityMessage());
+        }
+        if (this.buttonVisibilityWarningWidget != null) {
+            this.buttonVisibilityWarningWidget.updateVisibility();
+            this.repositionElements();
+        }
+    }
+
     protected void updateOptionButtonWidths() {
         int rowWidth = this.getButtonWidth();
         for (Button button : this.fullWidthOptionButtons) {
             button.setWidth(rowWidth);
+        }
+        if (this.buttonVisibilityWarningWidget != null) {
+            this.buttonVisibilityWarningWidget.setWidth(rowWidth);
         }
         for (KeybindControl control : this.keybindControls) {
             control.keybindButton().setWidth(rowWidth - KEYBIND_RESET_BUTTON_WIDTH - KEYBIND_GAP);
@@ -360,12 +406,13 @@ public class OptionsScreen extends Screen {
     }
 
     @NotNull
-    protected Component screenshotButtonsVisibilityMessage() {
-        boolean hidden = Snappy.getOptions().areScreenshotButtonsHidden();
-        return Component.translatable(hidden
-                        ? "snappy.options.screenshot_buttons_visibility.show"
-                        : "snappy.options.screenshot_buttons_visibility.hide")
-                .withStyle(hidden ? ChatFormatting.GREEN : ChatFormatting.RED);
+    protected Component screenshotBrowserButtonVisibilityMessage() {
+        return this.optionMessage("snappy.options.screenshot_browser_button", this.booleanCycleValue(Snappy.getOptions().isScreenshotBrowserButtonEnabled()));
+    }
+
+    @NotNull
+    protected Component photoModeButtonVisibilityMessage() {
+        return this.optionMessage("snappy.options.photo_mode_button", this.booleanCycleValue(Snappy.getOptions().isPhotoModeButtonEnabled()));
     }
 
     @NotNull
@@ -456,26 +503,6 @@ public class OptionsScreen extends Screen {
         return false;
     }
 
-    protected void toggleScreenshotButtonsVisibility(@NotNull Button button) {
-        Options options = Snappy.getOptions();
-        if (options.areScreenshotButtonsHidden()) {
-            options.setScreenshotButtonsHidden(false);
-            button.setMessage(this.screenshotButtonsVisibilityMessage());
-            return;
-        }
-
-        this.minecraft.gui.setScreen(new ConfirmScreen(result -> {
-            if (result) {
-                Snappy.getOptions().setScreenshotButtonsHidden(true);
-                button.setMessage(this.screenshotButtonsVisibilityMessage());
-            }
-            this.minecraft.gui.setScreen(this);
-        }, Component.translatable("snappy.options.screenshot_buttons_visibility.confirm.title"),
-                Component.translatable("snappy.options.screenshot_buttons_visibility.confirm.message"),
-                Component.translatable("snappy.options.screenshot_buttons_visibility.confirm.hide"),
-                CommonComponents.GUI_CANCEL));
-    }
-
     protected void afterKeybindChanged() {
         this.waitingForKeybind = null;
         KeyMapping.resetMapping();
@@ -543,6 +570,43 @@ public class OptionsScreen extends Screen {
     }
 
     private record KeybindControl(@NotNull KeybindSetting setting, @NotNull Button keybindButton, @NotNull Button resetButton) {
+    }
+
+    protected class ButtonVisibilityWarningWidget extends AbstractWidget {
+
+        protected ButtonVisibilityWarningWidget() {
+            super(0, 0, OptionsScreen.this.getButtonWidth(), 0, Component.translatable("snappy.options.buttons_disabled_warning"));
+            this.active = false;
+            this.updateVisibility();
+        }
+
+        protected void updateVisibility() {
+            this.visible = Snappy.getOptions().areVanillaScreenButtonsHidden();
+        }
+
+        @Override
+        public int getHeight() {
+            return this.visible ? OptionsScreen.this.font.wordWrapHeight(this.getMessage(), Math.max(1, this.getWidth())) : 0;
+        }
+
+        @Override
+        protected void extractWidgetRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+            if (!this.visible) {
+                return;
+            }
+
+            int centerX = this.getX() + this.getWidth() / 2;
+            int y = this.getY();
+            for (FormattedCharSequence line : OptionsScreen.this.font.split(this.getMessage(), Math.max(1, this.getWidth()))) {
+                graphics.centeredText(OptionsScreen.this.font, line, centerX, y, BUTTONS_DISABLED_WARNING_COLOR);
+                y += OptionsScreen.this.font.lineHeight;
+            }
+        }
+
+        @Override
+        protected void updateWidgetNarration(@NotNull NarrationElementOutput output) {
+        }
+
     }
 
     protected class OptionsTab implements Tab {
