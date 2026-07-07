@@ -1,5 +1,7 @@
 package de.keksuccino.snappy.mixin;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -8,9 +10,11 @@ import java.util.Set;
 
 public class SnappyMixinPlugin implements IMixinConfigPlugin {
 
+    private static final Logger LOGGER = LogManager.getLogger();
     private static final String SODIUM_MIXIN_PACKAGE = ".compat.sodium.";
     private static Boolean konkreteLoaded;
     private static Boolean sodiumLoaded;
+    private static boolean loggedSodiumCompatPatches;
 
     @Override
     public void onLoad(String mixinPackage) {
@@ -27,7 +31,11 @@ public class SnappyMixinPlugin implements IMixinConfigPlugin {
             return false;
         }
         if (mixinClassName.contains(SODIUM_MIXIN_PACKAGE)) {
-            return isSodiumLoaded();
+            boolean applySodiumMixin = isSodiumLoaded();
+            if (applySodiumMixin) {
+                logSodiumCompatPatchesOnce();
+            }
+            return applySodiumMixin;
         }
         return true;
     }
@@ -65,6 +73,14 @@ public class SnappyMixinPlugin implements IMixinConfigPlugin {
         }
         sodiumLoaded = isModLoaded("sodium");
         return sodiumLoaded;
+    }
+
+    private static void logSodiumCompatPatchesOnce() {
+        if (loggedSodiumCompatPatches) {
+            return;
+        }
+        loggedSodiumCompatPatches = true;
+        LOGGER.info("[SNAPPY] Detected Sodium, applying Sodium compatibility patches.");
     }
 
     private static boolean isModLoaded(String modId) {
