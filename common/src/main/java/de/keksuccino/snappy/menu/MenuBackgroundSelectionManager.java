@@ -7,6 +7,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import de.keksuccino.snappy.Snappy;
+import de.keksuccino.snappy.storage.PanoramaScanner;
 import de.keksuccino.snappy.util.file.GameDirectoryUtils;
 import net.minecraft.client.Screenshot;
 import net.minecraft.util.Util;
@@ -20,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -101,7 +101,7 @@ public final class MenuBackgroundSelectionManager {
             List<Path> validPanoramas = new ArrayList<>();
             for (String selectedPanorama : selectedPanoramas) {
                 Path panoramaFolder = pathFromKey(selectedPanorama);
-                if (panoramaFolder != null && isValidPanoramaFolder(panoramaFolder)) {
+                if (panoramaFolder != null && PanoramaScanner.isValidPanoramaFolder(panoramaFolder)) {
                     String normalizedKey = normalizeKey(panoramaFolder);
                     validKeys.add(normalizedKey);
                     validPanoramas.add(panoramaFolder.toAbsolutePath().normalize());
@@ -213,18 +213,6 @@ public final class MenuBackgroundSelectionManager {
         } catch (InvalidPathException ex) {
             return null;
         }
-    }
-
-    private static boolean isValidPanoramaFolder(@NotNull Path folder) {
-        if (!Files.isDirectory(folder, LinkOption.NOFOLLOW_LINKS)) {
-            return false;
-        }
-        for (int i = 0; i < 6; i++) {
-            if (!Files.isRegularFile(folder.resolve("panorama_" + i + ".png"), LinkOption.NOFOLLOW_LINKS)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     @NotNull

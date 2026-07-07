@@ -8,13 +8,17 @@ import com.mojang.math.Axis;
 import de.keksuccino.snappy.KeyMappings;
 import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.capture.NormalScreenshotCaptureManager;
+import de.keksuccino.snappy.client.input.PhotoModeCameraController;
+import de.keksuccino.snappy.client.render.PhotoEnvironmentManager;
+import de.keksuccino.snappy.client.render.VisualLightningStormManager;
+import de.keksuccino.snappy.client.render.config.BloomConfig;
+import de.keksuccino.snappy.client.render.config.ColorAdjustmentConfig;
+import de.keksuccino.snappy.client.render.config.DepthOfFieldConfig;
+import de.keksuccino.snappy.client.render.config.StylizeConfig;
 import de.keksuccino.snappy.metadata.ScreenshotMetadataManager;
 import de.keksuccino.snappy.photo.PhotoPoseManager.PoseEntry;
-import de.keksuccino.snappy.platform.Services;
 import de.keksuccino.snappy.preview.ScreenshotPreviewManager;
 import de.keksuccino.snappy.screen.PhotoModeScreen;
-import net.minecraft.client.Camera;
-import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
@@ -26,34 +30,24 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.fog.FogData;
 import net.minecraft.client.renderer.state.GameRenderState;
-import net.minecraft.client.renderer.state.level.LevelRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.SectionPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
-import net.minecraft.util.Util;
-import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.HumanoidArm;
-import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
-import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
-import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
@@ -62,26 +56,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
-import org.lwjgl.glfw.GLFW;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 
 public final class PhotoModeManager {
 
     private static final Identifier VIGNETTE_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/effects/vignette_overlay.png");
-    private static final float CAMERA_SPEED_BLOCKS_PER_SECOND = 9.0F;
-    private static final float CAMERA_FAST_SPEED_MULTIPLIER = 3.0F;
-    private static final float CAMERA_SLOW_SPEED_MULTIPLIER = 0.35F;
-    private static final float MOUSE_ROTATION_SENSITIVITY = 0.16F;
-    private static final double INITIAL_CAMERA_DISTANCE = 3.0D;
-    private static final double SCROLL_ZOOM_SECONDS_PER_NOTCH = 0.08D;
-    private static final double MAX_SCROLL_ZOOM_NOTCHES = 4.0D;
-    private static final double MAX_FRAME_SECONDS = 0.1D;
     private static final double SELF_PLAYER_POSITION_OFFSET_RANGE = 5.0D;
     private static final double SELF_PLAYER_ROTATION_OFFSET_RANGE = 180.0D;
     private static final double SELF_PLAYER_TRANSFORM_EPSILON = 1.0E-4D;
@@ -109,38 +91,14 @@ public final class PhotoModeManager {
     public static final float BLOOM_MIN = 0.0F;
     public static final float BLOOM_MAX = 1.0F;
     public static final float BLOOM_DEFAULT = 0.0F;
-    public static final double PHOTO_FOG_MIN_DISTANCE = 8.0D;
-    public static final double PHOTO_FOG_MAX_DISTANCE = 512.0D;
-    public static final double PHOTO_FOG_DEFAULT_DISTANCE = 64.0D;
-    private static final int PHOTO_FOG_FALLBACK_COLOR = ARGB.color(168, 184, 196);
-    private static final int PHOTO_SKY_FALLBACK_COLOR = ARGB.color(120, 169, 255);
-    private static final int WORLD_FAST_FORWARD_TICKS = 40;
-    private static final int WORLD_FOLLOWUP_TICKS = 5;
-    private static final int VISUAL_LIGHTNING_ENTITY_ID_START = Integer.MIN_VALUE + 4096;
-    private static final int VISUAL_LIGHTNING_ENTITY_ID_END = -1_800_000_000;
-    private static final int LIVE_LIGHTNING_MIN_DELAY_TICKS = 20;
-    private static final int LIVE_LIGHTNING_MAX_DELAY_TICKS = 52;
-    private static final int LIVE_LIGHTNING_BURST_CHANCE = 4;
-    private static final int MAX_VISUAL_LIGHTNING_ENTITIES = 12;
-    private static final int PAUSED_STATIC_LIGHTNING_COUNT = 5;
-    private static final int LIGHTNING_PLACEMENT_ATTEMPTS = 64;
-    private static final int VERY_FAR_LIGHTNING_INTERVAL = 3;
-    private static final double LIGHTNING_RENDER_DISTANCE_MARGIN = 24.0D;
-    private static final double NEAR_LIGHTNING_MIN_DISTANCE = 28.0D;
-    private static final double NEAR_LIGHTNING_MAX_DISTANCE = 64.0D;
-    private static final double FAR_LIGHTNING_MIN_DISTANCE = 96.0D;
-    private static final double FAR_LIGHTNING_MAX_DISTANCE = 176.0D;
-    private static final double VERY_FAR_LIGHTNING_MIN_DISTANCE = 176.0D;
-    private static final double VERY_FAR_LIGHTNING_MAX_DISTANCE = 360.0D;
+    public static final double PHOTO_FOG_MIN_DISTANCE = PhotoEnvironmentManager.PHOTO_FOG_MIN_DISTANCE;
+    public static final double PHOTO_FOG_MAX_DISTANCE = PhotoEnvironmentManager.PHOTO_FOG_MAX_DISTANCE;
+    public static final double PHOTO_FOG_DEFAULT_DISTANCE = PhotoEnvironmentManager.PHOTO_FOG_DEFAULT_DISTANCE;
 
     @Nullable
     private static Session session;
-    private static boolean worldOverrideScope;
-    private static boolean suppressWorldRefreshSounds;
-    private static boolean suppressSkyColorOverride;
     private static final Matrix4f depthOfFieldProjectionMatrix = new Matrix4f();
     private static boolean depthOfFieldProjectionMatrixAvailable;
-    private static int nextVisualLightningEntityId = VISUAL_LIGHTNING_ENTITY_ID_START;
 
     private PhotoModeManager() {
     }
@@ -171,9 +129,7 @@ public final class PhotoModeManager {
         PhotoModeBloomRenderer.close();
         PhotoModeStylizeRenderer.close();
         session = null;
-        worldOverrideScope = false;
-        suppressWorldRefreshSounds = false;
-        refreshWorldCaches(Minecraft.getInstance(), true);
+        PhotoEnvironmentManager.reset(Minecraft.getInstance());
     }
 
     public static boolean isActive() {
@@ -183,6 +139,12 @@ public final class PhotoModeManager {
     @Nullable
     public static Session session() {
         return session;
+    }
+
+    @Nullable
+    public static PhotoModeState state() {
+        Session active = session;
+        return active == null ? null : active.state();
     }
 
     public static boolean shouldHideHud() {
@@ -258,10 +220,7 @@ public final class PhotoModeManager {
         if (active != null) {
             active.tickVisualEffects(minecraft);
         }
-        if (active != null && active.worldVisualTicksRemaining > 0 && shouldRunPausedWorldVisualRefresh(minecraft)) {
-            runPausedWorldVisualTicks(minecraft, 1);
-            active.worldVisualTicksRemaining--;
-        }
+        PhotoEnvironmentManager.tickWorldVisualRefresh(minecraft, active);
     }
 
     public static void updateMovement(@NotNull Minecraft minecraft) {
@@ -319,83 +278,43 @@ public final class PhotoModeManager {
     }
 
     public static void beginWorldOverrideScope() {
-        worldOverrideScope = session != null;
+        PhotoEnvironmentManager.beginWorldOverrideScope(session);
     }
 
     public static void endWorldOverrideScope() {
-        worldOverrideScope = false;
+        PhotoEnvironmentManager.endWorldOverrideScope();
     }
 
     public static long overrideClockTicks(long original) {
-        Session active = session;
-        return active != null && worldOverrideScope ? active.timePreset().clockTicks() : original;
+        return PhotoEnvironmentManager.overrideClockTicks(session, original);
     }
 
     public static float overrideRainLevel(float original) {
-        Session active = session;
-        return active != null && worldOverrideScope ? active.weatherPreset().rainLevel() : original;
+        return PhotoEnvironmentManager.overrideRainLevel(session, original);
     }
 
     public static float overrideThunderLevel(float original) {
-        Session active = session;
-        return active != null && worldOverrideScope ? active.weatherPreset().thunderLevel() : original;
+        return PhotoEnvironmentManager.overrideThunderLevel(session, original);
     }
 
     public static long overrideGameTime(long original) {
-        Session active = session;
-        return active != null && worldOverrideScope ? original + active.visualGameTimeOffsetTicks : original;
+        return PhotoEnvironmentManager.overrideGameTime(session, original);
     }
 
     public static void applyFogOverrides(@NotNull FogData fog, int renderDistanceInChunks) {
-        Session active = session;
-        if (active == null) {
-            return;
-        }
-
-        active.sampleFogColor(fog);
-        float intensity = active.fogIntensity();
-        @Nullable Integer color = active.fogColorOverride();
-        if (intensity > 0.0F && color != null) {
-            fog.color.set(ARGB.redFloat(color), ARGB.greenFloat(color), ARGB.blueFloat(color), 1.0F);
-        }
-
-        if (intensity <= 0.0F) {
-            return;
-        }
-
-        float renderDistanceBlocks = Math.max(1.0F, renderDistanceInChunks * 16.0F);
-        double maxDistance = Math.max(PHOTO_FOG_MIN_DISTANCE, Math.min(PHOTO_FOG_MAX_DISTANCE, renderDistanceBlocks));
-        float end = (float) Mth.clamp(active.fogDistance(), PHOTO_FOG_MIN_DISTANCE, maxDistance);
-        float start = Math.max(-8.0F, end * (1.0F - intensity));
-        if (end <= start) {
-            end = start + 1.0F;
-        }
-
-        fog.environmentalStart = start;
-        fog.environmentalEnd = end;
-        fog.skyEnd = Math.min(fog.skyEnd, end);
-        fog.cloudEnd = Math.min(fog.cloudEnd, end);
+        PhotoEnvironmentManager.applyFogOverrides(session, fog, renderDistanceInChunks);
     }
 
     public static boolean shouldSuppressWorldRefreshSound(@NotNull SoundSource source) {
-        return suppressWorldRefreshSounds && source == SoundSource.WEATHER;
+        return PhotoEnvironmentManager.shouldSuppressWorldRefreshSound(source);
     }
 
     public static void afterExtractRenderState(@NotNull GameRenderState gameRenderState) {
-        Session active = session;
-        if (active == null) {
-            return;
-        }
-
-        LevelRenderState levelRenderState = gameRenderState.levelRenderState;
-        levelRenderState.weatherRenderState.intensity = active.weatherPreset().rainLevel();
-        levelRenderState.skyRenderState.rainBrightness = 1.0F - active.weatherPreset().rainLevel();
-        gameRenderState.lightmapRenderState.needsUpdate = true;
+        PhotoEnvironmentManager.afterExtractRenderState(session, gameRenderState);
     }
 
     public static int overrideSkyColor(int sampledSkyColor) {
-        Session active = session;
-        return active == null || suppressSkyColorOverride ? sampledSkyColor : active.overrideSkyColor(sampledSkyColor);
+        return PhotoEnvironmentManager.overrideSkyColor(session, sampledSkyColor);
     }
 
     public static void extractVignette(@NotNull GuiGraphicsExtractor graphics, int width, int height) {
@@ -438,7 +357,7 @@ public final class PhotoModeManager {
 
         Matrix4fc projectionMatrix = depthOfFieldProjectionMatrixAvailable ? depthOfFieldProjectionMatrix : cameraState.projectionMatrix;
         depthOfFieldProjectionMatrixAvailable = false;
-        PhotoModeDepthOfFieldRenderer.process(mainRenderTarget, resourceAllocator, cameraState, projectionMatrix, active);
+        PhotoModeDepthOfFieldRenderer.process(mainRenderTarget, resourceAllocator, cameraState, projectionMatrix, active.depthOfFieldConfig());
     }
 
     public static void captureDepthOfFieldProjection(@NotNull Matrix4fc projectionMatrix) {
@@ -484,7 +403,7 @@ public final class PhotoModeManager {
             return;
         }
 
-        PhotoModeColorAdjustmentRenderer.process(mainRenderTarget, resourceAllocator, active);
+        PhotoModeColorAdjustmentRenderer.process(mainRenderTarget, resourceAllocator, active.colorAdjustmentConfig());
     }
 
     public static void processBloomEffect(
@@ -497,7 +416,7 @@ public final class PhotoModeManager {
             return;
         }
 
-        PhotoModeBloomRenderer.process(mainRenderTarget, resourceAllocator, active);
+        PhotoModeBloomRenderer.process(mainRenderTarget, resourceAllocator, active.bloomConfig());
     }
 
     public static void processStylizeEffect(
@@ -510,7 +429,7 @@ public final class PhotoModeManager {
             return;
         }
 
-        PhotoModeStylizeRenderer.process(mainRenderTarget, resourceAllocator, active);
+        PhotoModeStylizeRenderer.process(mainRenderTarget, resourceAllocator, active.stylizeConfig());
     }
 
     public static boolean shouldHidePlayerEntity(@NotNull Entity entity) {
@@ -752,100 +671,13 @@ public final class PhotoModeManager {
     }
 
     private static void requestWorldVisualRefresh(@NotNull Minecraft minecraft) {
-        Session active = session;
-        if (active == null) {
-            return;
-        }
-
-        active.worldVisualTicksRemaining = WORLD_FOLLOWUP_TICKS;
-        runWithWorldOverrideScope(() -> refreshWorldCaches(minecraft, true));
-        if (shouldRunPausedWorldVisualRefresh(minecraft)) {
-            runPausedWorldVisualTicks(minecraft, WORLD_FAST_FORWARD_TICKS);
-        }
-    }
-
-    private static boolean shouldRunPausedWorldVisualRefresh(@NotNull Minecraft minecraft) {
-        Session active = session;
-        return active != null
-                && active.paused()
-                && canPause(minecraft)
-                && minecraft.level != null
-                && minecraft.player != null
-                && minecraft.level.tickRateManager().runsNormally();
-    }
-
-    private static void runPausedWorldVisualTicks(@NotNull Minecraft minecraft, int ticks) {
-        Session active = session;
-        ClientLevel level = minecraft.level;
-        if (active == null || level == null || minecraft.player == null || ticks <= 0 || !shouldRunPausedWorldVisualRefresh(minecraft)) {
-            return;
-        }
-
-        // Visual-only catch-up: do not call ClientLevel.tick() or touch the integrated server.
-        boolean previousWorldOverrideScope = worldOverrideScope;
-        boolean previousSuppressWorldRefreshSounds = suppressWorldRefreshSounds;
-        worldOverrideScope = true;
-        suppressWorldRefreshSounds = true;
-        try {
-            for (int tick = 0; tick < ticks; tick++) {
-                active.advanceVisualGameTime(1L);
-                refreshWorldCaches(minecraft, false);
-                level.tickWeatherEffects();
-                minecraft.particleEngine.tick();
-            }
-        } finally {
-            worldOverrideScope = previousWorldOverrideScope;
-            suppressWorldRefreshSounds = previousSuppressWorldRefreshSounds;
-        }
-    }
-
-    private static void runWithWorldOverrideScope(@NotNull Runnable runnable) {
-        boolean previousWorldOverrideScope = worldOverrideScope;
-        worldOverrideScope = session != null;
-        try {
-            runnable.run();
-        } finally {
-            worldOverrideScope = previousWorldOverrideScope;
-        }
-    }
-
-    private static void refreshWorldCaches(@NotNull Minecraft minecraft, boolean resetProbe) {
-        ClientLevel level = minecraft.level;
-        if (level == null) {
-            return;
-        }
-
-        level.environmentAttributes().invalidateTickCache();
-        level.updateSkyBrightness();
-
-        Camera camera = minecraft.gameRenderer.mainCamera();
-        if (resetProbe) {
-            camera.attributeProbe().reset();
-        }
-
-        Session active = session;
-        camera.attributeProbe().tick(level, active == null ? camera.position() : active.position());
-    }
-
-    private static int sampleSkyColor(@NotNull Minecraft minecraft, @NotNull Vec3 position) {
-        ClientLevel level = minecraft.level;
-        if (level == null) {
-            return PHOTO_SKY_FALLBACK_COLOR;
-        }
-
-        boolean previousSuppressSkyColorOverride = suppressSkyColorOverride;
-        suppressSkyColorOverride = true;
-        try {
-            return ARGB.opaque(level.environmentAttributes().getValue(EnvironmentAttributes.SKY_COLOR, position, null));
-        } finally {
-            suppressSkyColorOverride = previousSuppressSkyColorOverride;
-        }
+        PhotoEnvironmentManager.requestWorldVisualRefresh(minecraft, session);
     }
 
     public record CameraState(@NotNull Vec3 position, float yaw, float pitch, float roll) {
     }
 
-    public static final class Session {
+    public static final class Session implements PhotoModeCameraController.MutableCamera {
 
         private Vec3 position;
         private float yaw;
@@ -878,21 +710,20 @@ public final class PhotoModeManager {
         private PhotoModeWeatherPreset weatherPreset;
         private float fogIntensity;
         private float fogDistance = (float) PHOTO_FOG_DEFAULT_DISTANCE;
-        private int sampledFogColor = PHOTO_FOG_FALLBACK_COLOR;
+        private int sampledFogColor = PhotoEnvironmentManager.PHOTO_FOG_FALLBACK_COLOR;
         @Nullable
         private Integer fogColorOverride;
-        private int sampledSkyColor = PHOTO_SKY_FALLBACK_COLOR;
+        private int sampledSkyColor = PhotoEnvironmentManager.PHOTO_SKY_FALLBACK_COLOR;
         @Nullable
         private Integer skyColorOverride;
         @Nullable
         private Identifier poseId;
         @Nullable
         private PhotoPose poseMakerPose;
-        private final Set<InputConstants.Key> activeBoundInputs = new HashSet<>();
-        private final VisualLightningStorm visualLightningStorm = new VisualLightningStorm();
+        private final PhotoModeCameraController cameraController = new PhotoModeCameraController();
+        private final VisualLightningStormManager visualLightningStorm = new VisualLightningStormManager();
         private long visualGameTimeOffsetTicks;
         private int worldVisualTicksRemaining;
-        private long lastMovementMillis;
 
         private Session(
                 @NotNull Vec3 position,
@@ -912,21 +743,20 @@ public final class PhotoModeManager {
             this.timePreset = timePreset;
             this.weatherPreset = weatherPreset;
             this.sampledSkyColor = ARGB.opaque(sampledSkyColor);
-            this.lastMovementMillis = Util.getMillis();
         }
 
         @NotNull
         private static Session create(@NotNull Minecraft minecraft) {
-            CameraStart start = CameraStart.facingPlayer(minecraft.player);
+            PhotoModeCameraController.CameraStart start = PhotoModeCameraController.facingPlayer(minecraft.player);
             return new Session(
                     start.position(),
                     start.yaw(),
                     start.pitch(),
                     minecraft.options.fov().get().floatValue(),
                     canPause(minecraft),
-                    defaultTimePreset(minecraft),
-                    defaultWeatherPreset(minecraft),
-                    sampleSkyColor(minecraft, start.position())
+                    PhotoEnvironmentManager.defaultTimePreset(minecraft),
+                    PhotoEnvironmentManager.defaultWeatherPreset(minecraft),
+                    PhotoEnvironmentManager.sampleSkyColor(minecraft, start.position())
             );
         }
 
@@ -934,7 +764,7 @@ public final class PhotoModeManager {
             if (minecraft.player != null) {
                 this.returnToPlayer(minecraft.player);
             }
-            this.sampledSkyColor = sampleSkyColor(minecraft, this.position);
+            this.sampledSkyColor = PhotoEnvironmentManager.sampleSkyColor(minecraft, this.position);
             this.skyColorOverride = null;
             this.roll = 0.0F;
             this.fieldOfView = minecraft.options.fov().get().floatValue();
@@ -961,18 +791,17 @@ public final class PhotoModeManager {
             this.gridEnabled = false;
             this.poseId = null;
             this.poseMakerPose = null;
-            this.timePreset = defaultTimePreset(minecraft);
-            this.weatherPreset = defaultWeatherPreset(minecraft);
+            this.timePreset = PhotoEnvironmentManager.defaultTimePreset(minecraft);
+            this.weatherPreset = PhotoEnvironmentManager.defaultWeatherPreset(minecraft);
             this.fogIntensity = 0.0F;
             this.fogDistance = (float) PHOTO_FOG_DEFAULT_DISTANCE;
-            this.sampledFogColor = PHOTO_FOG_FALLBACK_COLOR;
+            this.sampledFogColor = PhotoEnvironmentManager.PHOTO_FOG_FALLBACK_COLOR;
             this.fogColorOverride = null;
             this.visualLightningStorm.clear(minecraft.level);
             this.visualGameTimeOffsetTicks = 0L;
             this.worldVisualTicksRemaining = 0;
-            this.activeBoundInputs.clear();
+            this.cameraController.resetInputState();
             this.paused = canPause(minecraft);
-            this.lastMovementMillis = Util.getMillis();
             requestWorldVisualRefresh(minecraft);
         }
 
@@ -985,160 +814,32 @@ public final class PhotoModeManager {
         }
 
         private void returnToPlayer(@NotNull Player player) {
-            CameraStart start = CameraStart.facingPlayer(player);
+            PhotoModeCameraController.CameraStart start = PhotoModeCameraController.facingPlayer(player);
             this.position = start.position();
             this.yaw = start.yaw();
             this.pitch = start.pitch();
-            this.lastMovementMillis = Util.getMillis();
-        }
-
-        private record CameraStart(@NotNull Vec3 position, float yaw, float pitch) {
-
-            @NotNull
-            private static CameraStart facingPlayer(@NotNull Player player) {
-                Vec3 target = player.position().add(0.0D, player.getBbHeight() * 0.78D, 0.0D);
-                Vec3 playerForward = Vec3.directionFromRotation(0.0F, player.getVisualRotationYInDegrees()).normalize();
-                Vec3 position = player.position()
-                        .add(0.0D, player.getEyeHeight(), 0.0D)
-                        .add(playerForward.scale(INITIAL_CAMERA_DISTANCE));
-                Vec2 rotation = target.subtract(position).rotation();
-                return new CameraStart(position, rotation.y, rotation.x);
-            }
-
-        }
-
-        @NotNull
-        private static PhotoModeTimePreset defaultTimePreset(@NotNull Minecraft minecraft) {
-            if (minecraft.level == null) {
-                return PhotoModeTimePreset.NOON;
-            }
-
-            long clock = Math.floorMod(minecraft.level.getDefaultClockTime(), 24_000L);
-            PhotoModeTimePreset best = PhotoModeTimePreset.NOON;
-            long bestDistance = Long.MAX_VALUE;
-            for (PhotoModeTimePreset preset : PhotoModeTimePreset.values()) {
-                long distance = Math.abs(clock - preset.clockTicks());
-                distance = Math.min(distance, 24_000L - distance);
-                if (distance < bestDistance) {
-                    best = preset;
-                    bestDistance = distance;
-                }
-            }
-            return best;
-        }
-
-        @NotNull
-        private static PhotoModeWeatherPreset defaultWeatherPreset(@NotNull Minecraft minecraft) {
-            if (minecraft.level == null) {
-                return PhotoModeWeatherPreset.SUNNY;
-            }
-            if (minecraft.level.getThunderLevel(1.0F) >= 0.5F) {
-                return PhotoModeWeatherPreset.THUNDERING;
-            }
-            if (minecraft.level.getRainLevel(1.0F) >= 0.5F) {
-                return PhotoModeWeatherPreset.RAINY;
-            }
-            return PhotoModeWeatherPreset.SUNNY;
+            this.cameraController.markMoved();
         }
 
         public void updateMovement(@NotNull Minecraft minecraft) {
-            long now = Util.getMillis();
-            double deltaSeconds = Math.min(MAX_FRAME_SECONDS, Math.max(0.0D, (now - this.lastMovementMillis) / 1_000.0D));
-            this.lastMovementMillis = now;
-            if (deltaSeconds <= 0.0D) {
-                return;
-            }
-
-            float forwardAxis = axis(minecraft, minecraft.options.keyUp, minecraft.options.keyDown);
-            float strafeAxis = axis(minecraft, minecraft.options.keyRight, minecraft.options.keyLeft);
-            float verticalAxis = 0.0F;
-            if (isBoundKeyDown(minecraft, minecraft.options.keyJump)) {
-                verticalAxis += 1.0F;
-            }
-            if (isBoundKeyDown(minecraft, minecraft.options.keyShift)) {
-                verticalAxis -= 1.0F;
-            }
-
-            if (forwardAxis == 0.0F && strafeAxis == 0.0F && verticalAxis == 0.0F) {
-                return;
-            }
-
-            Vec3 forward = this.forwardVector();
-            Vec3 right = new Vec3(-forward.z, 0.0D, forward.x);
-            if (right.lengthSqr() < 1.0E-7D) {
-                right = Vec3.directionFromRotation(0.0F, this.yaw + 90.0F);
-            } else {
-                right = right.normalize();
-            }
-            Vec3 up = new Vec3(0.0D, 1.0D, 0.0D);
-            Vec3 movement = forward.scale(forwardAxis).add(right.scale(strafeAxis)).add(up.scale(verticalAxis));
-            if (movement.lengthSqr() > 1.0D) {
-                movement = movement.normalize();
-            }
-            this.position = this.position.add(movement.scale(this.movementSpeed(minecraft) * deltaSeconds));
+            this.cameraController.updateMovement(minecraft, this);
         }
 
         public void zoomFromScroll(@NotNull Minecraft minecraft, double scrollY) {
-            if (!Double.isFinite(scrollY) || scrollY == 0.0D) {
-                return;
-            }
-            double notches = Mth.clamp(scrollY, -MAX_SCROLL_ZOOM_NOTCHES, MAX_SCROLL_ZOOM_NOTCHES);
-            this.position = this.position.add(this.forwardVector().scale(this.movementSpeed(minecraft) * SCROLL_ZOOM_SECONDS_PER_NOTCH * notches));
-            this.lastMovementMillis = Util.getMillis();
+            this.cameraController.zoomFromScroll(minecraft, this, scrollY);
         }
 
         private void setBoundInputState(@NotNull InputConstants.Key key, boolean down) {
-            if (down) {
-                this.activeBoundInputs.add(key);
-            } else {
-                this.activeBoundInputs.remove(key);
-            }
-        }
-
-        private float axis(@NotNull Minecraft minecraft, @NotNull KeyMapping positiveKey, @NotNull KeyMapping negativeKey) {
-            float axis = 0.0F;
-            if (this.isBoundKeyDown(minecraft, positiveKey)) {
-                axis += 1.0F;
-            }
-            if (this.isBoundKeyDown(minecraft, negativeKey)) {
-                axis -= 1.0F;
-            }
-            return axis;
-        }
-
-        private float movementSpeed(@NotNull Minecraft minecraft) {
-            float speed = CAMERA_SPEED_BLOCKS_PER_SECOND;
-            if (isBoundKeyDown(minecraft, minecraft.options.keySprint)) {
-                speed *= CAMERA_FAST_SPEED_MULTIPLIER;
-            }
-            if (isBoundKeyDown(minecraft, KeyMappings.KEY_PHOTO_MODE_SLOW_CAMERA)) {
-                speed *= CAMERA_SLOW_SPEED_MULTIPLIER;
-            }
-            return speed;
-        }
-
-        private boolean isBoundKeyDown(@NotNull Minecraft minecraft, @NotNull KeyMapping keyMapping) {
-            InputConstants.Key key = Services.PLATFORM.getKeyMappingKey(keyMapping);
-            if (key.equals(InputConstants.UNKNOWN)) {
-                return false;
-            }
-            if (key.getType() == InputConstants.Type.KEYSYM) {
-                return InputConstants.isKeyDown(minecraft.getWindow(), key.getValue());
-            }
-            if (key.getType() == InputConstants.Type.MOUSE) {
-                return GLFW.glfwGetMouseButton(minecraft.getWindow().handle(), key.getValue()) == GLFW.GLFW_PRESS;
-            }
-            return this.activeBoundInputs.contains(key) || keyMapping.isDown();
+            this.cameraController.setBoundInputState(key, down);
         }
 
         public void rotate(double dx, double dy) {
-            this.yaw = Mth.wrapDegrees(this.yaw + (float) dx * MOUSE_ROTATION_SENSITIVITY);
-            this.pitch = Mth.clamp(this.pitch + (float) dy * MOUSE_ROTATION_SENSITIVITY, -89.5F, 89.5F);
+            this.cameraController.rotate(this, dx, dy);
         }
 
         @NotNull
         public Vec3 forwardVector() {
-            return Vec3.directionFromRotation(this.pitch, this.yaw).normalize();
+            return this.cameraController.forwardVector(this);
         }
 
         @NotNull
@@ -1147,16 +848,62 @@ public final class PhotoModeManager {
         }
 
         @NotNull
+        public PhotoModeState state() {
+            return new PhotoModeState(
+                    this.cameraState(),
+                    this.fieldOfView,
+                    this.vignette,
+                    this.colorizePreset,
+                    this.colorAdjustmentConfig(),
+                    this.bloomConfig(),
+                    this.stylizeConfig(),
+                    this.depthOfFieldConfig(),
+                    this.selfPlayerPositionOffset,
+                    this.selfPlayerRotationOffset,
+                    this.hideSelfPlayer,
+                    this.hideOtherPlayers,
+                    this.armorMode,
+                    this.heldItemsMode,
+                    this.hideBeaconBeams,
+                    this.paused,
+                    this.photoModeUiHidden,
+                    this.gridEnabled,
+                    this.timePreset,
+                    this.weatherPreset,
+                    this.fogIntensity,
+                    this.fogDistance,
+                    this.fogColor(),
+                    this.skyColor(),
+                    this.poseId()
+            );
+        }
+
+        @NotNull
         public Vec3 position() {
             return this.position;
+        }
+
+        @Override
+        public void setPosition(@NotNull Vec3 position) {
+            this.position = position;
         }
 
         public float yaw() {
             return this.yaw;
         }
 
+        @Override
+        public void setYaw(float yaw) {
+            this.yaw = yaw;
+        }
+
         public float pitch() {
             return this.pitch;
+        }
+
+        @Override
+        public void setPitch(float pitch) {
+            this.pitch = pitch;
         }
 
         public float roll() {
@@ -1242,18 +989,40 @@ public final class PhotoModeManager {
         }
 
         public boolean hasColorAdjustments() {
-            return Math.abs(this.gamma) > 1.0E-4F
-                    || Math.abs(this.saturation) > 1.0E-4F
-                    || Math.abs(this.contrast) > 1.0E-4F
-                    || Math.abs(this.overexposure) > 1.0E-4F;
+            return this.colorAdjustmentConfig().active();
         }
 
         public boolean hasBloom() {
-            return this.bloom > 1.0E-4F;
+            return this.bloomConfig().active();
+        }
+
+        @NotNull
+        public ColorAdjustmentConfig colorAdjustmentConfig() {
+            return new ColorAdjustmentConfig(this.saturation, this.contrast, this.overexposure, this.gamma);
+        }
+
+        @NotNull
+        public BloomConfig bloomConfig() {
+            return new BloomConfig(this.bloom);
+        }
+
+        @NotNull
+        public StylizeConfig stylizeConfig() {
+            return new StylizeConfig(this.stylizePreset);
         }
 
         public boolean depthOfFieldEnabled() {
             return this.depthOfFieldEnabled;
+        }
+
+        @NotNull
+        public DepthOfFieldConfig depthOfFieldConfig() {
+            return new DepthOfFieldConfig(
+                    this.depthOfFieldEnabled,
+                    this.depthOfFieldFocusDistance,
+                    this.depthOfFieldFocalLength,
+                    this.depthOfFieldAperture
+            );
         }
 
         public void setDepthOfFieldEnabled(boolean depthOfFieldEnabled) {
@@ -1503,16 +1272,28 @@ public final class PhotoModeManager {
             this.poseMakerPose = poseMakerPose;
         }
 
-        private int overrideSkyColor(int sampledSkyColor) {
+        public int overrideSkyColor(int sampledSkyColor) {
             this.sampledSkyColor = ARGB.opaque(sampledSkyColor);
             return this.skyColor();
         }
 
-        private void sampleFogColor(@NotNull FogData fog) {
+        public void sampleFogColor(@NotNull FogData fog) {
             this.sampledFogColor = ARGB.colorFromFloat(1.0F, fog.color.x(), fog.color.y(), fog.color.z());
         }
 
-        private void advanceVisualGameTime(long ticks) {
+        public long visualGameTimeOffsetTicks() {
+            return this.visualGameTimeOffsetTicks;
+        }
+
+        public int worldVisualTicksRemaining() {
+            return this.worldVisualTicksRemaining;
+        }
+
+        public void setWorldVisualTicksRemaining(int worldVisualTicksRemaining) {
+            this.worldVisualTicksRemaining = Math.max(0, worldVisualTicksRemaining);
+        }
+
+        public void advanceVisualGameTime(long ticks) {
             this.visualGameTimeOffsetTicks += Math.max(0L, ticks);
         }
 
@@ -1564,226 +1345,6 @@ public final class PhotoModeManager {
             return pose == null ? 0.0D : pose.modelYOffset();
         }
 
-    }
-
-    private static final class VisualLightningStorm {
-
-        private final RandomSource random = RandomSource.create();
-        private final List<Integer> entityIds = new ArrayList<>();
-        private int nextLiveStrikeTicks;
-        private int farStrikeSequence;
-        private boolean nextLiveStrikeFar;
-        private boolean pausedStaticMode;
-
-        private void tick(@NotNull Minecraft minecraft, @NotNull Session active) {
-            ClientLevel level = minecraft.level;
-            if (level == null || minecraft.player == null || active.weatherPreset() != PhotoModeWeatherPreset.THUNDERING) {
-                this.clear(level);
-                return;
-            }
-
-            this.prune(level);
-            boolean paused = active.paused() && canPause(minecraft);
-            if (paused) {
-                if (!this.pausedStaticMode) {
-                    this.clear(level);
-                    this.pausedStaticMode = true;
-                }
-                this.fillPausedStaticBolts(minecraft, active);
-                return;
-            }
-
-            if (this.pausedStaticMode) {
-                this.clear(level);
-                this.pausedStaticMode = false;
-                this.nextLiveStrikeTicks = 0;
-            }
-
-            if (this.nextLiveStrikeTicks > 0) {
-                this.nextLiveStrikeTicks--;
-                return;
-            }
-
-            int strikeCount = this.random.nextInt(LIVE_LIGHTNING_BURST_CHANCE) == 0 ? 2 : 1;
-            for (int strike = 0; strike < strikeCount; strike++) {
-                this.spawnVisualLightning(minecraft, active, this.nextLiveStrikeDistance());
-            }
-            this.nextLiveStrikeTicks = this.random.nextIntBetweenInclusive(LIVE_LIGHTNING_MIN_DELAY_TICKS, LIVE_LIGHTNING_MAX_DELAY_TICKS);
-        }
-
-        private void fillPausedStaticBolts(@NotNull Minecraft minecraft, @NotNull Session active) {
-            int missingStrikes = PAUSED_STATIC_LIGHTNING_COUNT - this.entityIds.size();
-            int startSlot = this.entityIds.size();
-            for (int strike = 0; strike < missingStrikes; strike++) {
-                this.spawnVisualLightning(minecraft, active, this.staticStrikeDistance(startSlot + strike));
-            }
-        }
-
-        @NotNull
-        private StrikeDistance nextLiveStrikeDistance() {
-            this.nextLiveStrikeFar = !this.nextLiveStrikeFar;
-            if (!this.nextLiveStrikeFar) {
-                return StrikeDistance.NEAR;
-            }
-
-            this.farStrikeSequence++;
-            return this.farStrikeSequence % VERY_FAR_LIGHTNING_INTERVAL == 0 ? StrikeDistance.VERY_FAR : StrikeDistance.FAR;
-        }
-
-        @NotNull
-        private StrikeDistance staticStrikeDistance(int slot) {
-            if (slot % 2 == 0) {
-                return StrikeDistance.NEAR;
-            }
-            return slot % (VERY_FAR_LIGHTNING_INTERVAL * 2) == VERY_FAR_LIGHTNING_INTERVAL ? StrikeDistance.VERY_FAR : StrikeDistance.FAR;
-        }
-
-        private boolean spawnVisualLightning(@NotNull Minecraft minecraft, @NotNull Session active, @NotNull StrikeDistance distance) {
-            ClientLevel level = minecraft.level;
-            if (level == null) {
-                return false;
-            }
-
-            Vec3 position = this.chooseStrikePosition(minecraft, active, distance);
-            if (position == null) {
-                return false;
-            }
-
-            int entityId = nextVisualLightningEntityId(level);
-            if (entityId == 0) {
-                return false;
-            }
-
-            LightningBolt lightning = new LightningBolt(EntityTypes.LIGHTNING_BOLT, level);
-            lightning.setId(entityId);
-            lightning.setVisualOnly(true);
-            lightning.snapTo(position);
-            level.addEntity(lightning);
-            this.entityIds.add(entityId);
-            this.enforceEntityLimit(level);
-            return true;
-        }
-
-        @Nullable
-        private Vec3 chooseStrikePosition(@NotNull Minecraft minecraft, @NotNull Session active, @NotNull StrikeDistance distance) {
-            ClientLevel level = minecraft.level;
-            Player player = minecraft.player;
-            if (level == null || player == null) {
-                return null;
-            }
-
-            Vec3 fallback = null;
-            Vec3[] origins = new Vec3[] { active.position(), player.position() };
-            for (Vec3 origin : origins) {
-                for (int attempt = 0; attempt < LIGHTNING_PLACEMENT_ATTEMPTS; attempt++) {
-                    Vec3 candidate = this.createStrikeCandidate(minecraft, level, origin, distance);
-                    if (candidate == null) {
-                        continue;
-                    }
-                    if (minecraft.levelRenderer.isSectionCompiledAndVisible(BlockPos.containing(candidate))) {
-                        return candidate;
-                    }
-                    if (fallback == null) {
-                        fallback = candidate;
-                    }
-                }
-            }
-
-            return fallback;
-        }
-
-        @Nullable
-        private Vec3 createStrikeCandidate(@NotNull Minecraft minecraft, @NotNull ClientLevel level, @NotNull Vec3 origin, @NotNull StrikeDistance distance) {
-            double minDistance = distance.minDistance();
-            double maxDistance = Math.min(distance.maxDistance(), maxLoadedStrikeDistance(minecraft));
-            if (maxDistance < minDistance) {
-                minDistance = Math.max(NEAR_LIGHTNING_MIN_DISTANCE, maxDistance * 0.65D);
-            }
-            double strikeDistance = Mth.lerp(this.random.nextDouble(), minDistance, maxDistance);
-            double angle = this.random.nextDouble() * Mth.TWO_PI;
-            int blockX = Mth.floor(origin.x + Math.cos(angle) * strikeDistance);
-            int blockZ = Mth.floor(origin.z + Math.sin(angle) * strikeDistance);
-            int chunkX = SectionPos.blockToSectionCoord(blockX);
-            int chunkZ = SectionPos.blockToSectionCoord(blockZ);
-            if (level.getChunkSource().getChunk(chunkX, chunkZ, ChunkStatus.FULL, false) == null) {
-                return null;
-            }
-
-            int surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING, blockX, blockZ);
-            BlockPos strikePos = new BlockPos(blockX, surfaceY, blockZ);
-            if (level.isOutsideBuildHeight(strikePos) || !level.getWorldBorder().isWithinBounds(strikePos)) {
-                return null;
-            }
-
-            return Vec3.atBottomCenterOf(strikePos);
-        }
-
-        private static double maxLoadedStrikeDistance(@NotNull Minecraft minecraft) {
-            return Math.max(NEAR_LIGHTNING_MAX_DISTANCE, minecraft.options.getEffectiveRenderDistance() * 16.0D - LIGHTNING_RENDER_DISTANCE_MARGIN);
-        }
-
-        private void prune(@NotNull ClientLevel level) {
-            this.entityIds.removeIf(entityId -> {
-                Entity entity = level.getEntity(entityId);
-                return entity == null || entity.isRemoved();
-            });
-        }
-
-        private void enforceEntityLimit(@NotNull ClientLevel level) {
-            while (this.entityIds.size() > MAX_VISUAL_LIGHTNING_ENTITIES) {
-                Integer entityId = this.entityIds.remove(0);
-                level.removeEntity(entityId, Entity.RemovalReason.DISCARDED);
-            }
-        }
-
-        private void clear(@Nullable ClientLevel level) {
-            if (level != null) {
-                for (Integer entityId : this.entityIds) {
-                    level.removeEntity(entityId, Entity.RemovalReason.DISCARDED);
-                }
-            }
-            this.entityIds.clear();
-            this.farStrikeSequence = 0;
-            this.nextLiveStrikeFar = false;
-            this.pausedStaticMode = false;
-            this.nextLiveStrikeTicks = 0;
-        }
-
-    }
-
-    private enum StrikeDistance {
-        NEAR(NEAR_LIGHTNING_MIN_DISTANCE, NEAR_LIGHTNING_MAX_DISTANCE),
-        FAR(FAR_LIGHTNING_MIN_DISTANCE, FAR_LIGHTNING_MAX_DISTANCE),
-        VERY_FAR(VERY_FAR_LIGHTNING_MIN_DISTANCE, VERY_FAR_LIGHTNING_MAX_DISTANCE);
-
-        private final double minDistance;
-        private final double maxDistance;
-
-        StrikeDistance(double minDistance, double maxDistance) {
-            this.minDistance = minDistance;
-            this.maxDistance = maxDistance;
-        }
-
-        private double minDistance() {
-            return this.minDistance;
-        }
-
-        private double maxDistance() {
-            return this.maxDistance;
-        }
-    }
-
-    private static int nextVisualLightningEntityId(@NotNull ClientLevel level) {
-        for (int attempt = 0; attempt < 4096; attempt++) {
-            int candidate = nextVisualLightningEntityId++;
-            if (nextVisualLightningEntityId >= VISUAL_LIGHTNING_ENTITY_ID_END) {
-                nextVisualLightningEntityId = VISUAL_LIGHTNING_ENTITY_ID_START;
-            }
-            if (candidate != 0 && level.getEntity(candidate) == null) {
-                return candidate;
-            }
-        }
-        return 0;
     }
 
 }

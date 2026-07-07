@@ -4,6 +4,7 @@ import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.capture.PanoramaCaptureManager;
 import de.keksuccino.snappy.menu.MenuBackgroundSelectionManager;
 import de.keksuccino.snappy.metadata.ScreenshotMetadataManager;
+import de.keksuccino.snappy.storage.PanoramaScanner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import org.jetbrains.annotations.NotNull;
@@ -103,7 +104,7 @@ public final class ScreenshotBrowserCatalog {
 
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(root)) {
             for (Path path : stream) {
-                if (!isValidPanoramaFolder(path)) {
+                if (!PanoramaScanner.isValidPanoramaFolder(path)) {
                     continue;
                 }
 
@@ -118,26 +119,8 @@ public final class ScreenshotBrowserCatalog {
         }
     }
 
-    private static boolean isValidPanoramaFolder(@NotNull Path folder) {
-        if (!Files.isDirectory(folder, LinkOption.NOFOLLOW_LINKS)) {
-            return false;
-        }
-
-        for (int i = 0; i < 6; i++) {
-            if (!Files.isRegularFile(folder.resolve("panorama_" + i + ".png"), LinkOption.NOFOLLOW_LINKS)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     private static long panoramaModifiedMillis(@NotNull Path folder) {
-        long modified = lastModifiedMillis(folder);
-        for (int i = 0; i < 6; i++) {
-            modified = Math.max(modified, lastModifiedMillis(folder.resolve("panorama_" + i + ".png")));
-        }
-        return modified;
+        return PanoramaScanner.panoramaModifiedMillis(folder);
     }
 
     private static long lastModifiedMillis(@NotNull Path path) {

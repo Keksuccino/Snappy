@@ -21,6 +21,8 @@ import com.mojang.blaze3d.systems.SamplerCache;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import de.keksuccino.snappy.Snappy;
+import de.keksuccino.snappy.client.render.ShaderEffectPass;
+import de.keksuccino.snappy.client.render.config.BloomConfig;
 import net.minecraft.client.renderer.MappableRingBuffer;
 import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
@@ -28,7 +30,6 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector4f;
 import org.joml.Vector4fc;
 
 import java.util.Optional;
@@ -47,12 +48,12 @@ final class PhotoModeBloomRenderer {
     private static final Identifier BLUR_HORIZONTAL_SHADER_ID = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "post/bloom_blur_horizontal");
     private static final Identifier BLUR_VERTICAL_SHADER_ID = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "post/bloom_blur_vertical");
     private static final Identifier COMPOSITE_SHADER_ID = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "post/bloom_composite");
-    private static final Identifier COPY_SHADER_ID = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "post/copy");
-    private static final Identifier SCREEN_QUAD_SHADER_ID = Identifier.withDefaultNamespace("core/screenquad");
-    private static final int SAMPLER_INFO_SIZE = new Std140SizeCalculator().putVec2().putVec2().get();
+    private static final Identifier COPY_SHADER_ID = ShaderEffectPass.COPY_SHADER_ID;
+    private static final Identifier SCREEN_QUAD_SHADER_ID = ShaderEffectPass.SCREEN_QUAD_SHADER_ID;
+    private static final int SAMPLER_INFO_SIZE = ShaderEffectPass.SAMPLER_INFO_SIZE;
     private static final int COMPOSITE_SAMPLER_INFO_SIZE = new Std140SizeCalculator().putVec2().putVec2().putVec2().putVec2().get();
     private static final int BLOOM_CONFIG_SIZE = new Std140SizeCalculator().putVec4().get();
-    private static final Vector4fc CLEAR_COLOR = new Vector4f(0.0F, 0.0F, 0.0F, 0.0F);
+    private static final Vector4fc CLEAR_COLOR = ShaderEffectPass.CLEAR_COLOR;
     private static final RenderPipeline PREFILTER_PIPELINE = RenderPipeline.builder(RenderPipelines.POST_PROCESSING_SNIPPET)
             .withLocation(PREFILTER_PIPELINE_ID)
             .withVertexShader(SCREEN_QUAD_SHADER_ID)
@@ -125,7 +126,7 @@ final class PhotoModeBloomRenderer {
     static void process(
             @NotNull RenderTarget mainRenderTarget,
             @NotNull GraphicsResourceAllocator resourceAllocator,
-            @NotNull PhotoModeManager.Session session
+            @NotNull BloomConfig config
     ) {
         GpuTextureView mainColor = mainRenderTarget.getColorTextureView();
         if (mainColor == null || mainRenderTarget.width <= 0 || mainRenderTarget.height <= 0 || !ensurePipelinesAvailable()) {
@@ -138,7 +139,7 @@ final class PhotoModeBloomRenderer {
         int quarterHeight = Math.max(1, mainRenderTarget.height / 4);
 
         Resources renderResources = resources();
-        writeBloomConfig(renderResources, session);
+        writeBloomConfig(renderResources, config);
         FrameGraphBuilder frame = new FrameGraphBuilder();
         ResourceHandle<RenderTarget> main = frame.importExternal("snappy main", mainRenderTarget);
         ResourceHandle<RenderTarget> halfPrefilterTarget = frame.createInternal(
@@ -275,12 +276,14 @@ final class PhotoModeBloomRenderer {
     }
 
     private static boolean ensurePipelinesAvailable() {
-        return RenderSystem.getDevice().precompilePipeline(PREFILTER_PIPELINE).isValid()
-                && RenderSystem.getDevice().precompilePipeline(DOWNSAMPLE_PIPELINE).isValid()
-                && RenderSystem.getDevice().precompilePipeline(BLUR_HORIZONTAL_PIPELINE).isValid()
-                && RenderSystem.getDevice().precompilePipeline(BLUR_VERTICAL_PIPELINE).isValid()
-                && RenderSystem.getDevice().precompilePipeline(COMPOSITE_PIPELINE).isValid()
-                && RenderSystem.getDevice().precompilePipeline(COPY_PIPELINE).isValid();
+        return ShaderEffectPass.allPipelinesAvailable(
+                PREFILTER_PIPELINE,
+                DOWNSAMPLE_PIPELINE,
+                BLUR_HORIZONTAL_PIPELINE,
+                BLUR_VERTICAL_PIPELINE,
+                COMPOSITE_PIPELINE,
+                COPY_PIPELINE
+        );
     }
 
     @NotNull
@@ -288,8 +291,8 @@ final class PhotoModeBloomRenderer {
         return new RenderTargetDescriptor(width, height, false, CLEAR_COLOR, GpuFormat.RGBA8_UNORM);
     }
 
-    private static void writeBloomConfig(@NotNull Resources renderResources, @NotNull PhotoModeManager.Session session) {
-        float amount = session.bloom();
+    private static void writeBloomConfig(@NotNull Resources renderResources, @NotNull BloomConfig config) {
+        float amount = config.intensity();
         float threshold = 0.82F - amount * 0.24F;
         float knee = 0.18F + amount * 0.10F;
         float compositeGain = 0.42F + amount * 1.08F;

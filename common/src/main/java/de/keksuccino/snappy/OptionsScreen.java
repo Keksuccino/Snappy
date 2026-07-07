@@ -1,6 +1,7 @@
 package de.keksuccino.snappy;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import de.keksuccino.snappy.client.gui.UIFormatting;
 import de.keksuccino.snappy.menu.PanoramaMenuManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
@@ -429,18 +430,17 @@ public class OptionsScreen extends Screen {
 
     @NotNull
     protected Component optionMessage(@NotNull String labelKey, @NotNull Component value) {
-        return Component.translatable(labelKey, value);
+        return UIFormatting.optionMessage(labelKey, value);
     }
 
     @NotNull
     protected Component genericCycleValue(@NotNull Component value) {
-        return value.copy().withStyle(Style.EMPTY.withColor(CYCLE_VALUE_COLOR));
+        return UIFormatting.cycleValue(value, CYCLE_VALUE_COLOR);
     }
 
     @NotNull
     protected Component booleanCycleValue(boolean enabled) {
-        return Component.translatable(enabled ? "snappy.options.toggle.enabled" : "snappy.options.toggle.disabled")
-                .withStyle(Style.EMPTY.withColor(enabled ? ChatFormatting.GREEN : ChatFormatting.RED));
+        return UIFormatting.enabledDisabledValue(enabled, "snappy.options.toggle.enabled", "snappy.options.toggle.disabled");
     }
 
     @NotNull

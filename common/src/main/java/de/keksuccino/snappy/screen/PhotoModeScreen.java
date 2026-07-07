@@ -3,6 +3,7 @@ package de.keksuccino.snappy.screen;
 import com.mojang.blaze3d.platform.InputConstants;
 import de.keksuccino.snappy.KeyMappings;
 import de.keksuccino.snappy.Snappy;
+import de.keksuccino.snappy.client.gui.UIFormatting;
 import de.keksuccino.snappy.photo.PhotoModeArmorMode;
 import de.keksuccino.snappy.photo.PhotoModeColorizePreset;
 import de.keksuccino.snappy.photo.PhotoModeHeldItemsMode;
@@ -142,6 +143,7 @@ public class PhotoModeScreen extends Screen {
     private final PoseMakerRotation poseMakerModelRotation = new PoseMakerRotation();
     private double poseMakerModelYOffset;
     private final Map<PhotoPose.BodyPart, PoseMakerRotation> poseMakerPartRotations = new EnumMap<>(PhotoPose.BodyPart.class);
+    private final PhotoModePoseMakerPanel poseMakerPanel = new PhotoModePoseMakerPanel();
     @Nullable
     private LinearLayout tabControlLayout;
     @Nullable
@@ -407,7 +409,7 @@ public class PhotoModeScreen extends Screen {
             return;
         }
         if (this.poseMakerOpen) {
-            this.addPoseMakerWidgets();
+            this.poseMakerPanel.addWidgets(this);
         }
         if (this.confirmationDialog != null) {
             this.closeColorPicker();
@@ -429,12 +431,7 @@ public class PhotoModeScreen extends Screen {
         }
 
         this.tabControlLayout = LinearLayout.vertical().spacing(CONTROL_GAP);
-        switch (this.selectedTab) {
-            case GENERAL -> this.addGeneralControls();
-            case PLAYER -> this.addPlayerControls();
-            case LENS -> this.addLensControls();
-            case WORLD -> this.addWorldControls();
-        }
+        this.selectedTab.panel().addControls(this);
         this.addTabControlScrollArea();
         this.addActionButtons();
         this.updateButtonMessages();
@@ -496,7 +493,7 @@ public class PhotoModeScreen extends Screen {
         return widget;
     }
 
-    private void addGeneralControls() {
+    void addGeneralControls() {
         int width = this.tabControlWidth();
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active == null) {
@@ -539,7 +536,7 @@ public class PhotoModeScreen extends Screen {
         }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.grid.desc"))).build());
     }
 
-    private void addPlayerControls() {
+    void addPlayerControls() {
         int width = this.tabControlWidth();
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active == null) {
@@ -638,7 +635,7 @@ public class PhotoModeScreen extends Screen {
         }).bounds(0, 0, width, CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.held_items.desc"))).build());
     }
 
-    private void addLensControls() {
+    void addLensControls() {
         int width = this.tabControlWidth();
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active == null) {
@@ -813,7 +810,7 @@ public class PhotoModeScreen extends Screen {
         slider.setTooltip(Tooltip.create(Component.translatable(tooltipKey)));
     }
 
-    private void addWorldControls() {
+    void addWorldControls() {
         int width = this.tabControlWidth();
         PhotoModeManager.Session active = PhotoModeManager.session();
         if (active == null) {
@@ -1012,7 +1009,7 @@ public class PhotoModeScreen extends Screen {
         ));
     }
 
-    private void addPoseMakerWidgets() {
+    void addPoseMakerWidgets() {
         int contentX = this.poseMakerPanelX + PANEL_PADDING;
         int contentWidth = this.poseMakerControlWidth();
         int y = this.poseMakerNameBoxY();
@@ -1734,32 +1731,27 @@ public class PhotoModeScreen extends Screen {
 
     @NotNull
     private static Component optionMessage(@NotNull String key, @NotNull Component value) {
-        return Component.translatable(key, value);
+        return UIFormatting.optionMessage(key, value);
     }
 
     @NotNull
     private static Component optionMessage(@NotNull String key, @NotNull Object... args) {
-        return Component.translatable(key, args);
+        return UIFormatting.optionMessage(key, args);
     }
 
     @NotNull
     private static Component signedPercentValue(double value) {
-        int percent = (int) Math.round(value * 100.0D);
-        String sign = percent > 0 ? "+" : "";
-        return Component.translatable("snappy.photo_mode.percent", sign + percent)
-                .withStyle(Style.EMPTY.withColor(VALUE_COLOR));
+        return UIFormatting.signedPercentValue("snappy.photo_mode.percent", value, VALUE_COLOR);
     }
 
     @NotNull
     private static Component visibilityValue(boolean visible) {
-        return Component.translatable(visible ? "snappy.photo_mode.visible" : "snappy.photo_mode.hidden")
-                .withStyle(Style.EMPTY.withColor(visible ? ChatFormatting.GREEN : ChatFormatting.RED));
+        return UIFormatting.visibleHiddenValue(visible, "snappy.photo_mode.visible", "snappy.photo_mode.hidden");
     }
 
     @NotNull
     private static Component enabledValue(boolean enabled) {
-        return Component.translatable(enabled ? "snappy.photo_mode.enabled" : "snappy.photo_mode.disabled")
-                .withStyle(Style.EMPTY.withColor(enabled ? ChatFormatting.GREEN : ChatFormatting.RED));
+        return UIFormatting.enabledDisabledValue(enabled, "snappy.photo_mode.enabled", "snappy.photo_mode.disabled");
     }
 
     @NotNull
@@ -1773,36 +1765,35 @@ public class PhotoModeScreen extends Screen {
 
     @NotNull
     private Component blockValue(double value) {
-        return Component.translatable("snappy.photo_mode.blocks", String.format(Locale.ROOT, "%.2f", value))
-                .withStyle(Style.EMPTY.withColor(VALUE_COLOR));
+        return UIFormatting.fixedTranslatable("snappy.photo_mode.blocks", value, "%.2f", VALUE_COLOR);
     }
 
     @NotNull
     private Component poseMakerOffsetValue(double value) {
-        return Component.literal(String.format(Locale.ROOT, "%+.2f", value))
-                .withStyle(Style.EMPTY.withColor(VALUE_COLOR));
+        return UIFormatting.fixedLiteral(value, "%+.2f", VALUE_COLOR);
     }
 
     @NotNull
     private Component degreeValue(double value) {
-        return Component.translatable("snappy.photo_mode.degrees", String.format(Locale.ROOT, "%.0f", value))
-                .withStyle(Style.EMPTY.withColor(VALUE_COLOR));
+        return UIFormatting.fixedTranslatable("snappy.photo_mode.degrees", value, "%.0f", VALUE_COLOR);
     }
 
     private enum Tab {
-        GENERAL(GENERAL_ICON, "snappy.photo_mode.tab.general", 313),
-        LENS(LENS_ICON, "snappy.photo_mode.tab.lens", 138),
-        PLAYER(PLAYER_ICON, "snappy.photo_mode.tab.player", 313),
-        WORLD(WORLD_ICON, "snappy.photo_mode.tab.world", 238);
+        GENERAL(GENERAL_ICON, "snappy.photo_mode.tab.general", 313, new PhotoModeGeneralTabPanel()),
+        LENS(LENS_ICON, "snappy.photo_mode.tab.lens", 138, new PhotoModeLensTabPanel()),
+        PLAYER(PLAYER_ICON, "snappy.photo_mode.tab.player", 313, new PhotoModeActorAppearancePanel()),
+        WORLD(WORLD_ICON, "snappy.photo_mode.tab.world", 238, new PhotoModeEnvironmentPanel());
 
         private final Identifier icon;
         private final String labelKey;
         private final int panelHeight;
+        private final PhotoModeTabPanel panel;
 
-        Tab(@NotNull Identifier icon, @NotNull String labelKey, int panelHeight) {
+        Tab(@NotNull Identifier icon, @NotNull String labelKey, int panelHeight, @NotNull PhotoModeTabPanel panel) {
             this.icon = icon;
             this.labelKey = labelKey;
             this.panelHeight = panelHeight;
+            this.panel = panel;
         }
 
         @NotNull
@@ -1817,6 +1808,11 @@ public class PhotoModeScreen extends Screen {
 
         private int panelHeight() {
             return this.panelHeight;
+        }
+
+        @NotNull
+        private PhotoModeTabPanel panel() {
+            return this.panel;
         }
     }
 

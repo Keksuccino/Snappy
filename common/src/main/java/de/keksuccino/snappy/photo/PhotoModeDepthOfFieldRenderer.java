@@ -21,6 +21,8 @@ import com.mojang.blaze3d.systems.SamplerCache;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import de.keksuccino.snappy.Snappy;
+import de.keksuccino.snappy.client.render.ShaderEffectPass;
+import de.keksuccino.snappy.client.render.config.DepthOfFieldConfig;
 import net.minecraft.client.renderer.MappableRingBuffer;
 import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
@@ -31,7 +33,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
-import org.joml.Vector4f;
 import org.joml.Vector4fc;
 
 import java.util.Optional;
@@ -44,14 +45,14 @@ final class PhotoModeDepthOfFieldRenderer {
     private static final Identifier COPY_PIPELINE_ID = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "pipeline/photo_depth_of_field_copy");
     private static final Identifier DOF_SHADER_ID = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "post/depth_of_field");
     private static final Identifier RESOLVE_SHADER_ID = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "post/depth_of_field_resolve");
-    private static final Identifier COPY_SHADER_ID = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "post/copy");
-    private static final Identifier SCREEN_QUAD_SHADER_ID = Identifier.withDefaultNamespace("core/screenquad");
+    private static final Identifier COPY_SHADER_ID = ShaderEffectPass.COPY_SHADER_ID;
+    private static final Identifier SCREEN_QUAD_SHADER_ID = ShaderEffectPass.SCREEN_QUAD_SHADER_ID;
     private static final int SAMPLER_INFO_SIZE = new Std140SizeCalculator().putVec2().putVec2().putVec2().get();
     private static final int DOF_CONFIG_SIZE = new Std140SizeCalculator().putMat4f().putVec4().putVec4().get();
     private static final float MAX_BLUR_PIXELS = 18.0F;
     private static final float BLUR_SCALE = 0.78F;
     private static final float FOREGROUND_BIAS = 1.20F;
-    private static final Vector4fc CLEAR_COLOR = new Vector4f(0.0F, 0.0F, 0.0F, 0.0F);
+    private static final Vector4fc CLEAR_COLOR = ShaderEffectPass.CLEAR_COLOR;
     private static final RenderPipeline DOF_PIPELINE = RenderPipeline.builder(RenderPipelines.POST_PROCESSING_SNIPPET)
             .withLocation(DOF_PIPELINE_ID)
             .withVertexShader(SCREEN_QUAD_SHADER_ID)
@@ -100,7 +101,7 @@ final class PhotoModeDepthOfFieldRenderer {
             @NotNull GraphicsResourceAllocator resourceAllocator,
             @NotNull CameraRenderState cameraState,
             @NotNull Matrix4fc projectionMatrix,
-            @NotNull PhotoModeManager.Session session
+            @NotNull DepthOfFieldConfig config
     ) {
         GpuTextureView mainColor = mainRenderTarget.getColorTextureView();
         GpuTextureView mainDepth = mainRenderTarget.getDepthTextureView();
@@ -109,7 +110,7 @@ final class PhotoModeDepthOfFieldRenderer {
         }
 
         Resources renderResources = resources();
-        writeUniforms(renderResources, mainRenderTarget, cameraState, projectionMatrix, session);
+        writeUniforms(renderResources, mainRenderTarget, cameraState, projectionMatrix, config);
         FrameGraphBuilder frame = new FrameGraphBuilder();
         ResourceHandle<RenderTarget> main = frame.importExternal("snappy main", mainRenderTarget);
         ResourceHandle<RenderTarget> dofTarget = frame.createInternal(
@@ -153,9 +154,7 @@ final class PhotoModeDepthOfFieldRenderer {
     }
 
     private static boolean ensurePipelinesAvailable() {
-        return RenderSystem.getDevice().precompilePipeline(DOF_PIPELINE).isValid()
-                && RenderSystem.getDevice().precompilePipeline(RESOLVE_PIPELINE).isValid()
-                && RenderSystem.getDevice().precompilePipeline(COPY_PIPELINE).isValid();
+        return ShaderEffectPass.allPipelinesAvailable(DOF_PIPELINE, RESOLVE_PIPELINE, COPY_PIPELINE);
     }
 
     private static void writeUniforms(
@@ -163,7 +162,7 @@ final class PhotoModeDepthOfFieldRenderer {
             @NotNull RenderTarget mainRenderTarget,
             @NotNull CameraRenderState cameraState,
             @NotNull Matrix4fc projectionMatrix,
-            @NotNull PhotoModeManager.Session session
+            @NotNull DepthOfFieldConfig config
     ) {
         try (GpuBufferSlice.MappedView view = renderResources.samplerInfoBuffer.currentBuffer().map(false, true)) {
             Std140Builder builder = Std140Builder.intoBuffer(view.data());
@@ -177,9 +176,9 @@ final class PhotoModeDepthOfFieldRenderer {
             Std140Builder builder = Std140Builder.intoBuffer(view.data());
             builder.putMat4f(INVERSE_PROJECTION);
             builder.putVec4(
-                    session.depthOfFieldFocusDistance(),
-                    session.depthOfFieldFocalLength(),
-                    session.depthOfFieldAperture(),
+                    config.focusDistance(),
+                    config.focalLength(),
+                    config.aperture(),
                     MAX_BLUR_PIXELS
             );
             builder.putVec4(
