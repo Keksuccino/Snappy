@@ -51,15 +51,15 @@ public class ScreenshotBrowserScreen extends Screen {
     private static final long STATUS_MESSAGE_VISIBLE_MILLIS = 10_000L;
     private static final int STATUS_SUCCESS_COLOR = 0xFF78E878;
     private static final int STATUS_WARNING_COLOR = 0xFFFFD166;
-    private static final Identifier BACK_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/detail_back_icon_15x15.png");
-    private static final Identifier SETTINGS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/settings_icon_15x15.png");
-    private static final Identifier SORT_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/sort_icon_15x15.png");
-    private static final Identifier FILTER_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/filter_icon_15x15.png");
-    private static final Identifier SEARCH_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/search_icon_15x15.png");
-    private static final Identifier REFRESH_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/refresh_icon_15x15.png");
-    private static final Identifier SELECT_ALL_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/select_all_icon_15x15.png");
-    private static final Identifier CLEAR_SELECTION_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/clear_selection_icon_15x15.png");
-    private static final Identifier DELETE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/delete_icon_15x15.png");
+    private static final Identifier BACK_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/shared/back_icon_15x15.png");
+    private static final Identifier SETTINGS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/settings_icon_15x15.png");
+    private static final Identifier SORT_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/sort_icon_15x15.png");
+    private static final Identifier FILTER_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/filter_icon_15x15.png");
+    private static final Identifier SEARCH_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/search_icon_15x15.png");
+    private static final Identifier REFRESH_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/refresh_icon_15x15.png");
+    private static final Identifier SELECT_ALL_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/select_all_icon_15x15.png");
+    private static final Identifier CLEAR_SELECTION_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/clear_selection_icon_15x15.png");
+    private static final Identifier DELETE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/shared/delete_icon_15x15.png");
 
     @Nullable
     private final Screen parent;

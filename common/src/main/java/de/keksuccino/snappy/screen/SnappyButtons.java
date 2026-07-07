@@ -10,7 +10,8 @@ import org.jetbrains.annotations.NotNull;
 
 public final class SnappyButtons {
 
-    public static final Identifier SCREENSHOT_BROWSER_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser_icon_15x15.png");
+    public static final Identifier SCREENSHOT_BROWSER_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/buttons/open_browser_icon_15x15.png");
+    public static final Identifier PHOTO_MODE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/buttons/open_photo_mode_icon_15x15.png");
 
     private SnappyButtons() {
     }
@@ -31,7 +32,7 @@ public final class SnappyButtons {
         return new TexturedIconButton(
                 Component.translatable("snappy.photo_mode.open"),
                 button -> PhotoModeManager.open(Minecraft.getInstance()),
-                SCREENSHOT_BROWSER_ICON
+                PHOTO_MODE_ICON
         );
     }
 

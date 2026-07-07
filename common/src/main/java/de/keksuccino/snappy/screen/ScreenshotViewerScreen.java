@@ -62,14 +62,14 @@ public class ScreenshotViewerScreen extends Screen {
     private static final float PANORAMA_VERTICAL_ANGLE_MIN_DEGREES = -90.0F;
     private static final float PANORAMA_VERTICAL_ANGLE_MAX_DEGREES = 90.0F;
     private static final int NO_HOVER_MOUSE_POSITION = -1;
-    private static final Identifier BACK_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/detail_back_icon_15x15.png");
-    private static final Identifier METADATA_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/metadata_icon_15x15.png");
-    private static final Identifier SHOW_OUTSIDE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/show_outside_icon_15x15.png");
-    private static final Identifier DELETE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/delete_icon_15x15.png");
-    private static final Identifier PREVIOUS_IMAGE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/previous_image_icon_15x15.png");
-    private static final Identifier NEXT_IMAGE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/next_image_icon_15x15.png");
-    private static final Identifier MENU_BACKGROUND_DISABLED_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/menu_background_disabled_icon_15x15.png");
-    private static final Identifier MENU_BACKGROUND_ENABLED_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/menu_background_enabled_icon_15x15.png");
+    private static final Identifier BACK_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/shared/back_icon_15x15.png");
+    private static final Identifier METADATA_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/viewer/open_metadata_icon_15x15.png");
+    private static final Identifier SHOW_OUTSIDE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/viewer/show_outside_minecraft_icon_15x15.png");
+    private static final Identifier DELETE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/shared/delete_icon_15x15.png");
+    private static final Identifier PREVIOUS_IMAGE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/viewer/previous_screenshot_icon_15x15.png");
+    private static final Identifier NEXT_IMAGE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/viewer/next_screenshot_icon_15x15.png");
+    private static final Identifier MENU_BACKGROUND_DISABLED_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/viewer/menu_background/unselected_icon_15x15.png");
+    private static final Identifier MENU_BACKGROUND_ENABLED_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/viewer/menu_background/selected_icon_15x15.png");
     private static int textureSequence;
 
     private final Screen parent;

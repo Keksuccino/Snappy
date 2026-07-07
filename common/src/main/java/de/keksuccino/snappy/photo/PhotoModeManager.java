@@ -73,7 +73,7 @@ import java.util.function.Consumer;
 
 public final class PhotoModeManager {
 
-    private static final Identifier VIGNETTE_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_vignette.png");
+    private static final Identifier VIGNETTE_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/effects/vignette_overlay.png");
     private static final float CAMERA_SPEED_BLOCKS_PER_SECOND = 9.0F;
     private static final float CAMERA_FAST_SPEED_MULTIPLIER = 3.0F;
     private static final float CAMERA_SLOW_SPEED_MULTIPLIER = 0.35F;

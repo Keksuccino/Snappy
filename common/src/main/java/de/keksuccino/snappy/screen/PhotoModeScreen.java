@@ -49,10 +49,10 @@ import java.util.function.Supplier;
 
 public class PhotoModeScreen extends Screen {
 
-    private static final Identifier GENERAL_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/general_camera_icon_15x15.png");
-    private static final Identifier PLAYER_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/player_head_icon_15x15.png");
-    private static final Identifier LENS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/lens_icon_15x15.png");
-    private static final Identifier WORLD_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/world_icon_15x15.png");
+    private static final Identifier GENERAL_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_general_icon_15x15.png");
+    private static final Identifier PLAYER_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_player_icon_15x15.png");
+    private static final Identifier LENS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_lens_icon_15x15.png");
+    private static final Identifier WORLD_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_world_icon_15x15.png");
     private static final int PANEL_WIDTH = 236;
     private static final int PANEL_PADDING = 8;
     private static final int CONTROL_HEIGHT = 20;
