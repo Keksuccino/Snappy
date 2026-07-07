@@ -19,9 +19,9 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.SnowyBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import org.jetbrains.annotations.NotNull;
 
@@ -315,24 +315,14 @@ public final class PhotoSeasonManager {
             @NotNull BlockPos belowPos,
             @NotNull BlockState belowState
     ) {
-        if (belowState.isAir()
-                || belowState.is(Blocks.SNOW)
-                || belowState.is(Blocks.SNOW_BLOCK)
-                || !belowState.getFluidState().isEmpty()) {
-            return false;
-        }
-        if (belowState.is(BlockTags.SUPPORT_OVERRIDE_SNOW_LAYER) || belowState.is(BlockTags.LEAVES)) {
-            return true;
-        }
         if (belowState.is(BlockTags.CANNOT_SUPPORT_SNOW_LAYER)) {
             return false;
         }
-        return hasVisualTopSupport(belowState.getBlockSupportShape(level, belowPos))
-                || Block.isFaceFull(belowState.getCollisionShape(level, belowPos), Direction.UP);
-    }
-
-    private static boolean hasVisualTopSupport(@NotNull VoxelShape shape) {
-        return !shape.isEmpty() && shape.max(Direction.Axis.Y) >= 0.999D;
+        if (belowState.is(BlockTags.SUPPORT_OVERRIDE_SNOW_LAYER)) {
+            return true;
+        }
+        return Block.isFaceFull(belowState.getCollisionShape(level, belowPos), Direction.UP)
+                || belowState.is(Blocks.SNOW) && belowState.getValue(SnowLayerBlock.LAYERS) == SnowLayerBlock.MAX_HEIGHT;
     }
 
     private static int paletteColor(@NotNull int[] palette, @NotNull BlockState state, @NotNull BlockPos pos, int originalColor, float weight) {
