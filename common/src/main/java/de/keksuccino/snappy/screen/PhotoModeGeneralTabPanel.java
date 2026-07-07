@@ -138,20 +138,6 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
         this.addPercentEffectSlider(
                 screen,
                 width,
-                "snappy.photo_mode.film_grain",
-                "snappy.photo_mode.film_grain.desc",
-                PhotoModeManager.FILM_GRAIN_MIN,
-                PhotoModeManager.FILM_GRAIN_MAX,
-                active.filmGrain(),
-                PhotoModeManager.FILM_GRAIN_DEFAULT,
-                PhotoModeScreen.FILM_GRAIN_SNAP_RADIUS,
-                PhotoModeScreen.FILM_GRAIN_STEP,
-                value -> active.setFilmGrain((float) value)
-        );
-
-        this.addPercentEffectSlider(
-                screen,
-                width,
                 "snappy.photo_mode.chromatic_aberration",
                 "snappy.photo_mode.chromatic_aberration.desc",
                 PhotoModeManager.CHROMATIC_ABERRATION_MIN,
@@ -161,6 +147,20 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
                 PhotoModeScreen.CHROMATIC_ABERRATION_SNAP_RADIUS,
                 PhotoModeScreen.CHROMATIC_ABERRATION_STEP,
                 value -> active.setChromaticAberration((float) value)
+        );
+
+        this.addPercentEffectSlider(
+                screen,
+                width,
+                "snappy.photo_mode.film_grain",
+                "snappy.photo_mode.film_grain.desc",
+                PhotoModeManager.FILM_GRAIN_MIN,
+                PhotoModeManager.FILM_GRAIN_MAX,
+                active.filmGrain(),
+                PhotoModeManager.FILM_GRAIN_DEFAULT,
+                PhotoModeScreen.FILM_GRAIN_SNAP_RADIUS,
+                PhotoModeScreen.FILM_GRAIN_STEP,
+                value -> active.setFilmGrain((float) value)
         );
 
         screen.colorizeButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
