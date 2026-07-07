@@ -9,12 +9,15 @@ import de.keksuccino.snappy.preview.ScreenshotPreviewManager;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.PacketProcessor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,12 +30,20 @@ public class MixinMinecraft {
 
     @Shadow public HitResult hitResult;
     @Shadow public Entity crosshairPickEntity;
+    @Shadow @Nullable public LocalPlayer player;
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void after_tick_Snappy(CallbackInfo info) {
         PanoramaCaptureManager.clientTick((Minecraft) (Object) this);
         PhotoModeManager.clientTick((Minecraft) (Object) this);
         ScreenshotPreviewManager.clientTick();
+    }
+
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;tick()V"))
+    private void wrap_tickGameModeTick_Snappy(@Nullable MultiPlayerGameMode instance, Operation<Void> original) {
+        if (instance != null && this.player != null) {
+            original.call(instance);
+        }
     }
 
     @Inject(method = "isPaused", at = @At("HEAD"), cancellable = true)

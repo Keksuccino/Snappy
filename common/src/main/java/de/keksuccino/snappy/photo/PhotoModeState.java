@@ -32,6 +32,7 @@ public record PhotoModeState(
         boolean gridEnabled,
         @NotNull PhotoModeTimePreset timePreset,
         @NotNull PhotoModeWeatherPreset weatherPreset,
+        @NotNull PhotoModeSeason season,
         float fogIntensity,
         float fogDistance,
         int fogColor,

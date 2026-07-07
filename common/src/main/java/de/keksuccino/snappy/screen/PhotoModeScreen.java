@@ -9,6 +9,7 @@ import de.keksuccino.snappy.photo.PhotoModeArmorMode;
 import de.keksuccino.snappy.photo.PhotoModeColorizePreset;
 import de.keksuccino.snappy.photo.PhotoModeHeldItemsMode;
 import de.keksuccino.snappy.photo.PhotoModeManager;
+import de.keksuccino.snappy.photo.PhotoModeSeason;
 import de.keksuccino.snappy.photo.PhotoModeStylizePreset;
 import de.keksuccino.snappy.photo.PhotoModeTimePreset;
 import de.keksuccino.snappy.photo.PhotoModeWeatherPreset;
@@ -170,6 +171,8 @@ public class PhotoModeScreen extends Screen {
     Button timeButton;
     @Nullable
     Button weatherButton;
+    @Nullable
+    Button seasonButton;
     @Nullable
     Button beaconBeamsButton;
     @Nullable
@@ -459,6 +462,7 @@ public class PhotoModeScreen extends Screen {
         this.heldItemsButton = null;
         this.timeButton = null;
         this.weatherButton = null;
+        this.seasonButton = null;
         this.beaconBeamsButton = null;
         this.colorizeButton = null;
         this.stylizeButton = null;
@@ -796,6 +800,10 @@ public class PhotoModeScreen extends Screen {
         if (this.weatherButton != null) {
             PhotoModeWeatherPreset preset = active.weatherPreset();
             this.weatherButton.setMessage(optionMessage("snappy.photo_mode.weather", Component.translatable(preset.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
+        }
+        if (this.seasonButton != null) {
+            PhotoModeSeason season = active.season();
+            this.seasonButton.setMessage(optionMessage("snappy.photo_mode.season", Component.translatable(season.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
         }
         if (this.beaconBeamsButton != null) {
             this.beaconBeamsButton.setMessage(optionMessage("snappy.photo_mode.beacon_beams", enabledValue(active.beaconBeamsEnabled())));

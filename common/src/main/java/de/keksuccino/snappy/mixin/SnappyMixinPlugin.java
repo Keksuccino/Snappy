@@ -8,6 +8,10 @@ import java.util.Set;
 
 public class SnappyMixinPlugin implements IMixinConfigPlugin {
 
+    private static final String SODIUM_MIXIN_PACKAGE = ".compat.sodium.";
+    private static Boolean konkreteLoaded;
+    private static Boolean sodiumLoaded;
+
     @Override
     public void onLoad(String mixinPackage) {
     }
@@ -19,7 +23,13 @@ public class SnappyMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        return isKonkreteLoaded();
+        if (!isKonkreteLoaded()) {
+            return false;
+        }
+        if (mixinClassName.contains(SODIUM_MIXIN_PACKAGE)) {
+            return isSodiumLoaded();
+        }
+        return true;
     }
 
     @Override
@@ -42,11 +52,52 @@ public class SnappyMixinPlugin implements IMixinConfigPlugin {
     }
 
     private static boolean isKonkreteLoaded() {
+        if (konkreteLoaded != null) {
+            return konkreteLoaded;
+        }
+        konkreteLoaded = isModLoaded("konkrete") || isClassAvailable("de.keksuccino.konkrete.Konkrete");
+        return konkreteLoaded;
+    }
+
+    private static boolean isSodiumLoaded() {
+        if (sodiumLoaded != null) {
+            return sodiumLoaded;
+        }
+        sodiumLoaded = isModLoaded("sodium");
+        return sodiumLoaded;
+    }
+
+    private static boolean isModLoaded(String modId) {
+        return isFabricModLoaded(modId) || isNeoForgeModLoaded(modId);
+    }
+
+    private static boolean isFabricModLoaded(String modId) {
         try {
-            Class.forName("de.keksuccino.konkrete.Konkrete", false, SnappyMixinPlugin.class.getClassLoader());
+            Class<?> loaderClass = Class.forName("net.fabricmc.loader.api.FabricLoader", false, SnappyMixinPlugin.class.getClassLoader());
+            Object loader = loaderClass.getMethod("getInstance").invoke(null);
+            return (Boolean) loaderClass.getMethod("isModLoaded", String.class).invoke(loader, modId);
+        } catch (ReflectiveOperationException | LinkageError e) {
+            return false;
+        }
+    }
+
+    private static boolean isNeoForgeModLoaded(String modId) {
+        try {
+            Class<?> modListClass = Class.forName("net.neoforged.fml.ModList", false, SnappyMixinPlugin.class.getClassLoader());
+            Object modList = modListClass.getMethod("get").invoke(null);
+            return (Boolean) modListClass.getMethod("isLoaded", String.class).invoke(modList, modId);
+        } catch (ReflectiveOperationException | LinkageError e) {
+            return false;
+        }
+    }
+
+    private static boolean isClassAvailable(String className) {
+        try {
+            Class.forName(className, false, SnappyMixinPlugin.class.getClassLoader());
             return true;
-        } catch (Exception e) {}
-        return false;
+        } catch (ClassNotFoundException | LinkageError e) {
+            return false;
+        }
     }
 
 }

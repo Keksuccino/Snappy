@@ -230,7 +230,7 @@ public final class PhotoEnvironmentManager {
             boolean resetProbe
     ) {
         ClientLevel level = minecraft.level;
-        if (level == null) {
+        if (level == null || minecraft.player == null) {
             return;
         }
 

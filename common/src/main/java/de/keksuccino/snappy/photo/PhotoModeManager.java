@@ -10,6 +10,7 @@ import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.capture.NormalScreenshotCaptureManager;
 import de.keksuccino.snappy.client.input.PhotoModeCameraController;
 import de.keksuccino.snappy.client.render.PhotoEnvironmentManager;
+import de.keksuccino.snappy.client.render.PhotoSeasonManager;
 import de.keksuccino.snappy.client.render.VisualLightningStormManager;
 import de.keksuccino.snappy.client.render.config.BloomConfig;
 import de.keksuccino.snappy.client.render.config.ColorAdjustmentConfig;
@@ -122,12 +123,16 @@ public final class PhotoModeManager {
         }
         PhotoPoseManager.reload();
         session = Session.create(minecraft);
+        if (previous != null && previous.season().hasVisualOverrides()) {
+            PhotoSeasonManager.requestWorldRenderRefresh(minecraft);
+        }
         requestWorldVisualRefresh(minecraft);
         minecraft.gui.setScreen(new PhotoModeScreen());
     }
 
     public static void close() {
         Session active = session;
+        boolean refreshSeasonVisuals = active != null && active.season().hasVisualOverrides();
         if (active != null) {
             active.clearVisualEffects(Minecraft.getInstance().level);
         }
@@ -137,6 +142,9 @@ public final class PhotoModeManager {
         PhotoModeFilmEffectsRenderer.close();
         PhotoModeStylizeRenderer.close();
         session = null;
+        if (refreshSeasonVisuals) {
+            PhotoSeasonManager.requestWorldRenderRefresh(Minecraft.getInstance());
+        }
         PhotoEnvironmentManager.reset(Minecraft.getInstance());
     }
 
@@ -176,6 +184,12 @@ public final class PhotoModeManager {
     public static boolean isPhotoModeUiHidden() {
         Session active = session;
         return active != null && active.photoModeUiHidden();
+    }
+
+    @NotNull
+    public static PhotoModeSeason season() {
+        Session active = session;
+        return active == null ? PhotoModeSeason.NONE : active.season();
     }
 
     public static void setPhotoModeUiHidden(boolean hidden) {
@@ -736,6 +750,7 @@ public final class PhotoModeManager {
         private boolean gridEnabled;
         private PhotoModeTimePreset timePreset;
         private PhotoModeWeatherPreset weatherPreset;
+        private PhotoModeSeason season = PhotoModeSeason.NONE;
         private float fogIntensity;
         private float fogDistance = (float) PHOTO_FOG_DEFAULT_DISTANCE;
         private int sampledFogColor = PhotoEnvironmentManager.PHOTO_FOG_FALLBACK_COLOR;
@@ -826,6 +841,8 @@ public final class PhotoModeManager {
             this.poseMakerPose = null;
             this.timePreset = PhotoEnvironmentManager.defaultTimePreset(minecraft);
             this.weatherPreset = PhotoEnvironmentManager.defaultWeatherPreset(minecraft);
+            PhotoModeSeason previousSeason = this.season;
+            this.season = PhotoModeSeason.NONE;
             this.fogIntensity = 0.0F;
             this.fogDistance = (float) PHOTO_FOG_DEFAULT_DISTANCE;
             this.sampledFogColor = PhotoEnvironmentManager.PHOTO_FOG_FALLBACK_COLOR;
@@ -835,6 +852,9 @@ public final class PhotoModeManager {
             this.worldVisualTicksRemaining = 0;
             this.cameraController.resetInputState();
             this.paused = canPause(minecraft);
+            if (previousSeason.hasVisualOverrides()) {
+                PhotoSeasonManager.requestWorldRenderRefresh(minecraft);
+            }
             requestWorldVisualRefresh(minecraft);
         }
 
@@ -904,6 +924,7 @@ public final class PhotoModeManager {
                     this.gridEnabled,
                     this.timePreset,
                     this.weatherPreset,
+                    this.season,
                     this.fogIntensity,
                     this.fogDistance,
                     this.fogColor(),
@@ -1272,6 +1293,18 @@ public final class PhotoModeManager {
                 this.weatherPreset = weatherPreset;
                 this.visualLightningStorm.clear(Minecraft.getInstance().level);
                 requestWorldVisualRefresh(Minecraft.getInstance());
+            }
+        }
+
+        @NotNull
+        public PhotoModeSeason season() {
+            return this.season;
+        }
+
+        public void setSeason(@NotNull PhotoModeSeason season) {
+            if (this.season != season) {
+                this.season = season;
+                PhotoSeasonManager.requestWorldRenderRefresh(Minecraft.getInstance());
             }
         }
 
