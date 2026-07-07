@@ -1,7 +1,6 @@
 package de.keksuccino.snappy.screen;
 
 import de.keksuccino.snappy.Snappy;
-import de.keksuccino.snappy.capture.PanoramaCaptureManager;
 import de.keksuccino.snappy.menu.MenuBackgroundSelectionManager;
 import de.keksuccino.snappy.metadata.ScreenshotMetadataManager;
 import de.keksuccino.snappy.storage.PanoramaScanner;
@@ -38,12 +37,10 @@ public final class ScreenshotBrowserCatalog {
     public static List<ScreenshotEntry> scan(@NotNull Minecraft minecraft) {
         Path gameDirectory = minecraft.gameDirectory.toPath();
         Path screenshotsDirectory = gameDirectory.resolve(Screenshot.SCREENSHOT_DIR);
-        Path panoramaDirectory = gameDirectory.resolve(PanoramaCaptureManager.DEDICATED_SCREENSHOT_DIR);
         Set<Path> seenPaths = new HashSet<>();
         List<ScreenshotEntry> entries = new ArrayList<>();
 
         addNormalScreenshots(screenshotsDirectory, seenPaths, entries);
-        addPanoramaFolders(panoramaDirectory, seenPaths, entries);
         addPanoramaFolders(screenshotsDirectory, seenPaths, entries);
 
         entries.sort(Comparator.comparingLong(ScreenshotEntry::modifiedMillis).reversed().thenComparing(entry -> entry.path().toString()));

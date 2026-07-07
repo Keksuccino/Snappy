@@ -141,7 +141,6 @@ public class OptionsScreen extends Screen {
     protected OptionsTab buildPanoramasTab() {
         OptionsTab tab = new OptionsTab(Component.translatable("snappy.options.tab.panoramas"));
         this.addFullWidthOption(tab, this.buildResolutionButton());
-        this.addFullWidthOption(tab, this.buildStorageLocationButton());
 
         this.addFullWidthOption(tab, this.buildMenuModeButton(), settings -> settings.paddingTop(OPTION_SECTION_PADDING_TOP));
         this.cycleIntervalButton = this.buildCycleIntervalButton();
@@ -245,16 +244,6 @@ public class OptionsScreen extends Screen {
     }
 
     @NotNull
-    protected Button buildStorageLocationButton() {
-        return Button.builder(this.storageLocationMessage(), button -> {
-                    Options options = Snappy.getOptions();
-                    options.setStorageLocation(options.getStorageLocation().next());
-                    button.setMessage(this.storageLocationMessage());
-                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable("snappy.options.storage.desc"))).build();
-    }
-
-    @NotNull
     protected Button buildHideHudInNormalScreenshotsButton() {
         return Button.builder(this.hideHudInNormalScreenshotsMessage(), button -> {
                     Options options = Snappy.getOptions();
@@ -353,11 +342,6 @@ public class OptionsScreen extends Screen {
             value = this.genericCycleValue(value);
         }
         return this.optionMessage("snappy.options.cycle_interval", value);
-    }
-
-    @NotNull
-    protected Component storageLocationMessage() {
-        return this.optionMessage("snappy.options.storage", this.genericCycleValue(Component.translatable(Snappy.getOptions().getStorageLocation().labelKey())));
     }
 
     @NotNull

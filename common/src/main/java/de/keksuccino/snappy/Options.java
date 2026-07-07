@@ -14,7 +14,6 @@ public class Options extends AbstractOptions {
     public final Option<String> menuPanoramaMode = new Option<>(config, "menu_panorama_mode", MenuPanoramaMode.SHOW_LATEST.id, "menu");
     public final Option<Boolean> menuPanoramaParallax = new Option<>(config, "menu_panorama_parallax", true, "menu");
     public final Option<String> cycleInterval = new Option<>(config, "cycle_interval", CycleInterval.SECONDS_30.id, "menu");
-    public final Option<String> storageLocation = new Option<>(config, "storage_location", StorageLocation.DEDICATED_FOLDER.id, "capture");
     public final Option<Boolean> hideHudInNormalScreenshots = new Option<>(config, "hide_hud_in_normal_screenshots", false, "capture");
     public final Option<String> screenshotPreviewMode = new Option<>(config, "screenshot_preview_mode", ScreenshotPreviewMode.BOTH.id, "preview");
     public final Option<Boolean> screenshotChatMessages = new Option<>(config, "screenshot_chat_messages", true, "notifications");
@@ -60,15 +59,6 @@ public class Options extends AbstractOptions {
 
     public void setCycleInterval(@NotNull CycleInterval interval) {
         this.cycleInterval.setValue(interval.id);
-    }
-
-    @NotNull
-    public StorageLocation getStorageLocation() {
-        return StorageLocation.byId(this.storageLocation.getValue(), this.storageLocation);
-    }
-
-    public void setStorageLocation(@NotNull StorageLocation location) {
-        this.storageLocation.setValue(location.id);
     }
 
     public boolean shouldHideHudInNormalScreenshots() {
@@ -239,37 +229,6 @@ public class Options extends AbstractOptions {
             }
             option.setValue(SECONDS_30.id);
             return SECONDS_30;
-        }
-    }
-
-    public enum StorageLocation {
-        DEDICATED_FOLDER("dedicated_folder"),
-        SCREENSHOTS_FOLDER("screenshots_folder");
-
-        public final String id;
-
-        StorageLocation(@NotNull String id) {
-            this.id = id;
-        }
-
-        @NotNull
-        public StorageLocation next() {
-            StorageLocation[] values = values();
-            return values[(this.ordinal() + 1) % values.length];
-        }
-
-        @NotNull
-        public String labelKey() {
-            return "snappy.options.storage." + this.id;
-        }
-
-        @NotNull
-        private static StorageLocation byId(@NotNull String id, @NotNull Option<String> option) {
-            for (StorageLocation location : values()) {
-                if (location.id.equals(normalize(id))) return location;
-            }
-            option.setValue(DEDICATED_FOLDER.id);
-            return DEDICATED_FOLDER;
         }
     }
 

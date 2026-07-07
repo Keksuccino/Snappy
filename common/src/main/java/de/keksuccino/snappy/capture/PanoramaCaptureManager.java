@@ -43,8 +43,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class PanoramaCaptureManager {
 
-    public static final String DEDICATED_SCREENSHOT_DIR = "panorama_screenshots";
-
     private static final SystemToast.SystemToastId PANORAMA_SUN_WARNING_TOAST_ID_SNAPPY = new SystemToast.SystemToastId(25_000L);
     private static final double SUN_DISC_DOT_THRESHOLD_SNAPPY = 0.95D;
     private static final double SUN_TINT_DIRECTION_DOT_THRESHOLD_SNAPPY = 0.75D;
@@ -343,10 +341,7 @@ public final class PanoramaCaptureManager {
 
     @NotNull
     private static Path createOutputDirectory(@NotNull Minecraft minecraft) throws IOException {
-        Path root = switch (Snappy.getOptions().getStorageLocation()) {
-            case DEDICATED_FOLDER -> minecraft.gameDirectory.toPath().resolve(DEDICATED_SCREENSHOT_DIR);
-            case SCREENSHOTS_FOLDER -> minecraft.gameDirectory.toPath().resolve(Screenshot.SCREENSHOT_DIR);
-        };
+        Path root = minecraft.gameDirectory.toPath().resolve(Screenshot.SCREENSHOT_DIR);
         Files.createDirectories(root);
         String baseName = Util.getFilenameFormattedDateTime();
 

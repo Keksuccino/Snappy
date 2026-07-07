@@ -3,7 +3,6 @@ package de.keksuccino.snappy.menu;
 import de.keksuccino.snappy.Options;
 import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.client.input.MainMenuParallaxController;
-import de.keksuccino.snappy.capture.PanoramaCaptureManager;
 import de.keksuccino.snappy.storage.PanoramaScanner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
@@ -144,7 +143,6 @@ public final class PanoramaMenuManager {
         cachedPanoramas = PanoramaScanner.scanPanoramaFolders(
                 PanoramaScanner.LinkPolicy.FOLLOW_LINKS,
                 PanoramaScanner.ModifiedTimePolicy.FOLDER_ONLY,
-                gameDirectory.resolve(PanoramaCaptureManager.DEDICATED_SCREENSHOT_DIR),
                 gameDirectory.resolve(Screenshot.SCREENSHOT_DIR)
         );
         lastScanMillis = now;
