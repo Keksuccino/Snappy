@@ -111,7 +111,7 @@ public class PhotoModeSlider extends AbstractSliderButton {
 
     @Override
     public void onClick(@NotNull MouseButtonEvent event, boolean doubleClick) {
-        this.skipDefaultSnapUntilOutsideZone = this.isInDefaultSnapZone(this.rawSliderValue);
+        this.prepareDefaultSnapFromCurrentValue();
         super.onClick(event, doubleClick);
     }
 
@@ -168,6 +168,10 @@ public class PhotoModeSlider extends AbstractSliderButton {
 
     private boolean isInDefaultSnapZone(double newValue) {
         return this.snapSliderRadius > 0.0D && Math.abs(newValue - this.defaultSliderValue) <= this.snapSliderRadius + DEFAULT_EPSILON;
+    }
+
+    protected void prepareDefaultSnapFromCurrentValue() {
+        this.skipDefaultSnapUntilOutsideZone = this.isInDefaultSnapZone(this.rawSliderValue);
     }
 
     private double steppedSliderValue(double newValue) {

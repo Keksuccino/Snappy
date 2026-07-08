@@ -11,9 +11,11 @@ layout(std140) uniform SamplerInfo {
 
 layout(std140) uniform ColorAdjustmentConfig {
     vec4 Adjustments;
+    vec4 ColorBalance;
 };
 
 const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
+const float EPSILON = 0.00001;
 
 out vec4 fragColor;
 
@@ -58,6 +60,24 @@ vec3 applySaturation(vec3 color, float amount) {
     return mix(vec3(luma), color, saturation);
 }
 
+vec3 applyColorBalance(vec3 color, vec3 balance) {
+    vec3 original = color;
+    vec3 multiplier = vec3(1.0);
+    vec3 positive = max(balance, vec3(0.0));
+    vec3 negative = max(-balance, vec3(0.0));
+
+    multiplier += positive * vec3(0.34);
+    multiplier -= (positive.gbr + positive.brg) * vec3(0.15);
+    multiplier += (negative.gbr + negative.brg) * vec3(0.20);
+    multiplier -= negative * vec3(0.18);
+
+    vec3 balanced = color * max(multiplier, vec3(0.0));
+    float originalLuma = luminance(original);
+    float balancedLuma = max(luminance(balanced), EPSILON);
+    balanced *= mix(1.0, originalLuma / balancedLuma, 0.34);
+    return balanced;
+}
+
 void main() {
     vec4 diffuseColor = texture(InSampler, texCoord);
     vec3 color = clamp(diffuseColor.rgb, 0.0, 1.0);
@@ -66,6 +86,7 @@ void main() {
     color = applyOverexposure(color, Adjustments.z);
     color = applyContrast(color, Adjustments.y);
     color = applySaturation(color, Adjustments.x);
+    color = applyColorBalance(color, clamp(ColorBalance.rgb, vec3(-1.0), vec3(1.0)));
 
     fragColor = vec4(clamp(color, 0.0, 1.0), diffuseColor.a);
 }

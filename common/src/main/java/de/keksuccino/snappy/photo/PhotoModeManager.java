@@ -91,6 +91,9 @@ public final class PhotoModeManager {
     public static final float OVEREXPOSURE_MIN = -1.0F;
     public static final float OVEREXPOSURE_MAX = 1.0F;
     public static final float OVEREXPOSURE_DEFAULT = 0.0F;
+    public static final float COLOR_BALANCE_MIN = -1.0F;
+    public static final float COLOR_BALANCE_MAX = 1.0F;
+    public static final float COLOR_BALANCE_DEFAULT = 0.0F;
     public static final float BLOOM_MIN = 0.0F;
     public static final float BLOOM_MAX = 1.0F;
     public static final float BLOOM_DEFAULT = 0.0F;
@@ -738,6 +741,9 @@ public final class PhotoModeManager {
         private float saturation = SATURATION_DEFAULT;
         private float contrast = CONTRAST_DEFAULT;
         private float overexposure = OVEREXPOSURE_DEFAULT;
+        private float redBalance = COLOR_BALANCE_DEFAULT;
+        private float greenBalance = COLOR_BALANCE_DEFAULT;
+        private float blueBalance = COLOR_BALANCE_DEFAULT;
         private float bloom = BLOOM_DEFAULT;
         private float filmGrain = FILM_GRAIN_DEFAULT;
         private float chromaticAberration = CHROMATIC_ABERRATION_DEFAULT;
@@ -829,6 +835,9 @@ public final class PhotoModeManager {
             this.saturation = SATURATION_DEFAULT;
             this.contrast = CONTRAST_DEFAULT;
             this.overexposure = OVEREXPOSURE_DEFAULT;
+            this.redBalance = COLOR_BALANCE_DEFAULT;
+            this.greenBalance = COLOR_BALANCE_DEFAULT;
+            this.blueBalance = COLOR_BALANCE_DEFAULT;
             this.bloom = BLOOM_DEFAULT;
             this.filmGrain = FILM_GRAIN_DEFAULT;
             this.chromaticAberration = CHROMATIC_ABERRATION_DEFAULT;
@@ -1035,6 +1044,30 @@ public final class PhotoModeManager {
             this.overexposure = Mth.clamp(overexposure, OVEREXPOSURE_MIN, OVEREXPOSURE_MAX);
         }
 
+        public float redBalance() {
+            return this.redBalance;
+        }
+
+        public void setRedBalance(float redBalance) {
+            this.redBalance = Mth.clamp(redBalance, COLOR_BALANCE_MIN, COLOR_BALANCE_MAX);
+        }
+
+        public float greenBalance() {
+            return this.greenBalance;
+        }
+
+        public void setGreenBalance(float greenBalance) {
+            this.greenBalance = Mth.clamp(greenBalance, COLOR_BALANCE_MIN, COLOR_BALANCE_MAX);
+        }
+
+        public float blueBalance() {
+            return this.blueBalance;
+        }
+
+        public void setBlueBalance(float blueBalance) {
+            this.blueBalance = Mth.clamp(blueBalance, COLOR_BALANCE_MIN, COLOR_BALANCE_MAX);
+        }
+
         public float bloom() {
             return this.bloom;
         }
@@ -1073,7 +1106,7 @@ public final class PhotoModeManager {
 
         @NotNull
         public ColorAdjustmentConfig colorAdjustmentConfig() {
-            return new ColorAdjustmentConfig(this.saturation, this.contrast, this.overexposure, this.gamma);
+            return new ColorAdjustmentConfig(this.saturation, this.contrast, this.overexposure, this.gamma, this.redBalance, this.greenBalance, this.blueBalance);
         }
 
         @NotNull

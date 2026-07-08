@@ -26,7 +26,7 @@ final class PhotoModeColorAdjustmentRenderer {
     private static final Identifier ADJUSTMENT_PIPELINE_ID = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "pipeline/photo_color_adjustments");
     private static final Identifier COPY_PIPELINE_ID = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "pipeline/photo_color_adjustments_copy");
     private static final Identifier ADJUSTMENT_SHADER_ID = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "post/color_adjustments");
-    private static final int ADJUSTMENT_CONFIG_SIZE = new Std140SizeCalculator().putVec4().get();
+    private static final int ADJUSTMENT_CONFIG_SIZE = new Std140SizeCalculator().putVec4().putVec4().get();
     private static final RenderPipeline ADJUSTMENT_PIPELINE = RenderPipeline.builder(RenderPipelines.POST_PROCESSING_SNIPPET)
             .withLocation(ADJUSTMENT_PIPELINE_ID)
             .withVertexShader(ShaderEffectPass.SCREEN_QUAD_SHADER_ID)
@@ -104,6 +104,7 @@ final class PhotoModeColorAdjustmentRenderer {
         try (GpuBufferSlice.MappedView view = renderResources.adjustmentConfigBuffer.currentBuffer().map(false, true)) {
             Std140Builder builder = Std140Builder.intoBuffer(view.data());
             builder.putVec4(config.saturation(), config.contrast(), config.overexposure(), config.gamma());
+            builder.putVec4(config.redBalance(), config.greenBalance(), config.blueBalance(), 0.0F);
         }
     }
 
