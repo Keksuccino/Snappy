@@ -57,7 +57,7 @@
 ## Autonomous Testing
 - After making changes, always compile/build the project to identify and fix compile errors.
 - Only use the `fabric` and `neoforge` modules for compile checks. Never use the `common` module.
-- Make sure to use Java 25 for compile/run stuff, like this for example: `JAVA_HOME=$(/usr/libexec/java_home -v 25) sh gradlew :fabric:compileJava :forge:compileJava --stacktrace`
+- Make sure to use Java 25 for compile/run stuff, like this for example: `JAVA_HOME=$(/usr/libexec/java_home -v 25) sh gradlew :fabric:compileJava :neoforge:compileJava --stacktrace`
 - There are tools available on the system to validate GLSL shaders. Use these when working with shaders.
 - You always TRIPLE-CHECK EVERYTHING! When you are finishing a task, you triple-check everything for completeness, possible bad implementations, rushed implementations, performance, optimization, structurization, and so on.
 
