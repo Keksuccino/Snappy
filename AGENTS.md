@@ -36,6 +36,7 @@
 - Unique fields go BELOW shadow fields in Mixin classes.
 - Both unique and shadow fields should always be at the top of the class, before any methods.
 - Avoid spanning Mixin annotations over multiple lines, no matter how long they are. Each annotation should only consume one line. One line per annotation.
+- A special case for Mixin-related annotations are @Shadow, @Unique, @Final, and @Mutable on fields in Mixin classes. For fields, these should always go on the same line a the field itself, as prefix. Both these annotations and the field itself on a single line.
 
 ## Workflow Guidelines
 - When the user gives you a log snippet, always search for the full log file containing that snippet, and scan the whole log, so you have a complete picture of what was happening.
