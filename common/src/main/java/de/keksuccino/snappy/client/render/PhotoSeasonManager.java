@@ -23,6 +23,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.SnowyBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.material.Fluids;
@@ -38,6 +40,8 @@ public final class PhotoSeasonManager {
     private static final int WINTER_ICE_BASE_DEPTH = 3;
     private static final int WINTER_ICE_MIN_DEPTH = WINTER_ICE_BASE_DEPTH - 2;
     private static final int WINTER_ICE_MAX_DEPTH = WINTER_ICE_BASE_DEPTH + 3;
+    // Vanilla double-height plants only need one step; keep modded stacked soft vegetation from causing unbounded render-time scans.
+    private static final int MAX_CONNECTED_SOFT_VEGETATION_HEIGHT = 32;
     private static final int[][] AUTUMN_LEAF_COLOR_FAMILIES = {
             {0xFF9E3324, 0xFFB6462A, 0xFF862A1E},
             {0xFFC05A1C, 0xFFD07120, 0xFFA84A18},
@@ -172,6 +176,9 @@ public final class PhotoSeasonManager {
         }
         if (!season.addsSnow()) {
             return original;
+        }
+        if (shouldHideSnowReplacedVegetationPart(level, heightLevel, rawStates, x, y, z, original)) {
+            return AIR_STATE;
         }
         if (shouldAddWinterIce(level, heightLevel, rawStates, x, y, z, original)) {
             return ICE_STATE;
@@ -484,6 +491,55 @@ public final class PhotoSeasonManager {
         }
         return Block.isFaceFull(belowState.getCollisionShape(level, belowPos), Direction.UP)
                 || belowState.is(Blocks.SNOW) && belowState.getValue(SnowLayerBlock.LAYERS) == SnowLayerBlock.MAX_HEIGHT;
+    }
+
+    private static boolean shouldHideSnowReplacedVegetationPart(@NotNull BlockAndTintGetter level, @Nullable LevelReader heightLevel, @NotNull RawBlockStateGetter rawStates, int x, int y, int z, @NotNull BlockState original) {
+        if (!canUseVisualSnowPosition(original)) {
+            return false;
+        }
+
+        // Visual snow does not run vanilla neighbor updates, so cached upper plant parts must be hidden explicitly when their base turns into snow.
+        int baseY = connectedSoftVegetationBaseY(level, rawStates, x, y, z, original);
+        if (baseY == y) {
+            return false;
+        }
+
+        BlockState baseState = rawStates.getRawBlockState(x, baseY, z);
+        return shouldAddSnowLayer(level, heightLevel, rawStates, x, baseY, z, baseState);
+    }
+
+    private static int connectedSoftVegetationBaseY(@NotNull BlockAndTintGetter level, @NotNull RawBlockStateGetter rawStates, int x, int y, int z, @NotNull BlockState original) {
+        int baseY = y;
+        BlockState upperState = original;
+        for (int scanned = 0; scanned < MAX_CONNECTED_SOFT_VEGETATION_HEIGHT && baseY > level.getMinY(); scanned++) {
+            BlockState lowerState = rawStates.getRawBlockState(x, baseY - 1, z);
+            if (!isConnectedSoftVegetationPart(upperState, lowerState)) {
+                break;
+            }
+            baseY--;
+            upperState = lowerState;
+        }
+        return baseY;
+    }
+
+    private static boolean isConnectedSoftVegetationPart(@NotNull BlockState upperState, @NotNull BlockState lowerState) {
+        if (!canUseVisualSnowPosition(upperState) || !canUseVisualSnowPosition(lowerState)) {
+            return false;
+        }
+        if (isUpperHalfOfSameDoubleHeightPlant(upperState, lowerState)) {
+            return true;
+        }
+        return !upperState.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF)
+                && !lowerState.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF)
+                && upperState.is(lowerState.getBlock());
+    }
+
+    private static boolean isUpperHalfOfSameDoubleHeightPlant(@NotNull BlockState upperState, @NotNull BlockState lowerState) {
+        return upperState.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF)
+                && lowerState.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF)
+                && upperState.is(lowerState.getBlock())
+                && upperState.getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.UPPER
+                && lowerState.getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.LOWER;
     }
 
     private static int autumnLeafColor(@NotNull BlockPos pos, int originalColor) {
