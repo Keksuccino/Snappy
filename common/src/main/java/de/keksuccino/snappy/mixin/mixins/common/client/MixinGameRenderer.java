@@ -60,33 +60,16 @@ public class MixinGameRenderer {
         PhotoModeManager.endWorldOverrideScope();
     }
 
-    @WrapOperation(
-            method = "renderLevel",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;getBuffer(Lorg/joml/Matrix4f;)Lcom/mojang/blaze3d/buffers/GpuBufferSlice;"
-            )
-    )
+    // Depth of field needs the exact projection matrix that LevelRenderer receives for this frame.
+    @WrapOperation(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;getBuffer(Lorg/joml/Matrix4f;)Lcom/mojang/blaze3d/buffers/GpuBufferSlice;"))
     private GpuBufferSlice wrap_getLevelProjectionBuffer_Snappy(ProjectionMatrixBuffer instance, Matrix4f projectionMatrix, Operation<GpuBufferSlice> original) {
         PhotoModeManager.captureDepthOfFieldProjection(projectionMatrix);
         return original.call(instance, projectionMatrix);
     }
 
-    @Inject(
-            method = "renderLevel",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/LevelRenderer;render(Lcom/mojang/blaze3d/resource/GraphicsResourceAllocator;Lnet/minecraft/client/DeltaTracker;ZLnet/minecraft/client/renderer/state/level/CameraRenderState;Lorg/joml/Matrix4fc;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lorg/joml/Vector4f;Z)V",
-                    shift = At.Shift.AFTER
-            )
-    )
+    @Inject(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;render(Lcom/mojang/blaze3d/resource/GraphicsResourceAllocator;Lnet/minecraft/client/DeltaTracker;ZLnet/minecraft/client/renderer/state/level/CameraRenderState;Lorg/joml/Matrix4fc;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lorg/joml/Vector4f;Z)V", shift = At.Shift.AFTER))
     private void after_renderLevelWorld_Snappy(DeltaTracker deltaTracker, CallbackInfo info) {
-        PhotoModeManager.processDepthOfFieldEffect(
-                Minecraft.getInstance(),
-                this.mainRenderTarget,
-                this.resourcePool,
-                this.gameRenderState.levelRenderState.cameraRenderState
-        );
+        PhotoModeManager.processDepthOfFieldEffect(Minecraft.getInstance(), this.mainRenderTarget, this.resourcePool, this.gameRenderState.levelRenderState.cameraRenderState);
     }
 
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;render()V", shift = At.Shift.AFTER))

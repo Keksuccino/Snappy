@@ -31,18 +31,10 @@ import java.util.function.Consumer;
 @Mixin(Screenshot.class)
 public class MixinScreenshot {
 
-    @Unique
-    private static final Logger LOGGER_SNAPPY = LogManager.getLogger();
+    @Unique private static final Logger LOGGER_SNAPPY = LogManager.getLogger();
 
     @WrapOperation(method = "grab(Lnet/minecraft/client/Minecraft;Z)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Screenshot;grab(Ljava/io/File;Lcom/mojang/blaze3d/pipeline/RenderTarget;Ljava/util/function/Consumer;)V"))
-    private static void wrap_grabNormalScreenshot_Snappy(
-            File workDir,
-            RenderTarget target,
-            Consumer<Component> callback,
-            Operation<Void> original,
-            Minecraft minecraft,
-            boolean debugPanoramaRequested
-    ) {
+    private static void wrap_grabNormalScreenshot_Snappy(File workDir, RenderTarget target, Consumer<Component> callback, Operation<Void> original, Minecraft minecraft, boolean debugPanoramaRequested) {
         Consumer<Component> effectiveCallback = callback;
         if (!Snappy.getOptions().areScreenshotChatMessagesEnabled()) {
             effectiveCallback = (Consumer<Component>) message -> minecraft.execute(() -> ScreenshotPreviewManager.acceptDebugChatMessage(message));
@@ -64,22 +56,16 @@ public class MixinScreenshot {
     }
 
     @Inject(method = "grab(Ljava/io/File;Ljava/lang/String;Lcom/mojang/blaze3d/pipeline/RenderTarget;ILjava/util/function/Consumer;)V", at = @At("HEAD"), cancellable = true)
-    private static void on_grabScreenshotWithMetadata_Snappy(
-            File workDir,
-            @Nullable String forceName,
-            RenderTarget target,
-            int downscaleFactor,
-            Consumer<Component> callback,
-            CallbackInfo ci
-    ) {
+    private static void on_grabScreenshotWithMetadata_Snappy(File workDir, @Nullable String forceName, RenderTarget target, int downscaleFactor, Consumer<Component> callback, CallbackInfo ci) {
         CaptureContext context = ScreenshotMetadataManager.pollNormalContext();
         if (context == null) {
             return;
         }
 
+        // Vanilla writes the image asynchronously without Snappy's metadata context, so the whole save path is replaced when metadata is queued.
         ci.cancel();
         Screenshot.takeScreenshot(target, downscaleFactor, image -> {
-            if (forceName == null && downscaleFactor == 1 && ScreenshotPreviewManager.shouldShowNormalScreenshots()) {
+            if (shouldShowPreviewForNormalScreenshot_Snappy(forceName, downscaleFactor)) {
                 ScreenshotPreviewManager.showNormalScreenshot(image);
             }
 
@@ -93,9 +79,7 @@ public class MixinScreenshot {
                     int height = closableImage.getHeight();
                     closableImage.writeToFile(file);
                     ScreenshotMetadataManager.saveNormalScreenshotMetadata(file.toPath(), context, width, height);
-                    Component component = Component.literal(file.getName())
-                            .withStyle(ChatFormatting.UNDERLINE)
-                            .withStyle(style -> style.withClickEvent(new OpenFile(file.getAbsoluteFile())));
+                    Component component = Component.literal(file.getName()).withStyle(ChatFormatting.UNDERLINE).withStyle(style -> style.withClickEvent(new OpenFile(file.getAbsoluteFile())));
                     callback.accept(Component.translatable("screenshot.success", component));
                 } catch (Exception ex) {
                     LOGGER_SNAPPY.warn("[SNAPPY] Could not save screenshot.", ex);
@@ -106,11 +90,7 @@ public class MixinScreenshot {
     }
 
     @WrapOperation(method = "grab(Lnet/minecraft/client/Minecraft;Z)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;showDebugChat(Lnet/minecraft/network/chat/Component;)V"))
-    private static void wrap_showDebugChat_Snappy(
-            Minecraft instance,
-            Component message,
-            Operation<Void> original
-    ) {
+    private static void wrap_showDebugChat_Snappy(Minecraft instance, Component message, Operation<Void> original) {
         if (Snappy.getOptions().areScreenshotChatMessagesEnabled()) {
             original.call(instance, message);
         } else {
@@ -119,18 +99,8 @@ public class MixinScreenshot {
     }
 
     @WrapOperation(method = "grab(Ljava/io/File;Ljava/lang/String;Lcom/mojang/blaze3d/pipeline/RenderTarget;ILjava/util/function/Consumer;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Screenshot;takeScreenshot(Lcom/mojang/blaze3d/pipeline/RenderTarget;ILjava/util/function/Consumer;)V"))
-    private static void wrap_takeScreenshot_Snappy(
-            RenderTarget target,
-            int downscaleFactor,
-            Consumer<NativeImage> callback,
-            Operation<Void> original,
-            File workDir,
-            @Nullable String forceName,
-            RenderTarget originalTarget,
-            int originalDownscaleFactor,
-            Consumer<Component> resultCallback
-    ) {
-        if (forceName == null && downscaleFactor == 1 && ScreenshotPreviewManager.shouldShowNormalScreenshots()) {
+    private static void wrap_takeScreenshot_Snappy(RenderTarget target, int downscaleFactor, Consumer<NativeImage> callback, Operation<Void> original, File workDir, @Nullable String forceName, RenderTarget originalTarget, int originalDownscaleFactor, Consumer<Component> resultCallback) {
+        if (shouldShowPreviewForNormalScreenshot_Snappy(forceName, downscaleFactor)) {
             original.call(target, downscaleFactor, (Consumer<NativeImage>) image -> {
                 ScreenshotPreviewManager.showNormalScreenshot(image);
                 callback.accept(image);
@@ -139,6 +109,11 @@ public class MixinScreenshot {
         }
 
         original.call(target, downscaleFactor, callback);
+    }
+
+    @Unique
+    private static boolean shouldShowPreviewForNormalScreenshot_Snappy(@Nullable String forceName, int downscaleFactor) {
+        return forceName == null && downscaleFactor == 1 && ScreenshotPreviewManager.shouldShowNormalScreenshots();
     }
 
     @Unique

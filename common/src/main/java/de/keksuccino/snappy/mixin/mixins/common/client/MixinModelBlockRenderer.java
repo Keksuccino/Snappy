@@ -13,13 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 public class MixinModelBlockRenderer {
 
     @ModifyReturnValue(method = "computeTintColor", at = @At("RETURN"))
-    private int modify_computeTintColorReturn_Snappy(
-            int original,
-            BlockAndTintGetter level,
-            BlockState state,
-            BlockPos pos,
-            int tintIndex
-    ) {
+    private int modify_computeTintColorReturn_Snappy(int original, BlockAndTintGetter level, BlockState state, BlockPos pos, int tintIndex) {
         return PhotoSeasonManager.overrideTintColor(state, pos, original);
     }
 

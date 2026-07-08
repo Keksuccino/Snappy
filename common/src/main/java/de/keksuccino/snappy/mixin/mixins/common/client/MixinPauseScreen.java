@@ -17,13 +17,7 @@ import org.spongepowered.asm.mixin.injection.At;
 public class MixinPauseScreen {
 
     @WrapOperation(method = "createPauseMenu", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/layouts/GridLayout$RowHelper;addChild(Lnet/minecraft/client/gui/layouts/LayoutElement;ILnet/minecraft/client/gui/layouts/LayoutSettings;)Lnet/minecraft/client/gui/layouts/LayoutElement;"))
-    private LayoutElement wrap_addIconButtonRow_Snappy(
-            GridLayout.RowHelper instance,
-            @NotNull LayoutElement widget,
-            int columnWidth,
-            LayoutSettings layoutSettings,
-            Operation<LayoutElement> original
-    ) {
+    private LayoutElement wrap_addIconButtonRow_Snappy(GridLayout.RowHelper instance, @NotNull LayoutElement widget, int columnWidth, LayoutSettings layoutSettings, Operation<LayoutElement> original) {
         if (widget instanceof LinearLayout iconButtonRow) {
             if (SnappyButtons.shouldShowScreenshotBrowserButton()) {
                 iconButtonRow.addChild(SnappyButtons.screenshotBrowser((Screen) (Object) this));

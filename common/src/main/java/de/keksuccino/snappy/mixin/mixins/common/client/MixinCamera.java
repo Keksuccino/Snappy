@@ -21,8 +21,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Camera.class)
 public abstract class MixinCamera {
 
-    @Shadow protected abstract void setPosition(Vec3 position);
-
     @Shadow private float xRot;
     @Shadow private float yRot;
     @Shadow @Final private Vector3f forwards;
@@ -34,6 +32,9 @@ public abstract class MixinCamera {
     @Shadow @Nullable private Level level;
     @Shadow private boolean detached;
     @Shadow private int matrixPropertiesDirty;
+
+    @Shadow
+    protected abstract void setPosition(Vec3 position);
 
     @ModifyExpressionValue(method = {"update", "createProjectionMatrixForCulling"}, at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/Window;getWidth()I"))
     private int wrap_getWidth_Snappy(int original) {
@@ -54,11 +55,8 @@ public abstract class MixinCamera {
 
         this.xRot = state.pitch();
         this.yRot = state.yaw();
-        this.rotation.rotationYXZ(
-                (float) Math.PI - state.yaw() * (float) (Math.PI / 180.0),
-                -state.pitch() * (float) (Math.PI / 180.0),
-                state.roll() * (float) (Math.PI / 180.0)
-        );
+        // Camera#setRotation has no roll parameter, so this mirrors its private vector and dirty-flag updates with Snappy's roll included.
+        this.rotation.rotationYXZ((float) Math.PI - state.yaw() * (float) (Math.PI / 180.0), -state.pitch() * (float) (Math.PI / 180.0), state.roll() * (float) (Math.PI / 180.0));
         this.forwards.set(0.0F, 0.0F, -1.0F).rotate(this.rotation);
         this.up.set(0.0F, 1.0F, 0.0F).rotate(this.rotation);
         this.left.set(-1.0F, 0.0F, 0.0F).rotate(this.rotation);

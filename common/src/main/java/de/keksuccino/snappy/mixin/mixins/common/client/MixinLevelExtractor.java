@@ -33,22 +33,12 @@ public class MixinLevelExtractor {
         }
     }
 
-    @Inject(
-            method = "extract",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/multiplayer/ClientChunkCache;flipUpdateTrackingSets()V",
-                    shift = At.Shift.AFTER
-            )
-    )
+    /** @reason Winter photo mode can render snow into sections vanilla still classifies as empty. */
+    @Inject(method = "extract", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientChunkCache;flipUpdateTrackingSets()V", shift = At.Shift.AFTER))
     private void after_extractChunkUpdateTrackingSets_Snappy(DeltaTracker deltaTracker, Camera camera, float deltaPartialTick, CallbackInfo info) {
         ClientLevel level = this.level;
         if (level != null) {
-            PhotoSeasonManager.reclassifyWinterEmptySections(
-                    level,
-                    this.levelRenderState.chunkLoadingRenderState.addedEmptySections,
-                    this.levelRenderState.chunkLoadingRenderState.removedEmptySections
-            );
+            PhotoSeasonManager.reclassifyWinterEmptySections(level, this.levelRenderState.chunkLoadingRenderState.addedEmptySections, this.levelRenderState.chunkLoadingRenderState.removedEmptySections);
         }
     }
 

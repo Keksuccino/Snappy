@@ -22,18 +22,12 @@ import java.util.List;
 @Mixin(value = TitleScreen.class, priority = 900)
 public abstract class MixinTitleScreen extends Screen {
 
-    @Unique
-    private static final int ICON_BUTTON_HEIGHT_SNAPPY = 20;
-    @Unique
-    private static final int MIN_ICON_BUTTON_WIDTH_SNAPPY = 16;
-    @Unique
-    private static final int MAX_ICON_BUTTON_WIDTH_SNAPPY = 24;
-    @Unique
-    private static final int ICON_BUTTON_SPACING_SNAPPY = 4;
+    @Shadow @Nullable private FriendsButton friends;
 
-    @Shadow
-    @Nullable
-    private FriendsButton friends;
+    @Unique private static final int ICON_BUTTON_HEIGHT_SNAPPY = 20;
+    @Unique private static final int MIN_ICON_BUTTON_WIDTH_SNAPPY = 16;
+    @Unique private static final int MAX_ICON_BUTTON_WIDTH_SNAPPY = 24;
+    @Unique private static final int ICON_BUTTON_SPACING_SNAPPY = 4;
 
     protected MixinTitleScreen(Component title) {
         super(title);
@@ -58,6 +52,7 @@ public abstract class MixinTitleScreen extends Screen {
     @Unique
     private void reflowTitleIconRow_Snappy(int rowY) {
         List<AbstractWidget> iconButtons = new ArrayList<>();
+        // The title screen lays out the Realms/Friends icon row before this mixin adds Snappy's button, so the row must be centered again.
         for (GuiEventListener child : this.children()) {
             if (child instanceof AbstractWidget widget
                     && widget.getY() == rowY

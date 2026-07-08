@@ -14,11 +14,7 @@ public class MixinGuiRenderer {
     @WrapOperation(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/CubeMap;render(FF)V"))
     private void wrap_renderCubeMap_Snappy(CubeMap instance, float rotXInDegrees, float rotYInDegrees, Operation<Void> original) {
         PanoramaMenuManager.updateMenuParallax();
-        original.call(
-                instance,
-                PanoramaMenuManager.applyMenuParallaxXRotation(rotXInDegrees),
-                PanoramaMenuManager.applyMenuParallaxYRotation(rotYInDegrees)
-        );
+        original.call(instance, PanoramaMenuManager.applyMenuParallaxXRotation(rotXInDegrees), PanoramaMenuManager.applyMenuParallaxYRotation(rotYInDegrees));
     }
 
 }
