@@ -46,6 +46,7 @@
 - Everything always needs to be fully compatible with Sodium and Iris. Both mods are set as dependency for the `fabric` module, for testing. Decompile the dependencies if you need to search their source.
 - Everything always needs to work with and without Sodium and Iris.
 - Always clean up after yourself! When finishing a task, remove leftover code from testing, code from earlier unsuccessful implementation attempts, and dead code.
+- When you work with Vanilla Minecraft code, or Iris/Sodium, always deeply analyze the source code for these, so you really understand what you are working with and how the related code works.
 
 ## Minecraft Sources
 - You have access to the full Minecraft 26.2 sources in `/Volumes/STUFF/CODING/WORKSPACES/Java/Minecraft Mods/.MINECRAFT_SOURCES/26.2/minecraft/fabric/` and `/Volumes/STUFF/CODING/WORKSPACES/Java/Minecraft Mods/.MINECRAFT_SOURCES/26.2/minecraft/neoforge/`.
