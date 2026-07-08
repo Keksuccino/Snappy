@@ -25,6 +25,7 @@ import net.minecraft.world.level.block.SnowyBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,7 +33,11 @@ public final class PhotoSeasonManager {
 
     private static final BlockState AIR_STATE = Blocks.AIR.defaultBlockState();
     private static final BlockState SNOW_LAYER_STATE = Blocks.SNOW.defaultBlockState();
+    private static final BlockState ICE_STATE = Blocks.ICE.defaultBlockState();
     private static final BlockState GRASS_BLOCK_STATE = Blocks.GRASS_BLOCK.defaultBlockState().setValue(SnowyBlock.SNOWY, false);
+    private static final int WINTER_ICE_BASE_DEPTH = 3;
+    private static final int WINTER_ICE_MIN_DEPTH = WINTER_ICE_BASE_DEPTH - 2;
+    private static final int WINTER_ICE_MAX_DEPTH = WINTER_ICE_BASE_DEPTH + 3;
     private static final int[][] AUTUMN_LEAF_COLOR_FAMILIES = {
             {0xFF9E3324, 0xFFB6462A, 0xFF862A1E},
             {0xFFC05A1C, 0xFFD07120, 0xFFA84A18},
@@ -167,6 +172,9 @@ public final class PhotoSeasonManager {
         }
         if (!season.addsSnow()) {
             return original;
+        }
+        if (shouldAddWinterIce(level, heightLevel, rawStates, x, y, z, original)) {
+            return ICE_STATE;
         }
         if (shouldAddSnowLayer(level, heightLevel, rawStates, x, y, z, original)) {
             return SNOW_LAYER_STATE;
@@ -344,6 +352,89 @@ public final class PhotoSeasonManager {
             return false;
         }
         return (original.canBeReplaced() || original.is(BlockTags.REPLACEABLE)) && isSoftVegetationBlock(original);
+    }
+
+    private static boolean shouldAddWinterIce(@NotNull BlockAndTintGetter level, @Nullable LevelReader heightLevel, @NotNull RawBlockStateGetter rawStates, int x, int y, int z, @NotNull BlockState original) {
+        if (!isFreezableWaterSurface(level, heightLevel, rawStates, x, y, z, original)) {
+            return false;
+        }
+
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            int shoreDistance = winterIceShoreDistance(rawStates, x, y, z, direction);
+            if (shoreDistance <= 0) {
+                continue;
+            }
+
+            int edgeX = x - direction.getStepX() * (shoreDistance - 1);
+            int edgeZ = z - direction.getStepZ() * (shoreDistance - 1);
+            if (shoreDistance <= winterIceDepth(edgeX, y, edgeZ, direction)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isFreezableWaterSurface(@NotNull BlockAndTintGetter level, @Nullable LevelReader heightLevel, @NotNull RawBlockStateGetter rawStates, int x, int y, int z, @NotNull BlockState original) {
+        if (y < level.getMinY() || y + 1 >= level.getMinY() + level.getHeight() || !isSourceWaterBlock(original)) {
+            return false;
+        }
+        if (isWaterFluid(rawStates.getRawBlockState(x, y + 1, z))) {
+            return false;
+        }
+        return isOpenToSnowfall(level, heightLevel, rawStates, x, y + 1, z);
+    }
+
+    private static int winterIceShoreDistance(@NotNull RawBlockStateGetter rawStates, int x, int y, int z, @NotNull Direction direction) {
+        for (int distance = 1; distance <= WINTER_ICE_MAX_DEPTH; distance++) {
+            int scanX = x - direction.getStepX() * distance;
+            int scanZ = z - direction.getStepZ() * distance;
+            BlockState scanState = rawStates.getRawBlockState(scanX, y, scanZ);
+            if (isWinterIceShoreBlock(scanState)) {
+                return distance;
+            }
+            if (!isSurfaceWaterBlock(rawStates, scanX, y, scanZ, scanState)) {
+                return -1;
+            }
+        }
+        return -1;
+    }
+
+    private static int winterIceDepth(int edgeX, int y, int edgeZ, @NotNull Direction direction) {
+        // Chunk rebuilds can ask for the same edge many times, so the frayed depth must stay deterministic per shoreline column.
+        long seed = mixSeed(edgeX, y, edgeZ) ^ (long) direction.get2DDataValue() * 0xD6E8FEB86659FD93L;
+        int roll = seedIndex(seed, 16);
+        if (roll == 0) {
+            return WINTER_ICE_MIN_DEPTH;
+        }
+        if (roll <= 2) {
+            return WINTER_ICE_BASE_DEPTH - 1;
+        }
+        if (roll <= 8) {
+            return WINTER_ICE_BASE_DEPTH;
+        }
+        if (roll <= 11) {
+            return WINTER_ICE_BASE_DEPTH + 1;
+        }
+        if (roll <= 13) {
+            return WINTER_ICE_BASE_DEPTH + 2;
+        }
+        return WINTER_ICE_MAX_DEPTH;
+    }
+
+    private static boolean isSurfaceWaterBlock(@NotNull RawBlockStateGetter rawStates, int x, int y, int z, @NotNull BlockState state) {
+        return isSourceWaterBlock(state) && !isWaterFluid(rawStates.getRawBlockState(x, y + 1, z));
+    }
+
+    private static boolean isSourceWaterBlock(@NotNull BlockState state) {
+        return state.is(Blocks.WATER) && state.getFluidState().isSourceOfType(Fluids.WATER);
+    }
+
+    private static boolean isWaterFluid(@NotNull BlockState state) {
+        return state.getFluidState().getType().isSame(Fluids.WATER);
+    }
+
+    private static boolean isWinterIceShoreBlock(@NotNull BlockState state) {
+        return !state.isAir() && state.getFluidState().isEmpty();
     }
 
     private static boolean canEmptySectionRenderWinterSnow(@NotNull ClientLevel level, long sectionNode) {
