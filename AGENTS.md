@@ -45,6 +45,7 @@
 - Never rush tasks. It doesn't matter how long a task will take, you always take the best possible route instead of the fastest.
 - Everything always needs to be fully compatible with Sodium and Iris. Both mods are set as dependency for the `fabric` module, for testing. Decompile the dependencies if you need to search their source.
 - Everything always needs to work with and without Sodium and Iris.
+- Always clean up after yourself! When finishing a task, remove leftover code from testing, code from earlier unsuccessful implementation attempts, and dead code.
 
 ## Minecraft Sources
 - You have access to the full Minecraft 26.2 sources in `/Volumes/STUFF/CODING/WORKSPACES/Java/Minecraft Mods/.MINECRAFT_SOURCES/26.2/minecraft/fabric/` and `/Volumes/STUFF/CODING/WORKSPACES/Java/Minecraft Mods/.MINECRAFT_SOURCES/26.2/minecraft/neoforge/`.
