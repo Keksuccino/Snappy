@@ -172,6 +172,8 @@ public class PhotoModeScreen extends Screen {
     @Nullable
     Button weatherButton;
     @Nullable
+    Button forceBiomePrecipitationButton;
+    @Nullable
     Button seasonButton;
     @Nullable
     Button beaconBeamsButton;
@@ -462,6 +464,7 @@ public class PhotoModeScreen extends Screen {
         this.heldItemsButton = null;
         this.timeButton = null;
         this.weatherButton = null;
+        this.forceBiomePrecipitationButton = null;
         this.seasonButton = null;
         this.beaconBeamsButton = null;
         this.colorizeButton = null;
@@ -800,6 +803,9 @@ public class PhotoModeScreen extends Screen {
         if (this.weatherButton != null) {
             PhotoModeWeatherPreset preset = active.weatherPreset();
             this.weatherButton.setMessage(optionMessage("snappy.photo_mode.weather", Component.translatable(preset.labelKey()).withStyle(Style.EMPTY.withColor(VALUE_COLOR))));
+        }
+        if (this.forceBiomePrecipitationButton != null) {
+            this.forceBiomePrecipitationButton.setMessage(optionMessage("snappy.photo_mode.force_biome_precipitation", enabledValue(active.forceBiomePrecipitation())));
         }
         if (this.seasonButton != null) {
             PhotoModeSeason season = active.season();

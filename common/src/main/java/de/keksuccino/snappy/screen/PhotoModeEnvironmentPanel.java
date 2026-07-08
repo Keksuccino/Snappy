@@ -33,6 +33,11 @@ final class PhotoModeEnvironmentPanel implements PhotoModeTabPanel {
             screen.updateButtonMessages();
         }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.weather.desc"))).build());
 
+        screen.forceBiomePrecipitationButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
+            active.setForceBiomePrecipitation(!active.forceBiomePrecipitation());
+            screen.updateButtonMessages();
+        }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.force_biome_precipitation.desc"))).build());
+
         screen.seasonButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
             active.setSeason(active.season().next());
             screen.updateButtonMessages();

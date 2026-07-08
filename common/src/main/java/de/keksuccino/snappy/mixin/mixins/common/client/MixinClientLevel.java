@@ -2,6 +2,7 @@ package de.keksuccino.snappy.mixin.mixins.common.client;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import de.keksuccino.snappy.client.render.PhotoSeasonManager;
+import de.keksuccino.snappy.photo.PhotoModeManager;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.biome.Biome;
@@ -14,7 +15,7 @@ public class MixinClientLevel {
 
     @ModifyReturnValue(method = "getPrecipitationAt", at = @At("RETURN"))
     private Biome.Precipitation modify_getPrecipitationAtReturn_Snappy(Biome.Precipitation original, BlockPos pos) {
-        return PhotoSeasonManager.overridePrecipitation(original);
+        return PhotoModeManager.overridePrecipitation(original, (ClientLevel) (Object) this, pos);
     }
 
     @ModifyReturnValue(method = "getClientLeafTintColor", at = @At("RETURN"))

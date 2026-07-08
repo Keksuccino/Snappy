@@ -294,6 +294,8 @@
   "snappy.photo_mode.time.night": "Night",
   "snappy.photo_mode.weather": "Weather: %s",
   "snappy.photo_mode.weather.desc": "Changes rendered weather without changing the world's real weather.",
+  "snappy.photo_mode.force_biome_precipitation": "Force Snowfall & Rainfall: %s",
+  "snappy.photo_mode.force_biome_precipitation.desc": "Allows photo-mode rain and snow to render in biomes that normally hide precipitation.",
   "snappy.photo_mode.season": "Season: %s",
   "snappy.photo_mode.season.desc": "Visually changes snow, precipitation type, and seasonal plant colors while photo mode is active.",
   "snappy.photo_mode.season.none": "None",

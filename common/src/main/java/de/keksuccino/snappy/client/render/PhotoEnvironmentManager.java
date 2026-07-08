@@ -8,10 +8,13 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.fog.FogData;
 import net.minecraft.client.renderer.state.GameRenderState;
 import net.minecraft.client.renderer.state.level.LevelRenderState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.world.attribute.EnvironmentAttributes;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -59,6 +62,19 @@ public final class PhotoEnvironmentManager {
 
     public static float overrideThunderLevel(@Nullable EnvironmentState active, float original) {
         return active != null && worldOverrideScope ? active.weatherPreset().thunderLevel() : original;
+    }
+
+    @NotNull
+    public static Biome.Precipitation overridePrecipitation(@Nullable EnvironmentState active, @NotNull Biome.Precipitation original, @NotNull ClientLevel level, @NotNull BlockPos pos) {
+        if (active == null || !active.forceBiomePrecipitation() || active.weatherPreset().rainLevel() <= 0.0F || original != Biome.Precipitation.NONE) {
+            return original;
+        }
+        if (!level.getChunkSource().hasChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()))) {
+            return original;
+        }
+
+        Biome biome = level.getBiome(pos).value();
+        return biome.coldEnoughToSnow(pos, level.getSeaLevel()) ? Biome.Precipitation.SNOW : Biome.Precipitation.RAIN;
     }
 
     public static long overrideGameTime(@Nullable EnvironmentState active, long original) {
@@ -259,6 +275,8 @@ public final class PhotoEnvironmentManager {
 
         @NotNull
         PhotoModeWeatherPreset weatherPreset();
+
+        boolean forceBiomePrecipitation();
 
         float fogIntensity();
 

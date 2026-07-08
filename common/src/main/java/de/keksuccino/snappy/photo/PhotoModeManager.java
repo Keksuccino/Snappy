@@ -46,6 +46,7 @@ import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -317,6 +318,12 @@ public final class PhotoModeManager {
 
     public static float overrideThunderLevel(float original) {
         return PhotoEnvironmentManager.overrideThunderLevel(environmentState(session), original);
+    }
+
+    @NotNull
+    public static Biome.Precipitation overridePrecipitation(@NotNull Biome.Precipitation original, @NotNull ClientLevel level, @NotNull BlockPos pos) {
+        Biome.Precipitation precipitation = PhotoEnvironmentManager.overridePrecipitation(environmentState(session), original, level, pos);
+        return PhotoSeasonManager.overridePrecipitation(precipitation);
     }
 
     public static long overrideGameTime(long original) {
@@ -750,6 +757,7 @@ public final class PhotoModeManager {
         private boolean gridEnabled;
         private PhotoModeTimePreset timePreset;
         private PhotoModeWeatherPreset weatherPreset;
+        private boolean forceBiomePrecipitation;
         private PhotoModeSeason season = PhotoModeSeason.NONE;
         private float fogIntensity;
         private float fogDistance = (float) PHOTO_FOG_DEFAULT_DISTANCE;
@@ -841,6 +849,7 @@ public final class PhotoModeManager {
             this.poseMakerPose = null;
             this.timePreset = PhotoEnvironmentManager.defaultTimePreset(minecraft);
             this.weatherPreset = PhotoEnvironmentManager.defaultWeatherPreset(minecraft);
+            this.forceBiomePrecipitation = false;
             PhotoModeSeason previousSeason = this.season;
             this.season = PhotoModeSeason.NONE;
             this.fogIntensity = 0.0F;
@@ -924,6 +933,7 @@ public final class PhotoModeManager {
                     this.gridEnabled,
                     this.timePreset,
                     this.weatherPreset,
+                    this.forceBiomePrecipitation,
                     this.season,
                     this.fogIntensity,
                     this.fogDistance,
@@ -1296,6 +1306,14 @@ public final class PhotoModeManager {
             }
         }
 
+        public boolean forceBiomePrecipitation() {
+            return this.forceBiomePrecipitation;
+        }
+
+        public void setForceBiomePrecipitation(boolean forceBiomePrecipitation) {
+            this.forceBiomePrecipitation = forceBiomePrecipitation;
+        }
+
         @NotNull
         public PhotoModeSeason season() {
             return this.season;
@@ -1443,6 +1461,11 @@ public final class PhotoModeManager {
             @Override
             public PhotoModeWeatherPreset weatherPreset() {
                 return Session.this.weatherPreset;
+            }
+
+            @Override
+            public boolean forceBiomePrecipitation() {
+                return Session.this.forceBiomePrecipitation;
             }
 
             @Override
