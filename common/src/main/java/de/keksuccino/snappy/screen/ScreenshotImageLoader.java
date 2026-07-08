@@ -16,7 +16,8 @@ public final class ScreenshotImageLoader {
     public static final int THUMBNAIL_PANORAMA_WIDTH = 256;
     public static final int THUMBNAIL_PANORAMA_HEIGHT = 144;
     public static final int VIEWER_NORMAL_MAX_SIZE = 2048;
-    public static final int VIEWER_PANORAMA_FACE_MAX_SIZE = 1024;
+    // Match Snappy's highest capture preset so Ultra panoramas keep their detail in the full viewer.
+    public static final int VIEWER_PANORAMA_FACE_MAX_SIZE = 2048;
     public static final int VIEWER_BACKGROUND_FALLBACK_COLOR = ARGB.color(128, 0, 0, 0);
     private static final int VIEWER_BACKGROUND_BUCKET_BITS = 4;
     private static final int VIEWER_BACKGROUND_BUCKETS_PER_CHANNEL = 1 << VIEWER_BACKGROUND_BUCKET_BITS;
@@ -101,7 +102,8 @@ public final class ScreenshotImageLoader {
         int expectedSize = -1;
         try {
             for (int i = 0; i < faces.length; i++) {
-                try (NativeImage source = NativeImage.read(bytes[i])) {
+                NativeImage source = NativeImage.read(bytes[i]);
+                try {
                     if (source.getWidth() != source.getHeight()) {
                         throw new IOException("Panorama face " + i + " is not square: " + source.getWidth() + "x" + source.getHeight());
                     }
@@ -111,7 +113,16 @@ public final class ScreenshotImageLoader {
                         throw new IOException("Panorama face " + i + " is " + source.getWidth() + "x" + source.getHeight() + ", expected " + expectedSize + "x" + expectedSize);
                     }
                     int targetSize = Math.min(source.getWidth(), VIEWER_PANORAMA_FACE_MAX_SIZE);
-                    faces[i] = resizeExact(source, targetSize, targetSize);
+                    if (targetSize == source.getWidth()) {
+                        faces[i] = source;
+                        source = null;
+                    } else {
+                        faces[i] = resizeExact(source, targetSize, targetSize);
+                    }
+                } finally {
+                    if (source != null) {
+                        source.close();
+                    }
                 }
             }
             return faces;

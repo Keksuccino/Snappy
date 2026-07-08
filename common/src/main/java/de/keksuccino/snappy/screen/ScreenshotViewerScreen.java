@@ -44,8 +44,8 @@ public class ScreenshotViewerScreen extends Screen {
     private static final String TEXTURE_PATH = "dynamic/screenshot_browser/viewer/";
     private static final int BUTTON_GAP = 6;
     private static final int NAVIGATION_BUTTON_GAP = 20;
-    private static final int PANORAMA_RENDER_WIDTH = 960;
-    private static final int PANORAMA_RENDER_HEIGHT = 540;
+    private static final int PANORAMA_RENDER_FALLBACK_WIDTH = 16;
+    private static final int PANORAMA_RENDER_FALLBACK_HEIGHT = 9;
     private static final int PANORAMA_PROGRESS_MAX_WIDTH = 360;
     private static final int PANORAMA_PROGRESS_MIN_WIDTH = 120;
     private static final int PANORAMA_PROGRESS_HORIZONTAL_MARGIN = 80;
@@ -77,7 +77,7 @@ public class ScreenshotViewerScreen extends Screen {
 
     private final Screen parent;
     private final List<ScreenshotEntry> entries;
-    private final PreviewCubeMapRenderer panoramaRenderer = new PreviewCubeMapRenderer(PANORAMA_RENDER_WIDTH, PANORAMA_RENDER_HEIGHT);
+    private final PreviewCubeMapRenderer panoramaRenderer = new PreviewCubeMapRenderer(PANORAMA_RENDER_FALLBACK_WIDTH, PANORAMA_RENDER_FALLBACK_HEIGHT);
     private int index;
     private int loadGeneration;
     private LoadStatus loadStatus = LoadStatus.LOADING;
@@ -601,10 +601,12 @@ public class ScreenshotViewerScreen extends Screen {
         }
 
         float spin = this.currentPanoramaRotationDegrees();
-        this.panoramaRenderer.render(texture, width, height, PreviewCubeMapRenderer.DEFAULT_ROT_X_IN_DEGREES + this.panoramaVerticalAngleDegrees, -spin);
+        // GUI coordinates are scaled onto the framebuffer, so render the cubemap at framebuffer resolution before blitting.
+        int renderScale = this.panoramaRenderScale();
+        this.panoramaRenderer.render(texture, scalePanoramaRenderSize(width, renderScale), scalePanoramaRenderSize(height, renderScale), PreviewCubeMapRenderer.DEFAULT_ROT_X_IN_DEGREES + this.panoramaVerticalAngleDegrees, -spin);
         graphics.blit(
                 this.panoramaRenderer.getColorTextureView(),
-                RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR),
+                RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST),
                 x,
                 y,
                 x + width,
@@ -614,6 +616,14 @@ public class ScreenshotViewerScreen extends Screen {
                 1.0F,
                 0.0F
         );
+    }
+
+    private int panoramaRenderScale() {
+        return this.minecraft == null ? 1 : Math.max(1, this.minecraft.getWindow().getGuiScale());
+    }
+
+    private static int scalePanoramaRenderSize(int size, int scale) {
+        return Math.max(1, size) * Math.max(1, scale);
     }
 
     private void renderPanoramaProgressBar(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
