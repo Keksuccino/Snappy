@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Snappy is a Minecraft Java 26.2 mod (the version number is not a typo) that uses the MultiLoader layout with shared logic under `common` and loader-specific wrappers under `fabric` and `neoforge`.
+- This project is "Snappy", which is a Minecraft Java 26.2 mod (the version number is not a typo). It uses the MultiLoader layout with shared logic under `common` and loader-specific wrappers under `fabric` and `neoforge`.
 - Place shared Java sources in `common/src/main/java` and assets such as menu JSON, translations, or textures in `common/src/main/resources` so they ship with every loader build.
 - Loader-only hooks belong inside each module's `src/main/java` tree; keep local run directories like `run_client` and `run_server` for iterative testing but never depend on them for assets.
 
@@ -13,7 +13,12 @@
 - Follow existing packages under `de.keksuccino.snappy`, mirroring existing sub-packages to keep cross-loader boundaries clear.
 - Name resources with the `snappy` prefix (e.g., `snappy.mixins.json`, `snappy.accesswidener`) so Gradle and the loaders resolve them consistently.
 - Prefer explicit nullability annotations from `jsr305`.
-- Keep Mixin classes lightweight.
+- Code should be made reusable/shareable whenever possible. Avoid copy-pasting nearly identical code to multiple places when you could make it a shared method/field/etc. instead.
+- The whole project (code, classes, packages, etc.) should always be well-structured and organized, with great focus on easy maintainability. The project should be easy to understand and maintain for new devs later.
+- Avoid god classes. Split large classes into organized and well-structured smaller classes.
+- Avoid spanning method heads and method calls over multiple lines, no matter how long they are. One line per method head and method call.
+- Always document fragile parts of the code that could break easily when handled wrong. Explain what they do and what is important for them.
+- Always document code that could look a bit hacky, weird, or even useless at first look. Explain what the code does, why it is there, and what is important to note for it.
 
 ## Mixin Structurization
 - Place shared mixins under `common/src/main/java/de/keksuccino/snappy/mixin/mixins/common/<side>` and mirror the existing folder depth when adding new targets.
@@ -26,6 +31,18 @@
 - When leveraging Mixin Extras (`WrapOperation`, `WrapWithCondition`, etc.), name helpers after the intent (`wrap_..._Snappy`, `cancel_..._Snappy`) and call the provided `Operation` when returning to vanilla flow.
 - When crating normal mixin classes, call them `Mixin<OriginalClassName>`, so for the `Minecraft` class that would be `MixinMinecraft`.
 - When creating Mixin accessor interfaces, name them `AccessorMixin<OriginalClassName>`, so for the `Minecraft` class that would be `AccessorMixinMinecraft`.
+- Keep Mixin classes lightweight.
+- Unique methods in Mixin classes go BELOW normal Mixin methods (like injections, wrap operations, etc.).
+- Unique fields go BELOW shadow fields in Mixin classes.
+- Both unique and shadow fields should always be at the top of the class, before any methods.
+- Avoid spanning Mixin annotations over multiple lines, no matter how long they are. Each annotation should only consume one line. One line per annotation.
+
+## Workflow Guidelines
+- When the user gives you a log snippet, always search for the full log file containing that snippet, and scan the whole log, so you have a complete picture of what was happening.
+- Do not simply implement things without a second thought. Simulate in your reasoning STEP-BY-STEP what each step of the execution chain of the code you implemented does, where it does something, and what could be side effects of it. Chase the whole code execution chain step-by-step, to notice edge cases, incomplete implementations, bugs, etc.
+- Always implement everything in the best way possible. Implement everything in the most optimized, performance-friendly, and professional way, following best practices for everything.
+- Never rush tasks. It doesn't matter how long a task will take, you always take the best possible route instead of the fastest.
+- Everything always needs to be fully compatible with Sodium and Iris. Both mods are set as dependency for the `fabric` module, for testing. Decompile the dependencies if you need to search their source.
 
 ## Minecraft Sources
 - You have access to the full Minecraft 26.2 sources in `/Volumes/STUFF/CODING/WORKSPACES/Java/Minecraft Mods/.MINECRAFT_SOURCES/26.2/minecraft/fabric/` and `/Volumes/STUFF/CODING/WORKSPACES/Java/Minecraft Mods/.MINECRAFT_SOURCES/26.2/minecraft/neoforge/`.
@@ -37,9 +54,12 @@
 - After making changes, always compile/build the project to identify and fix compile errors.
 - Only use the `fabric` and `neoforge` modules for compile checks. Never use the `common` module.
 - Make sure to use Java 25 for compile/run stuff, like this for example: `JAVA_HOME=$(/usr/libexec/java_home -v 25) sh gradlew :fabric:compileJava :forge:compileJava --stacktrace`
+- There are tools available on the system to validate GLSL shaders. Use these when working with shaders.
+- You always TRIPLE-CHECK EVERYTHING! When you are finishing a task, you triple-check everything for completeness, possible bad implementations, rushed implementations, performance, optimization, structurization, and so on.
 
 ## Visual Testing
 - When the user tells you to also do visual testing, run the `fabric` and `neoforge` modules via IntelliJ IDE.
 - Only use "Computer Use" for running the modules! You will click the "Run" button in the top-right of IntelliJ to run the modules (and also select the correct run config before, obviously).
 - After the Minecraft client started, use "Computer Use" to navigate in the game and visually check your changes. Check if everything looks good and works as intended.
 - IntelliJ IDE is already open with the project active.
+- NEVER DO VISUAL TESTING WITHOUT THE USER TELLING YOU TO DO SO! Do not run the game without the user telling you to do so.
