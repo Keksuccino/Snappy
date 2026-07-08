@@ -3,6 +3,7 @@ package de.keksuccino.snappy.screen;
 import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.photo.PhotoModeManager;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -10,8 +11,9 @@ import org.jetbrains.annotations.NotNull;
 
 public final class SnappyButtons {
 
+    private static final int PAUSE_MENU_FULL_WIDTH_BUTTON_WIDTH = 204;
+
     public static final Identifier SCREENSHOT_BROWSER_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/buttons/open_browser_icon_15x15.png");
-    public static final Identifier PHOTO_MODE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/buttons/open_photo_mode_icon_15x15.png");
 
     private SnappyButtons() {
     }
@@ -32,12 +34,8 @@ public final class SnappyButtons {
         );
     }
 
-    public static TexturedIconButton photoMode() {
-        return new TexturedIconButton(
-                Component.translatable("snappy.photo_mode.open"),
-                button -> PhotoModeManager.open(Minecraft.getInstance()),
-                PHOTO_MODE_ICON
-        );
+    public static Button pauseMenuPhotoMode() {
+        return Button.builder(Component.translatable("snappy.photo_mode.open"), button -> PhotoModeManager.open(Minecraft.getInstance())).width(PAUSE_MENU_FULL_WIDTH_BUTTON_WIDTH).build();
     }
 
 }

@@ -62,7 +62,7 @@
   "snappy.options.screenshot_browser_button": "Screenshot Browser Button: %s",
   "snappy.options.screenshot_browser_button.desc": "Shows or hides Snappy's screenshot browser icon on the title screen and pause screen. It opens the screenshot browser.",
   "snappy.options.photo_mode_button": "Photo Mode Button: %s",
-  "snappy.options.photo_mode_button.desc": "Shows or hides Snappy's photo mode icon on the pause screen. It opens photo mode while in a world.",
+  "snappy.options.photo_mode_button.desc": "Shows or hides Snappy's photo mode button on the pause screen. It opens photo mode while in a world.",
   "snappy.options.buttons_disabled_warning": "When both buttons are disabled, Snappy's options screen can only be opened through Mod Menu's Mods menu on Fabric or NeoForge's Mods menu on NeoForge.",
   "snappy.options.toggle.enabled": "Enabled",
   "snappy.options.toggle.disabled": "Disabled",
