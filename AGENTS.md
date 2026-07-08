@@ -19,6 +19,7 @@
 - Avoid spanning method heads and method calls over multiple lines, no matter how long they are. One line per method head and method call.
 - Always document fragile parts of the code that could break easily when handled wrong. Explain what they do and what is important for them.
 - Always document code that could look a bit hacky, weird, or even useless at first look. Explain what the code does, why it is there, and what is important to note for it.
+- Prefer giving every class that needs a logger its own static final LOGGER object, instead of using a global shared logger.
 
 ## Mixin Structurization
 - Place shared mixins under `common/src/main/java/de/keksuccino/snappy/mixin/mixins/common/<side>` and mirror the existing folder depth when adding new targets.
