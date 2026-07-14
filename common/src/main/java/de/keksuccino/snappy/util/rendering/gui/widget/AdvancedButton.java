@@ -32,10 +32,12 @@ public class AdvancedButton extends Button {
     /**
      * Sets 20x20 background textures for each render state. Each custom texture is nine-sliced with a 4-pixel border on every side. A null texture keeps Vanilla's default sprite for that state. The hover texture also applies while keyboard-focused, matching Vanilla behavior.
      */
-    public void setBackgroundTextures(@Nullable Identifier idleTexture, @Nullable Identifier hoverTexture, @Nullable Identifier disabledTexture) {
+    @NotNull
+    public AdvancedButton setBackgroundTextures(@Nullable Identifier idleTexture, @Nullable Identifier hoverTexture, @Nullable Identifier disabledTexture) {
         this.idleBackgroundTexture = idleTexture;
         this.hoverBackgroundTexture = hoverTexture;
         this.disabledBackgroundTexture = disabledTexture;
+        return this;
     }
 
     @Override

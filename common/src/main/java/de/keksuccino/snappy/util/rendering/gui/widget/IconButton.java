@@ -33,8 +33,10 @@ public class IconButton extends AdvancedButton {
         this.setTooltip(Tooltip.create(this.getMessage()));
     }
 
-    public void setIconTexture(@NotNull Identifier iconTexture) {
+    @NotNull
+    public IconButton setIconTexture(@NotNull Identifier iconTexture) {
         this.iconTexture = iconTexture;
+        return this;
     }
 
     @Override
