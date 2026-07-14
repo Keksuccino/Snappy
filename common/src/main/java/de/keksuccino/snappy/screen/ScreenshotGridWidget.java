@@ -4,7 +4,6 @@ import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import de.keksuccino.snappy.client.gui.GuiBackground;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
 import de.keksuccino.snappy.screen.ScreenshotThumbnailCache.Thumbnail;
-import de.keksuccino.snappy.util.rendering.RenderingUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -15,7 +14,6 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
@@ -35,7 +33,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private static final int SCROLL_AREA_RIGHT_INSET = GuiBackground.DEFAULT.rightBorder() + SCROLL_AREA_BACKGROUND_GAP;
     private static final int SCROLL_AREA_BOTTOM_INSET = GuiBackground.DEFAULT.bottomBorder() + SCROLL_AREA_BACKGROUND_GAP;
     private static final int PADDING = 10;
-    private static final int TILE_WIDTH = 136;
+    private static final int TILE_WIDTH = GuiBackground.SCREENSHOT_PREVIEW_CARD.textureWidth();
     private static final int TILE_HEIGHT = 118;
     private static final int TILE_GAP = 8;
     private static final int THUMBNAIL_BUFFER_ROWS = 2;
@@ -46,14 +44,8 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private static final int SCROLLBAR_TRACK_WIDTH = 2;
     private static final int SCROLLBAR_THUMB_WIDTH = 4;
     private static final int SCROLLBAR_MIN_THUMB_HEIGHT = 18;
-    private static final int CARD_COLOR = ARGB.color(102, 0, 0, 0);
-    private static final int CARD_HOVER_COLOR = ARGB.color(128, 55, 55, 55);
-    private static final int CARD_SELECTED_COLOR = ARGB.color(128, 64, 96, 144);
     private static final int SCROLLBAR_TRACK_COLOR = 0x66404040;
     private static final int SCROLLBAR_THUMB_COLOR = 0xCCFFFFFF;
-    private static final int BORDER_COLOR = ARGB.color(255, 112, 112, 112);
-    private static final int BORDER_HOVER_COLOR = ARGB.color(255, 255, 255, 255);
-    private static final int BORDER_SELECTED_COLOR = ARGB.color(255, 117, 167, 255);
     private static final int TEXT_COLOR = 0xFFFFFFFF;
     private static final int SECONDARY_TEXT_COLOR = 0xFFB0B0B0;
     private static final int EMPTY_TEXT_COLOR = 0xFFA0A0A0;
@@ -251,10 +243,8 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
             }
 
             ScreenshotEntry entry = this.entries.get(i);
-            boolean hovered = i == hoveredIndex;
             boolean selected = this.selectedEntries.contains(entry);
-            boolean focused = i == this.focusedIndex && this.isFocused();
-            this.renderTile(graphics, entry, x, y, hovered, selected, focused);
+            this.renderTile(graphics, entry, x, y, selected);
         }
 
         if (hoveredIndex >= 0 || this.isOverScrollbar(mouseX, mouseY)) {
@@ -295,18 +285,8 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
         );
     }
 
-    private void renderTile(
-            @NotNull GuiGraphicsExtractor graphics,
-            @NotNull ScreenshotEntry entry,
-            int x,
-            int y,
-            boolean hovered,
-            boolean selected,
-            boolean focused
-    ) {
-        int borderColor = selected ? BORDER_SELECTED_COLOR : hovered || focused ? BORDER_HOVER_COLOR : BORDER_COLOR;
-        RenderingUtils.renderBorder(graphics, x, y, TILE_WIDTH, TILE_HEIGHT, 1, borderColor);
-        graphics.fill(x + 1, y + 1, x + TILE_WIDTH - 1, y + TILE_HEIGHT - 1, selected ? CARD_SELECTED_COLOR : hovered ? CARD_HOVER_COLOR : CARD_COLOR);
+    private void renderTile(@NotNull GuiGraphicsExtractor graphics, @NotNull ScreenshotEntry entry, int x, int y, boolean selected) {
+        GuiBackground.SCREENSHOT_PREVIEW_CARD.render(graphics, x, y, TILE_WIDTH, TILE_HEIGHT);
 
         int imageX = x + (TILE_WIDTH - IMAGE_WIDTH) / 2;
         int imageY = y + 8;
@@ -328,12 +308,19 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private void renderThumbnail(@NotNull GuiGraphicsExtractor graphics, @NotNull ScreenshotEntry entry, int x, int y) {
         Thumbnail thumbnail = this.thumbnailCache.thumbnailFor(entry);
         if (thumbnail instanceof Thumbnail.Ready ready) {
-            float scale = Math.min(IMAGE_WIDTH / (float) ready.width(), IMAGE_HEIGHT / (float) ready.height());
-            int renderWidth = Math.max(1, Math.round(ready.width() * scale));
-            int renderHeight = Math.max(1, Math.round(ready.height() * scale));
-            int renderX = x + (IMAGE_WIDTH - renderWidth) / 2;
-            int renderY = y + (IMAGE_HEIGHT - renderHeight) / 2;
-            graphics.blit(RenderPipelines.GUI_TEXTURED, ready.textureId(), renderX, renderY, 0.0F, 0.0F, renderWidth, renderHeight, ready.width(), ready.height(), ready.width(), ready.height());
+            float scale = Math.max(IMAGE_WIDTH / (float) ready.width(), IMAGE_HEIGHT / (float) ready.height());
+            int renderWidth = Math.max(IMAGE_WIDTH, (int) Math.ceil(ready.width() * scale));
+            int renderHeight = Math.max(IMAGE_HEIGHT, (int) Math.ceil(ready.height() * scale));
+            int renderX = x + Math.floorDiv(IMAGE_WIDTH - renderWidth, 2);
+            int renderY = y + Math.floorDiv(IMAGE_HEIGHT - renderHeight, 2);
+
+            // This clip is nested inside the grid clip. Keep the push and pop paired so later tile content retains the scroll-area scissor.
+            graphics.enableScissor(x, y, x + IMAGE_WIDTH, y + IMAGE_HEIGHT);
+            try {
+                graphics.blit(RenderPipelines.GUI_TEXTURED, ready.textureId(), renderX, renderY, 0.0F, 0.0F, renderWidth, renderHeight, ready.width(), ready.height(), ready.width(), ready.height());
+            } finally {
+                graphics.disableScissor();
+            }
         } else {
             Component message = thumbnail instanceof Thumbnail.Failed
                     ? Component.translatable("snappy.browser.thumbnail_failed")

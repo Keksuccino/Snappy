@@ -31,6 +31,7 @@ import net.minecraft.client.gui.layouts.LinearLayout;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -57,6 +58,9 @@ public class PhotoModeScreen extends Screen {
     private static final Identifier LENS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_lens_icon_15x15.png");
     private static final Identifier WORLD_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_world_icon_15x15.png");
     private static final Identifier SETTINGS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/settings_icon_15x15.png");
+    private static final Identifier ACTIVE_TAB_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/photo_mode_tabs_active_tab_24x45.png");
+    private static final int ACTIVE_TAB_BACKGROUND_WIDTH = 24;
+    private static final int ACTIVE_TAB_BACKGROUND_HEIGHT = GuiBackground.PHOTO_MODE_TABS.topBorder();
     private static final int PANEL_WIDTH = 236;
     static final int PANEL_PADDING = 8;
     static final int CONTROL_HEIGHT = 20;
@@ -66,18 +70,20 @@ public class PhotoModeScreen extends Screen {
     private static final int TAB_SCROLLBAR_RESERVE = AbstractScrollArea.SCROLLBAR_WIDTH + TAB_SCROLLBAR_SPACING;
     // Decorative slices own space outside the tab body. Mirror the trailing center padding on the leading edges so the body remains evenly inset while the textured panel itself stays fixed.
     private static final int TAB_HEADER_CONTENT_HEIGHT = PANEL_PADDING + TexturedIconButton.DEFAULT_BUTTON_SIZE + CONTROL_GAP + 2;
-    private static final int TAB_BODY_RIGHT_INSET = Math.max(PANEL_PADDING, GuiBackground.PHOTO_MODE_TABS.rightBorder());
+    private static final int TAB_PANEL_WIDTH = GuiBackground.PHOTO_MODE_TABS.textureWidth();
+    private static final int TAB_BODY_RIGHT_INSET = TAB_PANEL_WIDTH - GuiBackground.PHOTO_MODE_TABS.leftBorder() - (PANEL_WIDTH - PANEL_PADDING * 2);
     private static final int TAB_BODY_BOTTOM_INSET = Math.max(PANEL_PADDING, GuiBackground.PHOTO_MODE_TABS.bottomBorder());
     private static final int TAB_BODY_LEFT_PADDING = TAB_BODY_RIGHT_INSET - GuiBackground.PHOTO_MODE_TABS.rightBorder();
     private static final int TAB_BODY_TOP_PADDING = TAB_BODY_BOTTOM_INSET - GuiBackground.PHOTO_MODE_TABS.bottomBorder();
     private static final int TAB_BODY_LEFT_OFFSET = GuiBackground.PHOTO_MODE_TABS.leftBorder() + TAB_BODY_LEFT_PADDING;
     private static final int TAB_BODY_TOP_OFFSET = GuiBackground.PHOTO_MODE_TABS.topBorder() + TAB_BODY_TOP_PADDING;
     private static final int TAB_BUTTON_TOP_OFFSET = PANEL_PADDING + TAB_BODY_TOP_PADDING;
-    private static final int TAB_PANEL_WIDTH = GuiBackground.PHOTO_MODE_TABS.leftBorder() + PANEL_WIDTH - PANEL_PADDING * 2 + TAB_BODY_RIGHT_INSET;
     private static final int TAB_PANEL_HEIGHT_INCREASE = GuiBackground.PHOTO_MODE_TABS.topBorder() + TAB_BODY_BOTTOM_INSET - TAB_HEADER_CONTENT_HEIGHT - PANEL_PADDING;
-    private static final int MIN_TAB_BODY_HEIGHT = CONTROL_HEIGHT;
-    private static final int MIN_BASE_PANEL_HEIGHT = TAB_HEADER_CONTENT_HEIGHT + MIN_TAB_BODY_HEIGHT + PANEL_PADDING;
-    private static final int MIN_TAB_PANEL_HEIGHT = GuiBackground.PHOTO_MODE_TABS.topBorder() + MIN_TAB_BODY_HEIGHT + TAB_BODY_BOTTOM_INSET;
+    private static final int MIN_TAB_BODY_HEIGHT = 100;
+    // Preserve both the usable body height and enough room for the fixed top/bottom border overlays to meet without overlap at minimum size.
+    private static final int MIN_TAB_PANEL_HEIGHT = Math.max(TAB_BODY_TOP_OFFSET + MIN_TAB_BODY_HEIGHT + TAB_BODY_BOTTOM_INSET, GuiBackground.PHOTO_MODE_TABS.minimumHeight());
+    private static final int MIN_TAB_CONTENT_PANEL_HEIGHT = MIN_TAB_PANEL_HEIGHT - TAB_PANEL_HEIGHT_INCREASE;
+    private static final int MIN_CONFIRMATION_PANEL_HEIGHT = TAB_HEADER_CONTENT_HEIGHT + CONTROL_HEIGHT + PANEL_PADDING;
     private static final int SCREEN_MARGIN = 12;
     private static final int ACTION_GAP = 4;
     private static final int ACTION_ROW_GAP = 5;
@@ -879,9 +885,9 @@ public class PhotoModeScreen extends Screen {
         }
 
         GuiBackground.PHOTO_MODE_TABS.render(graphics, this.panelX, this.panelY, TAB_PANEL_WIDTH, this.panelHeight);
-        int tabY = this.panelY + TAB_BUTTON_TOP_OFFSET;
         int tabX = this.panelX + TAB_BODY_LEFT_OFFSET + this.selectedTab.ordinal() * (TexturedIconButton.DEFAULT_BUTTON_SIZE + TAB_GAP);
-        graphics.outline(tabX - 1, tabY - 1, TexturedIconButton.DEFAULT_BUTTON_SIZE + 2, TexturedIconButton.DEFAULT_BUTTON_SIZE + 2, PANEL_ACCENT_COLOR);
+        int activeTabBackgroundX = tabX + (TexturedIconButton.DEFAULT_BUTTON_SIZE - ACTIVE_TAB_BACKGROUND_WIDTH) / 2;
+        graphics.blit(RenderPipelines.GUI_TEXTURED, ACTIVE_TAB_BACKGROUND_TEXTURE, activeTabBackgroundX, this.panelY, 0.0F, 0.0F, ACTIVE_TAB_BACKGROUND_WIDTH, ACTIVE_TAB_BACKGROUND_HEIGHT, ACTIVE_TAB_BACKGROUND_WIDTH, ACTIVE_TAB_BACKGROUND_HEIGHT);
     }
 
     private void renderPoseMakerPanel(@NotNull GuiGraphicsExtractor graphics) {
@@ -906,16 +912,16 @@ public class PhotoModeScreen extends Screen {
     private void updatePanelBounds() {
         boolean confirmationOpen = this.confirmationDialog != null;
         int actionRowReserve = confirmationOpen ? 0 : CONTROL_HEIGHT + ACTION_ROW_GAP;
-        int minimumPanelHeight = confirmationOpen ? MIN_BASE_PANEL_HEIGHT : MIN_TAB_PANEL_HEIGHT;
+        int minimumPanelHeight = confirmationOpen ? MIN_CONFIRMATION_PANEL_HEIGHT : MIN_TAB_PANEL_HEIGHT;
         int availablePanelHeight = Math.max(minimumPanelHeight, this.height - SCREEN_MARGIN * 2 - actionRowReserve);
-        int desiredPanelHeight = confirmationOpen ? 118 : Math.min(this.selectedTab.panelHeight(), this.maxTabPanelHeight()) + TAB_PANEL_HEIGHT_INCREASE;
+        int desiredPanelHeight = confirmationOpen ? 118 : Math.max(MIN_TAB_PANEL_HEIGHT, Math.min(this.selectedTab.panelHeight(), this.maxTabPanelHeight()) + TAB_PANEL_HEIGHT_INCREASE);
         this.panelHeight = Math.min(availablePanelHeight, desiredPanelHeight);
         this.panelX = Math.max(SCREEN_MARGIN, this.width - this.panelWidth() - SCREEN_MARGIN);
         this.panelY = Math.max(SCREEN_MARGIN, this.height - this.panelHeight - SCREEN_MARGIN - actionRowReserve);
     }
 
     private int maxTabPanelHeight() {
-        return Math.max(MIN_BASE_PANEL_HEIGHT, this.height / 3);
+        return Math.max(MIN_TAB_CONTENT_PANEL_HEIGHT, this.height / 3);
     }
 
     private int tabBodyY() {
