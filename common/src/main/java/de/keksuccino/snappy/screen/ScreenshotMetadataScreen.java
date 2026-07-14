@@ -1,5 +1,6 @@
 package de.keksuccino.snappy.screen;
 
+import de.keksuccino.snappy.client.gui.GuiBackground;
 import de.keksuccino.snappy.metadata.ScreenshotMetadataManager;
 import de.keksuccino.snappy.metadata.ScreenshotMetadataManager.PlayerInfo;
 import de.keksuccino.snappy.metadata.ScreenshotMetadataManager.ScreenshotMetadata;
@@ -36,13 +37,16 @@ public class ScreenshotMetadataScreen extends Screen {
     private static final int SECTION_PADDING = 10;
     private static final int SECTION_TITLE_HEIGHT = 13;
     private static final int ROW_HEIGHT = 13;
-    private static final int PANEL_BACKGROUND_COLOR = ARGB.color(128, 0, 0, 0);
-    private static final int PANEL_BORDER_SIZE = 1;
-    private static final int PANEL_BORDER_COLOR = ARGB.color(255, 112, 112, 112);
     private static final int SECTION_BACKGROUND_COLOR = ARGB.color(102, 0, 0, 0);
     private static final int SECTION_BORDER_SIZE = 1;
     private static final int SECTION_BORDER_COLOR = ARGB.color(255, 112, 112, 112);
     private static final int SCROLL_STEP = 24;
+    private static final int SCROLL_AREA_BACKGROUND_GAP = 4;
+    private static final int SCROLL_AREA_LEFT_INSET = GuiBackground.DEFAULT.leftBorder() + SCROLL_AREA_BACKGROUND_GAP;
+    private static final int SCROLL_AREA_TOP_INSET = GuiBackground.DEFAULT.topBorder() + SCROLL_AREA_BACKGROUND_GAP;
+    private static final int SCROLL_AREA_RIGHT_INSET = GuiBackground.DEFAULT.rightBorder() + SCROLL_AREA_BACKGROUND_GAP;
+    private static final int SCROLL_AREA_BOTTOM_INSET = GuiBackground.DEFAULT.bottomBorder() + SCROLL_AREA_BACKGROUND_GAP;
+    private static final int SCROLLBAR_EDGE_INSET = 2;
     private static final int BUTTON_HEIGHT = 20;
     private static final int BACK_BUTTON_WIDTH = 72;
 
@@ -73,7 +77,7 @@ public class ScreenshotMetadataScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
-        if (this.isOverPanel(x, y) && this.maxScroll() > 0) {
+        if (this.isOverScrollArea(x, y) && this.maxScroll() > 0) {
             this.scrollOffset = Mth.clamp(this.scrollOffset - (int) Math.round(scrollY * SCROLL_STEP), 0, this.maxScroll());
             return true;
         }
@@ -95,22 +99,13 @@ public class ScreenshotMetadataScreen extends Screen {
         int panelY = this.panelY();
         int panelWidth = this.panelWidth();
         int panelHeight = this.panelHeight();
-        RenderingUtils.renderBorder(
-                graphics,
-                panelX - PANEL_BORDER_SIZE,
-                panelY - PANEL_BORDER_SIZE,
-                panelWidth + PANEL_BORDER_SIZE * 2,
-                panelHeight + PANEL_BORDER_SIZE * 2,
-                PANEL_BORDER_SIZE,
-                PANEL_BORDER_COLOR
-        );
-        graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, PANEL_BACKGROUND_COLOR);
+        GuiBackground.DEFAULT.render(graphics, panelX, panelY, panelWidth, panelHeight);
 
         ScreenshotMetadata metadata = ScreenshotMetadataManager.find(this.entry.path()).orElse(null);
         if (metadata == null) {
             Component message = Component.translatable("snappy.metadata.missing");
             graphics.centeredText(this.font, message, panelX + panelWidth / 2, panelY + panelHeight / 2 - 4, 0xFFB0B0B0);
-            this.contentHeight = panelHeight;
+            this.contentHeight = this.scrollAreaHeight();
             this.scrollOffset = 0;
             return;
         }
@@ -120,7 +115,7 @@ public class ScreenshotMetadataScreen extends Screen {
         int contentY = panelY + PANEL_PADDING - this.scrollOffset;
         int y = contentY;
 
-        graphics.enableScissor(panelX, panelY, panelX + panelWidth, panelY + panelHeight);
+        graphics.enableScissor(panelX + SCROLL_AREA_LEFT_INSET, panelY + SCROLL_AREA_TOP_INSET, panelX + panelWidth - SCROLL_AREA_RIGHT_INSET, panelY + panelHeight - SCROLL_AREA_BOTTOM_INSET);
         try {
             y = this.renderSection(graphics, contentX, y, contentWidth, Component.translatable("snappy.metadata.section.image"), this.imageRows(metadata));
             y = this.renderSection(graphics, contentX, y, contentWidth, Component.translatable("snappy.metadata.section.world"), this.worldRows(metadata));
@@ -130,7 +125,8 @@ public class ScreenshotMetadataScreen extends Screen {
             graphics.disableScissor();
         }
 
-        this.contentHeight = Math.max(panelHeight, y - contentY + PANEL_PADDING);
+        // Content begins four pixels inside the viewport, while renderSection returns eight pixels past the final section. Their difference leaves the matching four-pixel bottom space at maximum scroll.
+        this.contentHeight = Math.max(this.scrollAreaHeight(), y - contentY);
         this.scrollOffset = Mth.clamp(this.scrollOffset, 0, this.maxScroll());
         this.renderScrollbar(graphics);
     }
@@ -308,13 +304,16 @@ public class ScreenshotMetadataScreen extends Screen {
         int panelY = this.panelY();
         int panelWidth = this.panelWidth();
         int panelHeight = this.panelHeight();
-        int trackX = panelX + panelWidth - 5;
-        int trackHeight = panelHeight - 4;
-        int thumbHeight = Mth.clamp(panelHeight * panelHeight / Math.max(panelHeight, this.contentHeight), 18, trackHeight);
+        int scrollAreaHeight = this.scrollAreaHeight();
+        int trackX = panelX + panelWidth - SCROLL_AREA_RIGHT_INSET - 5;
+        int trackY = panelY + SCROLL_AREA_TOP_INSET + SCROLLBAR_EDGE_INSET;
+        int trackBottom = panelY + panelHeight - SCROLL_AREA_BOTTOM_INSET - SCROLLBAR_EDGE_INSET;
+        int trackHeight = Math.max(1, trackBottom - trackY);
+        int thumbHeight = Mth.clamp(trackHeight * scrollAreaHeight / Math.max(scrollAreaHeight, this.contentHeight), 18, trackHeight);
         int thumbTravel = Math.max(1, trackHeight - thumbHeight);
-        int thumbY = panelY + 2 + Math.round(thumbTravel * (this.scrollOffset / (float) maxScroll));
+        int thumbY = trackY + Math.round(thumbTravel * (this.scrollOffset / (float) maxScroll));
 
-        graphics.fill(trackX, panelY + 2, trackX + 2, panelY + panelHeight - 2, 0x66404040);
+        graphics.fill(trackX, trackY, trackX + 2, trackBottom, 0x66404040);
         graphics.fill(trackX - 1, thumbY, trackX + 3, thumbY + thumbHeight, 0xCCFFFFFF);
     }
 
@@ -335,14 +334,18 @@ public class ScreenshotMetadataScreen extends Screen {
     }
 
     private int maxScroll() {
-        return Math.max(0, this.contentHeight - this.panelHeight());
+        return Math.max(0, this.contentHeight - this.scrollAreaHeight());
     }
 
-    private boolean isOverPanel(double x, double y) {
-        return x >= this.panelX()
-                && x < this.panelX() + this.panelWidth()
-                && y >= this.panelY()
-                && y < this.panelY() + this.panelHeight();
+    private int scrollAreaHeight() {
+        return Math.max(1, this.panelHeight() - SCROLL_AREA_TOP_INSET - SCROLL_AREA_BOTTOM_INSET);
+    }
+
+    private boolean isOverScrollArea(double x, double y) {
+        return x >= this.panelX() + SCROLL_AREA_LEFT_INSET
+                && x < this.panelX() + this.panelWidth() - SCROLL_AREA_RIGHT_INSET
+                && y >= this.panelY() + SCROLL_AREA_TOP_INSET
+                && y < this.panelY() + this.panelHeight() - SCROLL_AREA_BOTTOM_INSET;
     }
 
     private record MetadataRow(@NotNull Component label, @NotNull String value) {

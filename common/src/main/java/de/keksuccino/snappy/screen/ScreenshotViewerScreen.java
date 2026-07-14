@@ -5,6 +5,7 @@ import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import de.keksuccino.snappy.Snappy;
+import de.keksuccino.snappy.client.gui.GuiBackground;
 import de.keksuccino.snappy.menu.MenuBackgroundSelectionManager;
 import de.keksuccino.snappy.menu.PanoramaMenuManager;
 import de.keksuccino.snappy.preview.PreviewCubeMapRenderer;
@@ -53,8 +54,14 @@ public class ScreenshotViewerScreen extends Screen {
     private static final int PANORAMA_PROGRESS_TRACK_THICKNESS = 4;
     private static final int PANORAMA_PROGRESS_DOT_SIZE = 8;
     private static final int PANORAMA_PROGRESS_HIT_PADDING = 8;
-    private static final int IMAGE_AREA_BORDER_SIZE = 1;
-    private static final int IMAGE_AREA_BORDER_COLOR = ARGB.color(255, 112, 112, 112);
+    private static final int SCREENSHOT_BACKGROUND_GAP = 4;
+    private static final int SCREENSHOT_BORDER_SIZE = 1;
+    // The content insets include the texture border, the complete visible gap, and the outer screenshot border. Keeping the border separate prevents it from consuming one pixel of the requested gap.
+    private static final int SCREENSHOT_CONTENT_LEFT_INSET = GuiBackground.DEFAULT.leftBorder() + SCREENSHOT_BACKGROUND_GAP + SCREENSHOT_BORDER_SIZE;
+    private static final int SCREENSHOT_CONTENT_TOP_INSET = GuiBackground.DEFAULT.topBorder() + SCREENSHOT_BACKGROUND_GAP + SCREENSHOT_BORDER_SIZE;
+    private static final int SCREENSHOT_CONTENT_RIGHT_INSET = GuiBackground.DEFAULT.rightBorder() + SCREENSHOT_BACKGROUND_GAP + SCREENSHOT_BORDER_SIZE;
+    private static final int SCREENSHOT_CONTENT_BOTTOM_INSET = GuiBackground.DEFAULT.bottomBorder() + SCREENSHOT_BACKGROUND_GAP + SCREENSHOT_BORDER_SIZE;
+    private static final int SCREENSHOT_BORDER_COLOR = ARGB.color(255, 112, 112, 112);
     private static final int PANORAMA_VERTICAL_PROGRESS_MAX_HEIGHT = 300;
     private static final int PANORAMA_VERTICAL_PROGRESS_MIN_HEIGHT = 100;
     private static final int PANORAMA_VERTICAL_PROGRESS_VERTICAL_MARGIN = 120;
@@ -87,7 +94,6 @@ public class ScreenshotViewerScreen extends Screen {
     private PreviewCubeMapTexture panoramaTexture;
     private int imageWidth = 16;
     private int imageHeight = 9;
-    private int normalBackgroundColor = ScreenshotImageLoader.VIEWER_BACKGROUND_FALLBACK_COLOR;
     private float panoramaRotationDegrees;
     private float panoramaVerticalAngleDegrees;
     private long panoramaRotationLastMillis;
@@ -355,7 +361,6 @@ public class ScreenshotViewerScreen extends Screen {
         ScreenshotEntry entry = this.currentEntry();
         this.releaseCurrentImage();
         this.resetPanoramaPlayback();
-        this.normalBackgroundColor = ScreenshotImageLoader.VIEWER_BACKGROUND_FALLBACK_COLOR;
         this.loadStatus = LoadStatus.LOADING;
         this.statusMessage = Component.translatable("snappy.browser.loading");
         this.updateButtons();
@@ -415,7 +420,6 @@ public class ScreenshotViewerScreen extends Screen {
         ScreenshotImageTexture texture = null;
         try {
             loadedImage = ScreenshotImageLoader.decodeNormalViewerImage(imageBytes);
-            int backgroundColor = ScreenshotImageLoader.createViewerBackgroundColor(loadedImage.image());
             texture = new ScreenshotImageTexture("Snappy screenshot viewer", loadedImage.image());
             int width = texture.getPixels().getWidth();
             int height = texture.getPixels().getHeight();
@@ -424,7 +428,6 @@ public class ScreenshotViewerScreen extends Screen {
             this.normalTextureId = textureId;
             this.imageWidth = width;
             this.imageHeight = height;
-            this.normalBackgroundColor = backgroundColor;
             this.loadStatus = LoadStatus.READY;
             this.statusMessage = Component.empty();
         } catch (Throwable ex) {
@@ -482,8 +485,6 @@ public class ScreenshotViewerScreen extends Screen {
         if (textureId != null) {
             this.minecraft.getTextureManager().release(textureId);
         }
-        this.normalBackgroundColor = ScreenshotImageLoader.VIEWER_BACKGROUND_FALLBACK_COLOR;
-
         PreviewCubeMapTexture texture = this.panoramaTexture;
         this.panoramaTexture = null;
         if (texture != null) {
@@ -553,16 +554,7 @@ public class ScreenshotViewerScreen extends Screen {
         int areaY = this.imageAreaY();
         int areaWidth = this.imageAreaWidth();
         int areaHeight = this.imageAreaHeight();
-        RenderingUtils.renderBorder(
-                graphics,
-                areaX - IMAGE_AREA_BORDER_SIZE,
-                areaY - IMAGE_AREA_BORDER_SIZE,
-                areaWidth + IMAGE_AREA_BORDER_SIZE * 2,
-                areaHeight + IMAGE_AREA_BORDER_SIZE * 2,
-                IMAGE_AREA_BORDER_SIZE,
-                IMAGE_AREA_BORDER_COLOR
-        );
-        graphics.fill(areaX, areaY, areaX + areaWidth, areaY + areaHeight, this.imageBackgroundColor());
+        GuiBackground.DEFAULT.render(graphics, areaX, areaY, areaWidth, areaHeight);
 
         if (this.loadStatus != LoadStatus.READY) {
             graphics.centeredText(this.font, this.statusMessage, areaX + areaWidth / 2, areaY + areaHeight / 2 - 4, 0xFFFFFFFF);
@@ -571,20 +563,23 @@ public class ScreenshotViewerScreen extends Screen {
 
         ScreenshotEntry entry = this.currentEntry();
         if (entry != null && entry.isPanorama()) {
-            this.renderPanorama(graphics, areaX, areaY, areaWidth, areaHeight);
+            int screenshotX = this.screenshotX();
+            int screenshotY = this.screenshotY();
+            int screenshotWidth = this.screenshotWidth();
+            int screenshotHeight = this.screenshotHeight();
+            this.renderPanorama(graphics, screenshotX, screenshotY, screenshotWidth, screenshotHeight);
+            this.renderScreenshotBorder(graphics, screenshotX, screenshotY, screenshotWidth, screenshotHeight);
             this.renderPanoramaProgressBar(graphics, mouseX, mouseY);
             this.renderPanoramaVerticalProgressBar(graphics, mouseX, mouseY);
         } else {
-            int[] bounds = this.fitBounds(areaX, areaY, areaWidth, areaHeight, this.imageWidth, this.imageHeight);
+            int[] bounds = this.fitBounds(this.screenshotX(), this.screenshotY(), this.screenshotWidth(), this.screenshotHeight(), this.imageWidth, this.imageHeight);
             this.renderNormalImage(graphics, bounds[0], bounds[1], bounds[2], bounds[3]);
+            this.renderScreenshotBorder(graphics, bounds[0], bounds[1], bounds[2], bounds[3]);
         }
     }
 
-    private int imageBackgroundColor() {
-        ScreenshotEntry entry = this.currentEntry();
-        return this.loadStatus == LoadStatus.READY && entry != null && !entry.isPanorama()
-                ? this.normalBackgroundColor
-                : ScreenshotImageLoader.VIEWER_BACKGROUND_FALLBACK_COLOR;
+    private void renderScreenshotBorder(@NotNull GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
+        RenderingUtils.renderBorder(graphics, x - SCREENSHOT_BORDER_SIZE, y - SCREENSHOT_BORDER_SIZE, width + SCREENSHOT_BORDER_SIZE * 2, height + SCREENSHOT_BORDER_SIZE * 2, SCREENSHOT_BORDER_SIZE, SCREENSHOT_BORDER_COLOR);
     }
 
     private void renderNormalImage(@NotNull GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
@@ -779,10 +774,10 @@ public class ScreenshotViewerScreen extends Screen {
 
     private boolean isPanoramaMouseLookHit(double mouseX, double mouseY) {
         return this.isPanoramaProgressVisible()
-                && mouseX >= this.imageAreaX()
-                && mouseX <= this.imageAreaX() + this.imageAreaWidth()
-                && mouseY >= this.imageAreaY()
-                && mouseY <= this.imageAreaY() + this.imageAreaHeight();
+                && mouseX >= this.screenshotX()
+                && mouseX <= this.screenshotX() + this.screenshotWidth()
+                && mouseY >= this.screenshotY()
+                && mouseY <= this.screenshotY() + this.screenshotHeight();
     }
 
     private void startPanoramaMouseLook() {
@@ -858,7 +853,7 @@ public class ScreenshotViewerScreen extends Screen {
     }
 
     private int panoramaProgressY() {
-        return this.imageAreaY() + this.imageAreaHeight() - PANORAMA_PROGRESS_BOTTOM_MARGIN;
+        return this.screenshotY() + this.screenshotHeight() - PANORAMA_PROGRESS_BOTTOM_MARGIN;
     }
 
     private int panoramaProgressCenterY() {
@@ -866,7 +861,7 @@ public class ScreenshotViewerScreen extends Screen {
     }
 
     private int panoramaProgressWidth() {
-        return Mth.clamp(this.imageAreaWidth() - PANORAMA_PROGRESS_HORIZONTAL_MARGIN, PANORAMA_PROGRESS_MIN_WIDTH, PANORAMA_PROGRESS_MAX_WIDTH);
+        return Mth.clamp(this.screenshotWidth() - PANORAMA_PROGRESS_HORIZONTAL_MARGIN, PANORAMA_PROGRESS_MIN_WIDTH, PANORAMA_PROGRESS_MAX_WIDTH);
     }
 
     private int panoramaProgressDotCenterX() {
@@ -876,11 +871,11 @@ public class ScreenshotViewerScreen extends Screen {
     }
 
     private int panoramaVerticalProgressX() {
-        return this.imageAreaX() + this.imageAreaWidth() - PANORAMA_VERTICAL_PROGRESS_RIGHT_MARGIN - PANORAMA_PROGRESS_TRACK_THICKNESS;
+        return this.screenshotX() + this.screenshotWidth() - PANORAMA_VERTICAL_PROGRESS_RIGHT_MARGIN - PANORAMA_PROGRESS_TRACK_THICKNESS;
     }
 
     private int panoramaVerticalProgressY() {
-        return this.imageAreaY() + this.imageAreaHeight() / 2 - this.panoramaVerticalProgressHeight() / 2;
+        return this.screenshotY() + this.screenshotHeight() / 2 - this.panoramaVerticalProgressHeight() / 2;
     }
 
     private int panoramaVerticalProgressCenterX() {
@@ -888,9 +883,9 @@ public class ScreenshotViewerScreen extends Screen {
     }
 
     private int panoramaVerticalProgressHeight() {
-        int maxHeight = Math.max(1, Math.min(PANORAMA_VERTICAL_PROGRESS_MAX_HEIGHT, this.imageAreaHeight() - PANORAMA_PROGRESS_HIT_PADDING * 2));
+        int maxHeight = Math.max(1, Math.min(PANORAMA_VERTICAL_PROGRESS_MAX_HEIGHT, this.screenshotHeight() - PANORAMA_PROGRESS_HIT_PADDING * 2));
         int minHeight = Math.min(PANORAMA_VERTICAL_PROGRESS_MIN_HEIGHT, maxHeight);
-        return Mth.clamp(this.imageAreaHeight() - PANORAMA_VERTICAL_PROGRESS_VERTICAL_MARGIN, minHeight, maxHeight);
+        return Mth.clamp(this.screenshotHeight() - PANORAMA_VERTICAL_PROGRESS_VERTICAL_MARGIN, minHeight, maxHeight);
     }
 
     private int panoramaVerticalProgressDotCenterY() {
@@ -931,6 +926,22 @@ public class ScreenshotViewerScreen extends Screen {
 
     private int imageAreaHeight() {
         return Math.max(60, this.height - 92);
+    }
+
+    private int screenshotX() {
+        return this.imageAreaX() + SCREENSHOT_CONTENT_LEFT_INSET;
+    }
+
+    private int screenshotY() {
+        return this.imageAreaY() + SCREENSHOT_CONTENT_TOP_INSET;
+    }
+
+    private int screenshotWidth() {
+        return Math.max(1, this.imageAreaWidth() - SCREENSHOT_CONTENT_LEFT_INSET - SCREENSHOT_CONTENT_RIGHT_INSET);
+    }
+
+    private int screenshotHeight() {
+        return Math.max(1, this.imageAreaHeight() - SCREENSHOT_CONTENT_TOP_INSET - SCREENSHOT_CONTENT_BOTTOM_INSET);
     }
 
     private int hoverMouseX(int mouseX) {

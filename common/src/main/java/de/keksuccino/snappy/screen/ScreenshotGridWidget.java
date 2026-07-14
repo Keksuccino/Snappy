@@ -1,6 +1,7 @@
 package de.keksuccino.snappy.screen;
 
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
+import de.keksuccino.snappy.client.gui.GuiBackground;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
 import de.keksuccino.snappy.screen.ScreenshotThumbnailCache.Thumbnail;
 import de.keksuccino.snappy.util.rendering.RenderingUtils;
@@ -28,11 +29,15 @@ import java.util.function.Consumer;
 
 public class ScreenshotGridWidget extends AbstractScrollArea implements AutoCloseable {
 
+    private static final int SCROLL_AREA_BACKGROUND_GAP = 4;
+    private static final int SCROLL_AREA_LEFT_INSET = GuiBackground.DEFAULT.leftBorder() + SCROLL_AREA_BACKGROUND_GAP;
+    private static final int SCROLL_AREA_TOP_INSET = GuiBackground.DEFAULT.topBorder() + SCROLL_AREA_BACKGROUND_GAP;
+    private static final int SCROLL_AREA_RIGHT_INSET = GuiBackground.DEFAULT.rightBorder() + SCROLL_AREA_BACKGROUND_GAP;
+    private static final int SCROLL_AREA_BOTTOM_INSET = GuiBackground.DEFAULT.bottomBorder() + SCROLL_AREA_BACKGROUND_GAP;
     private static final int PADDING = 10;
     private static final int TILE_WIDTH = 136;
     private static final int TILE_HEIGHT = 118;
     private static final int TILE_GAP = 8;
-    private static final int SCROLL_AREA_BORDER_SIZE = 1;
     private static final int THUMBNAIL_BUFFER_ROWS = 2;
     private static final int IMAGE_WIDTH = 120;
     private static final int IMAGE_HEIGHT = 68;
@@ -41,11 +46,9 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private static final int SCROLLBAR_TRACK_WIDTH = 2;
     private static final int SCROLLBAR_THUMB_WIDTH = 4;
     private static final int SCROLLBAR_MIN_THUMB_HEIGHT = 18;
-    private static final int SCROLL_AREA_BACKGROUND_COLOR = ARGB.color(128, 0, 0, 0);
     private static final int CARD_COLOR = ARGB.color(102, 0, 0, 0);
     private static final int CARD_HOVER_COLOR = ARGB.color(128, 55, 55, 55);
     private static final int CARD_SELECTED_COLOR = ARGB.color(128, 64, 96, 144);
-    private static final int SCROLL_AREA_BORDER_COLOR = ARGB.color(255, 112, 112, 112);
     private static final int SCROLLBAR_TRACK_COLOR = 0x66404040;
     private static final int SCROLLBAR_THUMB_COLOR = 0xCCFFFFFF;
     private static final int BORDER_COLOR = ARGB.color(255, 112, 112, 112);
@@ -87,14 +90,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
             @NotNull Consumer<List<ScreenshotEntry>> deleteCallback,
             @NotNull Runnable selectionChangedCallback
     ) {
-        super(
-                x + SCROLL_AREA_BORDER_SIZE,
-                y + SCROLL_AREA_BORDER_SIZE,
-                Math.max(1, width - SCROLL_AREA_BORDER_SIZE * 2),
-                Math.max(1, height - SCROLL_AREA_BORDER_SIZE * 2),
-                Component.translatable("snappy.browser.grid"),
-                AbstractScrollArea.defaultSettings(36)
-        );
+        super(x + SCROLL_AREA_LEFT_INSET, y + SCROLL_AREA_TOP_INSET, Math.max(1, width - SCROLL_AREA_LEFT_INSET - SCROLL_AREA_RIGHT_INSET), Math.max(1, height - SCROLL_AREA_TOP_INSET - SCROLL_AREA_BOTTOM_INSET), Component.translatable("snappy.browser.grid"), AbstractScrollArea.defaultSettings(36));
         this.font = font;
         this.thumbnailCache = new ScreenshotThumbnailCache(minecraft);
         this.openCallback = openCallback;
@@ -183,16 +179,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
 
     @Override
     protected void extractWidgetRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
-        RenderingUtils.renderBorder(
-                graphics,
-                this.getX() - SCROLL_AREA_BORDER_SIZE,
-                this.getY() - SCROLL_AREA_BORDER_SIZE,
-                this.getWidth() + SCROLL_AREA_BORDER_SIZE * 2,
-                this.getHeight() + SCROLL_AREA_BORDER_SIZE * 2,
-                SCROLL_AREA_BORDER_SIZE,
-                SCROLL_AREA_BORDER_COLOR
-        );
-        graphics.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), SCROLL_AREA_BACKGROUND_COLOR);
+        GuiBackground.DEFAULT.render(graphics, this.getX() - SCROLL_AREA_LEFT_INSET, this.getY() - SCROLL_AREA_TOP_INSET, this.getWidth() + SCROLL_AREA_LEFT_INSET + SCROLL_AREA_RIGHT_INSET, this.getHeight() + SCROLL_AREA_TOP_INSET + SCROLL_AREA_BOTTOM_INSET);
         this.enableGridScissor(graphics);
         try {
             if (this.entries.isEmpty()) {

@@ -2,9 +2,7 @@ package de.keksuccino.snappy.screen;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
-import net.minecraft.util.ARGB;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,14 +16,6 @@ public final class ScreenshotImageLoader {
     public static final int VIEWER_NORMAL_MAX_SIZE = 2048;
     // Match Snappy's highest capture preset so Ultra panoramas keep their detail in the full viewer.
     public static final int VIEWER_PANORAMA_FACE_MAX_SIZE = 2048;
-    public static final int VIEWER_BACKGROUND_FALLBACK_COLOR = ARGB.color(128, 0, 0, 0);
-    private static final int VIEWER_BACKGROUND_BUCKET_BITS = 4;
-    private static final int VIEWER_BACKGROUND_BUCKETS_PER_CHANNEL = 1 << VIEWER_BACKGROUND_BUCKET_BITS;
-    private static final int VIEWER_BACKGROUND_BUCKET_COUNT = VIEWER_BACKGROUND_BUCKETS_PER_CHANNEL
-            * VIEWER_BACKGROUND_BUCKETS_PER_CHANNEL
-            * VIEWER_BACKGROUND_BUCKETS_PER_CHANNEL;
-    private static final int VIEWER_BACKGROUND_BUCKET_SHIFT = 8 - VIEWER_BACKGROUND_BUCKET_BITS;
-    private static final float VIEWER_BACKGROUND_DARKEN_FACTOR = 0.8F;
 
     private ScreenshotImageLoader() {
     }
@@ -54,39 +44,6 @@ public final class ScreenshotImageLoader {
             NativeImage image = resizeToFit(source, VIEWER_NORMAL_MAX_SIZE, VIEWER_NORMAL_MAX_SIZE);
             return new LoadedImage(image, source.getWidth(), source.getHeight());
         }
-    }
-
-    public static int createViewerBackgroundColor(@NotNull NativeImage image) {
-        ColorRangeAccumulator[] buckets = new ColorRangeAccumulator[VIEWER_BACKGROUND_BUCKET_COUNT];
-        int width = image.getWidth();
-        int height = image.getHeight();
-
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int color = image.getPixel(x, y);
-                int alpha = ARGB.alpha(color);
-                if (alpha <= 0) {
-                    continue;
-                }
-
-                int bucketIndex = backgroundBucketIndex(color);
-                ColorRangeAccumulator bucket = buckets[bucketIndex];
-                if (bucket == null) {
-                    bucket = new ColorRangeAccumulator();
-                    buckets[bucketIndex] = bucket;
-                }
-                bucket.add(color, alpha);
-            }
-        }
-
-        ColorRangeAccumulator mostCommon = null;
-        for (ColorRangeAccumulator bucket : buckets) {
-            if (bucket != null && bucket.isMoreCommonThan(mostCommon)) {
-                mostCommon = bucket;
-            }
-        }
-
-        return mostCommon != null ? mostCommon.toBackgroundColor() : VIEWER_BACKGROUND_FALLBACK_COLOR;
     }
 
     public static byte @NotNull [][] readPanoramaViewerFaceBytes(@NotNull ScreenshotEntry entry) throws IOException {
@@ -179,50 +136,6 @@ public final class ScreenshotImageLoader {
             if (image != null) {
                 image.close();
             }
-        }
-    }
-
-    private static int backgroundBucketIndex(int color) {
-        int red = ARGB.red(color) >> VIEWER_BACKGROUND_BUCKET_SHIFT;
-        int green = ARGB.green(color) >> VIEWER_BACKGROUND_BUCKET_SHIFT;
-        int blue = ARGB.blue(color) >> VIEWER_BACKGROUND_BUCKET_SHIFT;
-        return (red << (VIEWER_BACKGROUND_BUCKET_BITS * 2)) | (green << VIEWER_BACKGROUND_BUCKET_BITS) | blue;
-    }
-
-    private static final class ColorRangeAccumulator {
-
-        private long red;
-        private long green;
-        private long blue;
-        private long weight;
-        private long count;
-
-        private void add(int color, int alpha) {
-            this.red += (long) ARGB.red(color) * alpha;
-            this.green += (long) ARGB.green(color) * alpha;
-            this.blue += (long) ARGB.blue(color) * alpha;
-            this.weight += alpha;
-            this.count++;
-        }
-
-        private boolean isMoreCommonThan(@Nullable ColorRangeAccumulator other) {
-            return other == null || this.count > other.count || this.count == other.count && this.weight > other.weight;
-        }
-
-        private int toBackgroundColor() {
-            int averageRed = Math.round(this.red / (float) this.weight);
-            int averageGreen = Math.round(this.green / (float) this.weight);
-            int averageBlue = Math.round(this.blue / (float) this.weight);
-            return ARGB.color(
-                    128,
-                    darkenChannel(averageRed),
-                    darkenChannel(averageGreen),
-                    darkenChannel(averageBlue)
-            );
-        }
-
-        private static int darkenChannel(int channel) {
-            return Math.round(channel * VIEWER_BACKGROUND_DARKEN_FACTOR);
         }
     }
 
