@@ -40,6 +40,22 @@ public final class GuiBackground {
         renderSlices(graphics, this.texture, x, y, width, height, this.textureWidth, this.textureHeight, this.leftBorder, this.topBorder, this.rightBorder, this.bottomBorder);
     }
 
+    public int leftBorder() {
+        return this.leftBorder;
+    }
+
+    public int topBorder() {
+        return this.topBorder;
+    }
+
+    public int rightBorder() {
+        return this.rightBorder;
+    }
+
+    public int bottomBorder() {
+        return this.bottomBorder;
+    }
+
     /**
      * Renders any texture as a nine-sliced background with independently configurable borders.
      */

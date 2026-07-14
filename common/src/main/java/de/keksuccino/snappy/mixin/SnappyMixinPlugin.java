@@ -99,9 +99,12 @@ public class SnappyMixinPlugin implements IMixinConfigPlugin {
 
     private static boolean isNeoForgeModLoaded(String modId) {
         try {
-            Class<?> modListClass = Class.forName("net.neoforged.fml.ModList", false, SnappyMixinPlugin.class.getClassLoader());
-            Object modList = modListClass.getMethod("get").invoke(null);
-            return (Boolean) modListClass.getMethod("isLoaded", String.class).invoke(modList, modId);
+            Class<?> loaderClass = Class.forName("net.neoforged.fml.loading.FMLLoader", false, SnappyMixinPlugin.class.getClassLoader());
+            Object loader = loaderClass.getMethod("getCurrent").invoke(null);
+            Object loadingModList = loaderClass.getMethod("getLoadingModList").invoke(loader);
+            // Mixin configs are prepared before NeoForge creates the runtime ModList. Its discovery-time list is already complete here and must be used for mixin gating.
+            Class<?> loadingModListClass = Class.forName("net.neoforged.fml.loading.LoadingModList", false, SnappyMixinPlugin.class.getClassLoader());
+            return loadingModListClass.getMethod("getModFileById", String.class).invoke(loadingModList, modId) != null;
         } catch (ReflectiveOperationException | LinkageError e) {
             return false;
         }

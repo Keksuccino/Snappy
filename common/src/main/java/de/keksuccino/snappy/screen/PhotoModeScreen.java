@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import de.keksuccino.snappy.KeyMappings;
 import de.keksuccino.snappy.OptionsScreen;
 import de.keksuccino.snappy.Snappy;
+import de.keksuccino.snappy.client.gui.GuiBackground;
 import de.keksuccino.snappy.client.gui.UIFormatting;
 import de.keksuccino.snappy.photo.PhotoModeArmorMode;
 import de.keksuccino.snappy.photo.PhotoModeColorizePreset;
@@ -63,9 +64,20 @@ public class PhotoModeScreen extends Screen {
     private static final int TAB_GAP = 4;
     private static final int TAB_SCROLLBAR_SPACING = 2;
     private static final int TAB_SCROLLBAR_RESERVE = AbstractScrollArea.SCROLLBAR_WIDTH + TAB_SCROLLBAR_SPACING;
-    private static final int TAB_BODY_TOP_OFFSET = PANEL_PADDING + TexturedIconButton.DEFAULT_BUTTON_SIZE + CONTROL_GAP + 2;
+    // Decorative slices own space outside the tab body. Mirror the trailing center padding on the leading edges so the body remains evenly inset while the textured panel itself stays fixed.
+    private static final int TAB_HEADER_CONTENT_HEIGHT = PANEL_PADDING + TexturedIconButton.DEFAULT_BUTTON_SIZE + CONTROL_GAP + 2;
+    private static final int TAB_BODY_RIGHT_INSET = Math.max(PANEL_PADDING, GuiBackground.PHOTO_MODE_TABS.rightBorder());
+    private static final int TAB_BODY_BOTTOM_INSET = Math.max(PANEL_PADDING, GuiBackground.PHOTO_MODE_TABS.bottomBorder());
+    private static final int TAB_BODY_LEFT_PADDING = TAB_BODY_RIGHT_INSET - GuiBackground.PHOTO_MODE_TABS.rightBorder();
+    private static final int TAB_BODY_TOP_PADDING = TAB_BODY_BOTTOM_INSET - GuiBackground.PHOTO_MODE_TABS.bottomBorder();
+    private static final int TAB_BODY_LEFT_OFFSET = GuiBackground.PHOTO_MODE_TABS.leftBorder() + TAB_BODY_LEFT_PADDING;
+    private static final int TAB_BODY_TOP_OFFSET = GuiBackground.PHOTO_MODE_TABS.topBorder() + TAB_BODY_TOP_PADDING;
+    private static final int TAB_BUTTON_TOP_OFFSET = PANEL_PADDING + TAB_BODY_TOP_PADDING;
+    private static final int TAB_PANEL_WIDTH = GuiBackground.PHOTO_MODE_TABS.leftBorder() + PANEL_WIDTH - PANEL_PADDING * 2 + TAB_BODY_RIGHT_INSET;
+    private static final int TAB_PANEL_HEIGHT_INCREASE = GuiBackground.PHOTO_MODE_TABS.topBorder() + TAB_BODY_BOTTOM_INSET - TAB_HEADER_CONTENT_HEIGHT - PANEL_PADDING;
     private static final int MIN_TAB_BODY_HEIGHT = CONTROL_HEIGHT;
-    private static final int MIN_TAB_PANEL_HEIGHT = TAB_BODY_TOP_OFFSET + MIN_TAB_BODY_HEIGHT + PANEL_PADDING;
+    private static final int MIN_BASE_PANEL_HEIGHT = TAB_HEADER_CONTENT_HEIGHT + MIN_TAB_BODY_HEIGHT + PANEL_PADDING;
+    private static final int MIN_TAB_PANEL_HEIGHT = GuiBackground.PHOTO_MODE_TABS.topBorder() + MIN_TAB_BODY_HEIGHT + TAB_BODY_BOTTOM_INSET;
     private static final int SCREEN_MARGIN = 12;
     private static final int ACTION_GAP = 4;
     private static final int ACTION_ROW_GAP = 5;
@@ -432,8 +444,8 @@ public class PhotoModeScreen extends Screen {
             return;
         }
 
-        int x = this.panelX + PANEL_PADDING;
-        int y = this.panelY + PANEL_PADDING;
+        int x = this.panelX + TAB_BODY_LEFT_OFFSET;
+        int y = this.panelY + TAB_BUTTON_TOP_OFFSET;
         for (Tab tab : Tab.values()) {
             TexturedIconButton button = this.addRenderableWidget(new TexturedIconButton(tab.message(), ignored -> {
                 this.selectedTab = tab;
@@ -497,7 +509,7 @@ public class PhotoModeScreen extends Screen {
         scrollableLayout.arrangeElements();
         scrollableLayout.setMaxHeight(bodyHeight);
         scrollableLayout.arrangeElements();
-        scrollableLayout.setPosition(this.panelX + PANEL_PADDING, this.tabBodyY());
+        scrollableLayout.setPosition(this.panelX + TAB_BODY_LEFT_OFFSET, this.tabBodyY());
         scrollableLayout.visitWidgets(this::addRenderableWidget);
     }
 
@@ -507,7 +519,7 @@ public class PhotoModeScreen extends Screen {
                 ignored -> this.openOptionsScreen(),
                 SETTINGS_ICON
         ));
-        button.setPosition(this.panelX + PANEL_WIDTH - PANEL_PADDING - TexturedIconButton.DEFAULT_BUTTON_SIZE, y);
+        button.setPosition(this.panelX + TAB_PANEL_WIDTH - PANEL_PADDING - TexturedIconButton.DEFAULT_BUTTON_SIZE, y);
     }
 
     private void openOptionsScreen() {
@@ -852,11 +864,10 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void renderPanel(@NotNull GuiGraphicsExtractor graphics) {
-        RenderingUtils.renderBorder(graphics, this.panelX - 1, this.panelY - 1, PANEL_WIDTH + 2, this.panelHeight + 2, 1, PANEL_BORDER_COLOR);
-        graphics.fill(this.panelX, this.panelY, this.panelX + PANEL_WIDTH, this.panelY + this.panelHeight, PANEL_BACKGROUND_COLOR);
-
         ConfirmationDialog dialog = this.confirmationDialog;
         if (dialog != null) {
+            RenderingUtils.renderBorder(graphics, this.panelX - 1, this.panelY - 1, PANEL_WIDTH + 2, this.panelHeight + 2, 1, PANEL_BORDER_COLOR);
+            graphics.fill(this.panelX, this.panelY, this.panelX + PANEL_WIDTH, this.panelY + this.panelHeight, PANEL_BACKGROUND_COLOR);
             int contentX = this.panelX + PANEL_PADDING;
             int contentY = this.panelY + PANEL_PADDING;
             int width = this.controlWidth();
@@ -867,8 +878,9 @@ public class PhotoModeScreen extends Screen {
             return;
         }
 
-        int tabY = this.panelY + PANEL_PADDING;
-        int tabX = this.panelX + PANEL_PADDING + this.selectedTab.ordinal() * (TexturedIconButton.DEFAULT_BUTTON_SIZE + TAB_GAP);
+        GuiBackground.PHOTO_MODE_TABS.render(graphics, this.panelX, this.panelY, TAB_PANEL_WIDTH, this.panelHeight);
+        int tabY = this.panelY + TAB_BUTTON_TOP_OFFSET;
+        int tabX = this.panelX + TAB_BODY_LEFT_OFFSET + this.selectedTab.ordinal() * (TexturedIconButton.DEFAULT_BUTTON_SIZE + TAB_GAP);
         graphics.outline(tabX - 1, tabY - 1, TexturedIconButton.DEFAULT_BUTTON_SIZE + 2, TexturedIconButton.DEFAULT_BUTTON_SIZE + 2, PANEL_ACCENT_COLOR);
     }
 
@@ -892,16 +904,18 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void updatePanelBounds() {
-        int actionRowReserve = this.confirmationDialog == null ? CONTROL_HEIGHT + ACTION_ROW_GAP : 0;
-        int availablePanelHeight = Math.max(MIN_TAB_PANEL_HEIGHT, this.height - SCREEN_MARGIN * 2 - actionRowReserve);
-        int desiredPanelHeight = this.confirmationDialog != null ? 118 : Math.min(this.selectedTab.panelHeight(), this.maxTabPanelHeight());
+        boolean confirmationOpen = this.confirmationDialog != null;
+        int actionRowReserve = confirmationOpen ? 0 : CONTROL_HEIGHT + ACTION_ROW_GAP;
+        int minimumPanelHeight = confirmationOpen ? MIN_BASE_PANEL_HEIGHT : MIN_TAB_PANEL_HEIGHT;
+        int availablePanelHeight = Math.max(minimumPanelHeight, this.height - SCREEN_MARGIN * 2 - actionRowReserve);
+        int desiredPanelHeight = confirmationOpen ? 118 : Math.min(this.selectedTab.panelHeight(), this.maxTabPanelHeight()) + TAB_PANEL_HEIGHT_INCREASE;
         this.panelHeight = Math.min(availablePanelHeight, desiredPanelHeight);
-        this.panelX = Math.max(SCREEN_MARGIN, this.width - PANEL_WIDTH - SCREEN_MARGIN);
+        this.panelX = Math.max(SCREEN_MARGIN, this.width - this.panelWidth() - SCREEN_MARGIN);
         this.panelY = Math.max(SCREEN_MARGIN, this.height - this.panelHeight - SCREEN_MARGIN - actionRowReserve);
     }
 
     private int maxTabPanelHeight() {
-        return Math.max(MIN_TAB_PANEL_HEIGHT, this.height / 3);
+        return Math.max(MIN_BASE_PANEL_HEIGHT, this.height / 3);
     }
 
     private int tabBodyY() {
@@ -909,7 +923,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     private int tabBodyHeight() {
-        return Math.max(MIN_TAB_BODY_HEIGHT, this.panelHeight - TAB_BODY_TOP_OFFSET - PANEL_PADDING);
+        return Math.max(1, this.panelHeight - TAB_BODY_TOP_OFFSET - TAB_BODY_BOTTOM_INSET);
     }
 
     private void updatePoseMakerPanelBounds() {
@@ -1015,11 +1029,11 @@ public class PhotoModeScreen extends Screen {
     }
 
     private int actionX() {
-        return Math.max(SCREEN_MARGIN, this.panelX + PANEL_WIDTH - this.actionRowWidth());
+        return Math.max(SCREEN_MARGIN, this.panelX + this.panelWidth() - this.actionRowWidth());
     }
 
     private int actionRowWidth() {
-        int availableWidth = Math.max(PANEL_WIDTH, this.width - SCREEN_MARGIN * 2);
+        int availableWidth = Math.max(this.panelWidth(), this.width - SCREEN_MARGIN * 2);
         return Math.min(this.preferredActionRowWidth(), availableWidth);
     }
 
@@ -1066,15 +1080,19 @@ public class PhotoModeScreen extends Screen {
         return PANEL_WIDTH - PANEL_PADDING * 2;
     }
 
+    private int panelWidth() {
+        return this.confirmationDialog == null ? TAB_PANEL_WIDTH : PANEL_WIDTH;
+    }
+
     int tabControlWidth() {
-        return Math.max(1, this.controlWidth() - TAB_SCROLLBAR_RESERVE);
+        return Math.max(1, this.controlWidth() - TAB_BODY_LEFT_PADDING - TAB_SCROLLBAR_RESERVE);
     }
 
     private boolean isInsidePhotoModeUi(double mouseX, double mouseY) {
         if (PhotoModeManager.isPhotoModeUiHidden()) {
             return false;
         }
-        boolean insidePanel = mouseX >= this.panelX && mouseX <= this.panelX + PANEL_WIDTH && mouseY >= this.panelY && mouseY <= this.panelY + this.panelHeight;
+        boolean insidePanel = mouseX >= this.panelX && mouseX <= this.panelX + this.panelWidth() && mouseY >= this.panelY && mouseY <= this.panelY + this.panelHeight;
         if (insidePanel) {
             return true;
         }
