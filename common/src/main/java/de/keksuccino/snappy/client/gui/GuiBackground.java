@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class GuiBackground {
 
+    private static final int DEFAULT_RENDER_COLOR = -1;
     private static final Identifier DEFAULT_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/default_20x20.png");
     private static final Identifier PHOTO_MODE_TABS_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/photo_mode_tabs_243x61.png");
     private static final Identifier PHOTO_MODE_TABS_LEFT_BODY_TOP_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/photo_mode_tabs_left_body_top_13x54.png");
@@ -54,12 +55,19 @@ public final class GuiBackground {
     }
 
     public void render(@NotNull GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
+        this.render(graphics, x, y, width, height, DEFAULT_RENDER_COLOR);
+    }
+
+    /**
+     * Renders this background multiplied by the supplied ARGB color.
+     */
+    public void render(@NotNull GuiGraphicsExtractor graphics, int x, int y, int width, int height, int color) {
         if (width <= 0 || height <= 0) {
             return;
         }
-        renderSlices(graphics, this.texture, x, y, width, height, this.textureWidth, this.textureHeight, this.leftBorder, this.topBorder, this.rightBorder, this.bottomBorder);
+        renderSlices(graphics, this.texture, x, y, width, height, this.textureWidth, this.textureHeight, this.leftBorder, this.topBorder, this.rightBorder, this.bottomBorder, color);
         for (FixedOverlay fixedOverlay : this.fixedOverlays) {
-            fixedOverlay.render(graphics, x, y, height);
+            fixedOverlay.render(graphics, x, y, height, color);
         }
     }
 
@@ -95,16 +103,23 @@ public final class GuiBackground {
      * Renders any texture as a nine-sliced background with independently configurable borders.
      */
     public static void render(@NotNull GuiGraphicsExtractor graphics, @NotNull Identifier texture, int x, int y, int width, int height, int textureWidth, int textureHeight, int leftBorder, int topBorder, int rightBorder, int bottomBorder) {
-        validateTextureLayout(textureWidth, textureHeight, leftBorder, topBorder, rightBorder, bottomBorder);
-        renderSlices(graphics, texture, x, y, width, height, textureWidth, textureHeight, leftBorder, topBorder, rightBorder, bottomBorder);
+        render(graphics, texture, x, y, width, height, textureWidth, textureHeight, leftBorder, topBorder, rightBorder, bottomBorder, DEFAULT_RENDER_COLOR);
     }
 
-    private static void renderSlices(@NotNull GuiGraphicsExtractor graphics, @NotNull Identifier texture, int x, int y, int width, int height, int textureWidth, int textureHeight, int leftBorder, int topBorder, int rightBorder, int bottomBorder) {
+    /**
+     * Renders any texture as a nine-sliced background with independently configurable borders, multiplied by the supplied ARGB color.
+     */
+    public static void render(@NotNull GuiGraphicsExtractor graphics, @NotNull Identifier texture, int x, int y, int width, int height, int textureWidth, int textureHeight, int leftBorder, int topBorder, int rightBorder, int bottomBorder, int color) {
+        validateTextureLayout(textureWidth, textureHeight, leftBorder, topBorder, rightBorder, bottomBorder);
+        renderSlices(graphics, texture, x, y, width, height, textureWidth, textureHeight, leftBorder, topBorder, rightBorder, bottomBorder, color);
+    }
+
+    private static void renderSlices(@NotNull GuiGraphicsExtractor graphics, @NotNull Identifier texture, int x, int y, int width, int height, int textureWidth, int textureHeight, int leftBorder, int topBorder, int rightBorder, int bottomBorder, int color) {
         if (width <= 0 || height <= 0) {
             return;
         }
         if (width == textureWidth && height == textureHeight) {
-            graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0.0F, 0.0F, width, height, textureWidth, textureHeight);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0.0F, 0.0F, width, height, textureWidth, textureHeight, color);
             return;
         }
 
@@ -116,9 +131,9 @@ public final class GuiBackground {
             int renderedCenterHeight = height - renderedTopBorder - renderedBottomBorder;
             int sourceBottomY = textureHeight - bottomBorder;
             int renderedBottomY = y + height - renderedBottomBorder;
-            renderSlice(graphics, texture, x, y, width, renderedTopBorder, 0, 0, textureWidth, topBorder, textureWidth, textureHeight);
-            renderSlice(graphics, texture, x, y + renderedTopBorder, width, renderedCenterHeight, 0, topBorder, textureWidth, sourceCenterHeight, textureWidth, textureHeight);
-            renderSlice(graphics, texture, x, renderedBottomY, width, renderedBottomBorder, 0, sourceBottomY, textureWidth, bottomBorder, textureWidth, textureHeight);
+            renderSlice(graphics, texture, x, y, width, renderedTopBorder, 0, 0, textureWidth, topBorder, textureWidth, textureHeight, color);
+            renderSlice(graphics, texture, x, y + renderedTopBorder, width, renderedCenterHeight, 0, topBorder, textureWidth, sourceCenterHeight, textureWidth, textureHeight, color);
+            renderSlice(graphics, texture, x, renderedBottomY, width, renderedBottomBorder, 0, sourceBottomY, textureWidth, bottomBorder, textureWidth, textureHeight, color);
             return;
         }
 
@@ -136,15 +151,15 @@ public final class GuiBackground {
         int renderedRightX = x + width - renderedRightBorder;
         int renderedBottomY = y + height - renderedBottomBorder;
 
-        renderSlice(graphics, texture, x, y, renderedLeftBorder, renderedTopBorder, 0, 0, leftBorder, topBorder, textureWidth, textureHeight);
-        renderSlice(graphics, texture, x + renderedLeftBorder, y, renderedCenterWidth, renderedTopBorder, leftBorder, 0, sourceCenterWidth, topBorder, textureWidth, textureHeight);
-        renderSlice(graphics, texture, renderedRightX, y, renderedRightBorder, renderedTopBorder, sourceRightX, 0, rightBorder, topBorder, textureWidth, textureHeight);
-        renderSlice(graphics, texture, x, y + renderedTopBorder, renderedLeftBorder, renderedCenterHeight, 0, topBorder, leftBorder, sourceCenterHeight, textureWidth, textureHeight);
-        renderSlice(graphics, texture, x + renderedLeftBorder, y + renderedTopBorder, renderedCenterWidth, renderedCenterHeight, leftBorder, topBorder, sourceCenterWidth, sourceCenterHeight, textureWidth, textureHeight);
-        renderSlice(graphics, texture, renderedRightX, y + renderedTopBorder, renderedRightBorder, renderedCenterHeight, sourceRightX, topBorder, rightBorder, sourceCenterHeight, textureWidth, textureHeight);
-        renderSlice(graphics, texture, x, renderedBottomY, renderedLeftBorder, renderedBottomBorder, 0, sourceBottomY, leftBorder, bottomBorder, textureWidth, textureHeight);
-        renderSlice(graphics, texture, x + renderedLeftBorder, renderedBottomY, renderedCenterWidth, renderedBottomBorder, leftBorder, sourceBottomY, sourceCenterWidth, bottomBorder, textureWidth, textureHeight);
-        renderSlice(graphics, texture, renderedRightX, renderedBottomY, renderedRightBorder, renderedBottomBorder, sourceRightX, sourceBottomY, rightBorder, bottomBorder, textureWidth, textureHeight);
+        renderSlice(graphics, texture, x, y, renderedLeftBorder, renderedTopBorder, 0, 0, leftBorder, topBorder, textureWidth, textureHeight, color);
+        renderSlice(graphics, texture, x + renderedLeftBorder, y, renderedCenterWidth, renderedTopBorder, leftBorder, 0, sourceCenterWidth, topBorder, textureWidth, textureHeight, color);
+        renderSlice(graphics, texture, renderedRightX, y, renderedRightBorder, renderedTopBorder, sourceRightX, 0, rightBorder, topBorder, textureWidth, textureHeight, color);
+        renderSlice(graphics, texture, x, y + renderedTopBorder, renderedLeftBorder, renderedCenterHeight, 0, topBorder, leftBorder, sourceCenterHeight, textureWidth, textureHeight, color);
+        renderSlice(graphics, texture, x + renderedLeftBorder, y + renderedTopBorder, renderedCenterWidth, renderedCenterHeight, leftBorder, topBorder, sourceCenterWidth, sourceCenterHeight, textureWidth, textureHeight, color);
+        renderSlice(graphics, texture, renderedRightX, y + renderedTopBorder, renderedRightBorder, renderedCenterHeight, sourceRightX, topBorder, rightBorder, sourceCenterHeight, textureWidth, textureHeight, color);
+        renderSlice(graphics, texture, x, renderedBottomY, renderedLeftBorder, renderedBottomBorder, 0, sourceBottomY, leftBorder, bottomBorder, textureWidth, textureHeight, color);
+        renderSlice(graphics, texture, x + renderedLeftBorder, renderedBottomY, renderedCenterWidth, renderedBottomBorder, leftBorder, sourceBottomY, sourceCenterWidth, bottomBorder, textureWidth, textureHeight, color);
+        renderSlice(graphics, texture, renderedRightX, renderedBottomY, renderedRightBorder, renderedBottomBorder, sourceRightX, sourceBottomY, rightBorder, bottomBorder, textureWidth, textureHeight, color);
     }
 
     private static int fitLeadingBorder(int leadingBorder, int trailingBorder, int targetSize) {
@@ -169,11 +184,11 @@ public final class GuiBackground {
         return Math.max(1, topExtent + bottomExtent);
     }
 
-    private static void renderSlice(@NotNull GuiGraphicsExtractor graphics, @NotNull Identifier texture, int x, int y, int width, int height, int sourceX, int sourceY, int sourceWidth, int sourceHeight, int textureWidth, int textureHeight) {
+    private static void renderSlice(@NotNull GuiGraphicsExtractor graphics, @NotNull Identifier texture, int x, int y, int width, int height, int sourceX, int sourceY, int sourceWidth, int sourceHeight, int textureWidth, int textureHeight, int color) {
         if (width <= 0 || height <= 0 || sourceWidth <= 0 || sourceHeight <= 0) {
             return;
         }
-        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, sourceX, sourceY, width, height, sourceWidth, sourceHeight, textureWidth, textureHeight);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, sourceX, sourceY, width, height, sourceWidth, sourceHeight, textureWidth, textureHeight, color);
     }
 
     private static void validateTextureLayout(int textureWidth, int textureHeight, int leftBorder, int topBorder, int rightBorder, int bottomBorder) {
@@ -201,9 +216,9 @@ public final class GuiBackground {
 
     private record FixedOverlay(@NotNull Identifier texture, int width, int height, int xOffset, int verticalOffset, @NotNull VerticalAnchor verticalAnchor) {
 
-        private void render(@NotNull GuiGraphicsExtractor graphics, int backgroundX, int backgroundY, int backgroundHeight) {
+        private void render(@NotNull GuiGraphicsExtractor graphics, int backgroundX, int backgroundY, int backgroundHeight, int color) {
             int y = this.verticalAnchor == VerticalAnchor.TOP ? backgroundY + this.verticalOffset : backgroundY + backgroundHeight - this.verticalOffset - this.height;
-            graphics.blit(RenderPipelines.GUI_TEXTURED, this.texture, backgroundX + this.xOffset, y, 0.0F, 0.0F, this.width, this.height, this.width, this.height);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, this.texture, backgroundX + this.xOffset, y, 0.0F, 0.0F, this.width, this.height, this.width, this.height, color);
         }
 
     }

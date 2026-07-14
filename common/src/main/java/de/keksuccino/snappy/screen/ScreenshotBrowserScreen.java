@@ -8,7 +8,7 @@ import de.keksuccino.snappy.menu.MenuBackgroundSelectionManager;
 import de.keksuccino.snappy.menu.PanoramaMenuManager;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.DeletionResult;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
-import de.keksuccino.snappy.util.rendering.gui.widget.TexturedIconButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.IconButton;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -122,16 +122,16 @@ public class ScreenshotBrowserScreen extends Screen {
         this.filterMode = Snappy.getOptions().getBrowserFilterMode();
 
         int headerControlWidth = Math.max(120, this.width - SIDE_MARGIN * 2);
-        int headerIconControlsWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE * 3;
+        int headerIconControlsWidth = IconButton.DEFAULT_BUTTON_SIZE * 3;
         int availableSearchWidth = Math.max(0, headerControlWidth - headerIconControlsWidth - BUTTON_GAP * 3);
         int searchWidth = this.headerSearchWidth(availableSearchWidth);
-        this.settingsButton = this.addRenderableWidget(new TexturedIconButton(
+        this.settingsButton = this.addRenderableWidget(new IconButton(
                 Component.translatable("snappy.browser.settings"),
                 button -> Minecraft.getInstance().gui.setScreen(new OptionsScreen(this)),
                 SETTINGS_ICON
         ));
 
-        this.sortButton = this.addRenderableWidget(new TexturedIconButton(
+        this.sortButton = this.addRenderableWidget(new IconButton(
                 this.sortModeMessage(),
                 button -> {
                     this.sortMode = this.sortMode.next();
@@ -142,7 +142,7 @@ public class ScreenshotBrowserScreen extends Screen {
                 SORT_ICON
         ));
 
-        this.filterButton = this.addRenderableWidget(new TexturedIconButton(
+        this.filterButton = this.addRenderableWidget(new IconButton(
                 this.filterModeMessage(),
                 button -> {
                     this.filterMode = this.filterMode.next();
@@ -153,7 +153,7 @@ public class ScreenshotBrowserScreen extends Screen {
                 FILTER_ICON
         ));
 
-        this.searchButton = this.addRenderableWidget(new TexturedIconButton(
+        this.searchButton = this.addRenderableWidget(new IconButton(
                 Component.translatable("snappy.browser.search"),
                 button -> this.expandSearch(),
                 SEARCH_ICON
@@ -185,7 +185,7 @@ public class ScreenshotBrowserScreen extends Screen {
         this.applyFilter();
 
         int footerY = this.height - 30;
-        int iconButtonWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE;
+        int iconButtonWidth = IconButton.DEFAULT_BUTTON_SIZE;
         int totalFooterWidth = iconButtonWidth * 5 + BUTTON_GAP * 4;
         int footerX = centerX - totalFooterWidth / 2;
 
@@ -417,7 +417,7 @@ public class ScreenshotBrowserScreen extends Screen {
     private void updateHeaderControlLayout() {
         int searchControlWidth = this.searchExpanded && this.searchBox != null
                 ? this.searchBox.getWidth()
-                : TexturedIconButton.DEFAULT_BUTTON_SIZE;
+                : IconButton.DEFAULT_BUTTON_SIZE;
         int searchX = this.width - SIDE_MARGIN - searchControlWidth;
 
         if (this.searchButton != null) {
@@ -455,14 +455,14 @@ public class ScreenshotBrowserScreen extends Screen {
     }
 
     @NotNull
-    private TexturedIconButton addFooterIconButton(
+    private IconButton addFooterIconButton(
             int x,
             int y,
             @NotNull Component message,
             @NotNull Button.OnPress onPress,
             @NotNull Identifier icon
     ) {
-        TexturedIconButton button = this.addRenderableWidget(new TexturedIconButton(message, onPress, icon));
+        IconButton button = this.addRenderableWidget(new IconButton(message, onPress, icon));
         button.setPosition(x, y);
         return button;
     }

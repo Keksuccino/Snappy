@@ -18,7 +18,7 @@ import de.keksuccino.snappy.photo.PhotoPose;
 import de.keksuccino.snappy.photo.PhotoPoseExporter;
 import de.keksuccino.snappy.photo.PhotoPoseManager;
 import de.keksuccino.snappy.util.rendering.RenderingUtils;
-import de.keksuccino.snappy.util.rendering.gui.widget.TexturedIconButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.IconButton;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -74,7 +74,7 @@ public class PhotoModeScreen extends Screen {
     private static final int TAB_SCROLLBAR_SPACING = 2;
     private static final int TAB_SCROLLBAR_RESERVE = AbstractScrollArea.SCROLLBAR_WIDTH + TAB_SCROLLBAR_SPACING;
     // Decorative slices own space outside the tab body. Mirror the trailing center padding on the leading edges so the body remains evenly inset while the textured panel itself stays fixed.
-    private static final int TAB_HEADER_CONTENT_HEIGHT = PANEL_PADDING + TexturedIconButton.DEFAULT_BUTTON_SIZE + CONTROL_GAP + 2;
+    private static final int TAB_HEADER_CONTENT_HEIGHT = PANEL_PADDING + IconButton.DEFAULT_BUTTON_SIZE + CONTROL_GAP + 2;
     private static final int TAB_PANEL_WIDTH = GuiBackground.PHOTO_MODE_TABS.textureWidth();
     private static final int TAB_BODY_RIGHT_INSET = TAB_PANEL_WIDTH - GuiBackground.PHOTO_MODE_TABS.leftBorder() - (PANEL_WIDTH - PANEL_PADDING * 2);
     private static final int TAB_BODY_BOTTOM_INSET = Math.max(PANEL_PADDING, GuiBackground.PHOTO_MODE_TABS.bottomBorder());
@@ -458,7 +458,7 @@ public class PhotoModeScreen extends Screen {
         int x = this.panelX + TAB_BODY_LEFT_OFFSET;
         int y = this.panelY + TAB_BUTTON_TOP_OFFSET;
         for (Tab tab : Tab.VALUES) {
-            TexturedIconButton button = this.addRenderableWidget(new TexturedIconButton(tab.message(), ignored -> {
+            IconButton button = this.addRenderableWidget(new IconButton(tab.message(), ignored -> {
                 this.selectedTab = tab;
                 this.closeColorPicker();
                 this.rebuildPhotoWidgets();
@@ -466,7 +466,7 @@ public class PhotoModeScreen extends Screen {
             button.setBackgroundTextures(TAB_BUTTON_NORMAL_BACKGROUND_TEXTURE, TAB_BUTTON_HOVER_BACKGROUND_TEXTURE, TAB_BUTTON_DISABLED_BACKGROUND_TEXTURE);
             button.setPosition(x, y);
             button.setTooltip(Tooltip.create(tab.message()));
-            x += TexturedIconButton.DEFAULT_BUTTON_SIZE + TAB_GAP;
+            x += IconButton.DEFAULT_BUTTON_SIZE + TAB_GAP;
         }
         this.addSettingsButton(y);
 
@@ -526,12 +526,12 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void addSettingsButton(int y) {
-        TexturedIconButton button = this.addRenderableWidget(new TexturedIconButton(
+        IconButton button = this.addRenderableWidget(new IconButton(
                 Component.translatable("snappy.browser.settings"),
                 ignored -> this.openOptionsScreen(),
                 SETTINGS_ICON
         ));
-        button.setPosition(this.panelX + TAB_PANEL_WIDTH - PANEL_PADDING - TexturedIconButton.DEFAULT_BUTTON_SIZE, y);
+        button.setPosition(this.panelX + TAB_PANEL_WIDTH - PANEL_PADDING - IconButton.DEFAULT_BUTTON_SIZE, y);
     }
 
     private void openOptionsScreen() {
@@ -898,9 +898,9 @@ public class PhotoModeScreen extends Screen {
         int tabX = this.panelX + TAB_BODY_LEFT_OFFSET;
         for (Tab tab : Tab.VALUES) {
             Identifier texture = tab == this.selectedTab ? ACTIVE_TAB_BACKGROUND_TEXTURE : INACTIVE_TAB_BACKGROUND_TEXTURE;
-            int backgroundX = tabX + (TexturedIconButton.DEFAULT_BUTTON_SIZE - TAB_BACKGROUND_WIDTH) / 2;
+            int backgroundX = tabX + (IconButton.DEFAULT_BUTTON_SIZE - TAB_BACKGROUND_WIDTH) / 2;
             graphics.blit(RenderPipelines.GUI_TEXTURED, texture, backgroundX, this.panelY, 0.0F, 0.0F, TAB_BACKGROUND_WIDTH, TAB_BACKGROUND_HEIGHT, TAB_BACKGROUND_WIDTH, TAB_BACKGROUND_HEIGHT);
-            tabX += TexturedIconButton.DEFAULT_BUTTON_SIZE + TAB_GAP;
+            tabX += IconButton.DEFAULT_BUTTON_SIZE + TAB_GAP;
         }
     }
 

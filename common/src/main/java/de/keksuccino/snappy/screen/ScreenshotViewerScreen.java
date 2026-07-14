@@ -15,7 +15,7 @@ import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
 import de.keksuccino.snappy.screen.ScreenshotImageLoader.LoadedImage;
 import de.keksuccino.snappy.util.file.ExternalFileOpener;
 import de.keksuccino.snappy.util.rendering.RenderingUtils;
-import de.keksuccino.snappy.util.rendering.gui.widget.TexturedIconButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.IconButton;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -114,7 +114,7 @@ public class ScreenshotViewerScreen extends Screen {
     @Nullable
     private Button deleteButton;
     @Nullable
-    private TexturedIconButton menuBackgroundSelectionButton;
+    private IconButton menuBackgroundSelectionButton;
 
     public ScreenshotViewerScreen(@NotNull Screen parent, @NotNull List<ScreenshotEntry> entries, int index) {
         super(Component.translatable("snappy.viewer.title"));
@@ -133,29 +133,29 @@ public class ScreenshotViewerScreen extends Screen {
         int bottomY = this.footerButtonY();
         int centerX = this.width / 2;
 
-        int iconButtonWidth = TexturedIconButton.DEFAULT_BUTTON_SIZE;
+        int iconButtonWidth = IconButton.DEFAULT_BUTTON_SIZE;
         int totalWidth = iconButtonWidth * 6 + BUTTON_GAP * 3 + NAVIGATION_BUTTON_GAP * 2;
         int x = centerX - totalWidth / 2;
 
-        this.previousButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("snappy.viewer.previous"), button -> this.previous(), PREVIOUS_IMAGE_ICON));
+        this.previousButton = this.addRenderableWidget(new IconButton(Component.translatable("snappy.viewer.previous"), button -> this.previous(), PREVIOUS_IMAGE_ICON));
         this.previousButton.setPosition(x, bottomY);
         x += iconButtonWidth + NAVIGATION_BUTTON_GAP;
-        Button backButton = this.addRenderableWidget(new TexturedIconButton(CommonComponents.GUI_BACK, button -> this.onClose(), BACK_ICON));
+        Button backButton = this.addRenderableWidget(new IconButton(CommonComponents.GUI_BACK, button -> this.onClose(), BACK_ICON));
         backButton.setPosition(x, bottomY);
         x += iconButtonWidth + BUTTON_GAP;
-        this.metadataButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("snappy.viewer.metadata"), button -> this.openMetadata(), METADATA_ICON));
+        this.metadataButton = this.addRenderableWidget(new IconButton(Component.translatable("snappy.viewer.metadata"), button -> this.openMetadata(), METADATA_ICON));
         this.metadataButton.setPosition(x, bottomY);
         x += iconButtonWidth + BUTTON_GAP;
-        this.outsideButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("snappy.viewer.show_outside"), button -> this.showOutsideMinecraft(), SHOW_OUTSIDE_ICON));
+        this.outsideButton = this.addRenderableWidget(new IconButton(Component.translatable("snappy.viewer.show_outside"), button -> this.showOutsideMinecraft(), SHOW_OUTSIDE_ICON));
         this.outsideButton.setPosition(x, bottomY);
         x += iconButtonWidth + BUTTON_GAP;
-        this.deleteButton = this.addRenderableWidget(new TexturedIconButton(this.deleteMessage(), button -> this.confirmDeleteCurrent(), DELETE_ICON));
+        this.deleteButton = this.addRenderableWidget(new IconButton(this.deleteMessage(), button -> this.confirmDeleteCurrent(), DELETE_ICON));
         this.deleteButton.setPosition(x, bottomY);
         x += iconButtonWidth + NAVIGATION_BUTTON_GAP;
-        this.nextButton = this.addRenderableWidget(new TexturedIconButton(Component.translatable("snappy.viewer.next"), button -> this.next(), NEXT_IMAGE_ICON));
+        this.nextButton = this.addRenderableWidget(new IconButton(Component.translatable("snappy.viewer.next"), button -> this.next(), NEXT_IMAGE_ICON));
         this.nextButton.setPosition(x, bottomY);
 
-        this.menuBackgroundSelectionButton = this.addRenderableWidget(new TexturedIconButton(
+        this.menuBackgroundSelectionButton = this.addRenderableWidget(new IconButton(
                 Component.translatable("snappy.viewer.menu_background.tooltip"),
                 button -> this.toggleMenuBackgroundSelection(),
                 MENU_BACKGROUND_DISABLED_ICON
@@ -520,7 +520,7 @@ public class ScreenshotViewerScreen extends Screen {
     }
 
     private void updateMenuBackgroundSelectionButton(@Nullable ScreenshotEntry entry) {
-        TexturedIconButton button = this.menuBackgroundSelectionButton;
+        IconButton button = this.menuBackgroundSelectionButton;
         if (button == null) {
             return;
         }

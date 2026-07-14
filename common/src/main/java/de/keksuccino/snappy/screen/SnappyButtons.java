@@ -2,7 +2,7 @@ package de.keksuccino.snappy.screen;
 
 import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.photo.PhotoModeManager;
-import de.keksuccino.snappy.util.rendering.gui.widget.TexturedIconButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.IconButton;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -27,8 +27,8 @@ public final class SnappyButtons {
         return Snappy.getOptions().isPhotoModeButtonEnabled();
     }
 
-    public static TexturedIconButton screenshotBrowser(@NotNull Screen parent) {
-        return new TexturedIconButton(
+    public static IconButton screenshotBrowser(@NotNull Screen parent) {
+        return new IconButton(
                 Component.translatable("snappy.screenshot_browser.open"),
                 button -> Minecraft.getInstance().gui.setScreen(new ScreenshotBrowserScreen(parent)),
                 SCREENSHOT_BROWSER_ICON
