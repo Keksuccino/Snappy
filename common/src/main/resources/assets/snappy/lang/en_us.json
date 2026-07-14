@@ -83,7 +83,7 @@
   "snappy.browser.sort.newest_first": "Newest",
   "snappy.browser.sort.oldest_first": "Oldest",
   "snappy.browser.sort.by_type": "By Type",
-  "snappy.browser.filter": "Colorize: %s",
+  "snappy.browser.filter": "Filter: %s",
   "snappy.browser.filter.none": "All",
   "snappy.browser.filter.menu_backgrounds": "Menu Backgrounds",
   "snappy.browser.filter.only_panoramas": "Only Panoramas",
