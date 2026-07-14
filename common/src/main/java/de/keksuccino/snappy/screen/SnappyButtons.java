@@ -2,6 +2,7 @@ package de.keksuccino.snappy.screen;
 
 import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.photo.PhotoModeManager;
+import de.keksuccino.snappy.util.rendering.gui.widget.TexturedIconButton;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;

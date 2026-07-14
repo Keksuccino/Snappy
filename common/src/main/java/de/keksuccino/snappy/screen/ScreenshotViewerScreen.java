@@ -15,6 +15,7 @@ import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
 import de.keksuccino.snappy.screen.ScreenshotImageLoader.LoadedImage;
 import de.keksuccino.snappy.util.file.ExternalFileOpener;
 import de.keksuccino.snappy.util.rendering.RenderingUtils;
+import de.keksuccino.snappy.util.rendering.gui.widget.TexturedIconButton;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

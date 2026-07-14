@@ -18,6 +18,7 @@ import de.keksuccino.snappy.photo.PhotoPose;
 import de.keksuccino.snappy.photo.PhotoPoseExporter;
 import de.keksuccino.snappy.photo.PhotoPoseManager;
 import de.keksuccino.snappy.util.rendering.RenderingUtils;
+import de.keksuccino.snappy.util.rendering.gui.widget.TexturedIconButton;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

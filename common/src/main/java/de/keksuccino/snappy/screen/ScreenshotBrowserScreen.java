@@ -8,6 +8,7 @@ import de.keksuccino.snappy.menu.MenuBackgroundSelectionManager;
 import de.keksuccino.snappy.menu.PanoramaMenuManager;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.DeletionResult;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
+import de.keksuccino.snappy.util.rendering.gui.widget.TexturedIconButton;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

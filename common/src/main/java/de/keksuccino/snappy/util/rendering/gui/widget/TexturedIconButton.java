@@ -1,4 +1,4 @@
-package de.keksuccino.snappy.screen;
+package de.keksuccino.snappy.util.rendering.gui.widget;
 
 import de.keksuccino.snappy.client.gui.GuiBackground;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
