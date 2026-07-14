@@ -64,12 +64,8 @@
 - After making changes, always compile/build the project to identify and fix compile errors.
 - Only use the `fabric` and `neoforge` modules for compile checks. Never use the `common` module.
 - Make sure to use Java 25 for compile/run stuff, like this for example: `JAVA_HOME=$(/usr/libexec/java_home -v 25) sh gradlew :fabric:compileJava :neoforge:compileJava --stacktrace`
+- After compiling succeeded, run the client of both `fabric` and `neoforge` modules via their client launch tasks, and check the log output, to see if stuff like Mixin injects succeeded, but make sure to CLOSE THE CLIENT WINDOWS after.
+- Never try to control the client, for example with "Computer Use".
+- You can add temporary testing code to the mod that executes on client launch or when it hits the Title screen or something, for getting feedback from the game process directly, for things like shader testing and other stuff you need the actual Minecraft process for. Make sure to remove that testing code after.
 - There are tools available on the system to validate GLSL shaders. Use these when working with shaders.
 - You always TRIPLE-CHECK EVERYTHING! When you are finishing a task, you triple-check everything for completeness, possible bad implementations, rushed implementations, performance, optimization, structurization, and so on.
-
-## Visual Testing
-- When the user tells you to also do visual testing, run the `fabric` and `neoforge` modules via IntelliJ IDE.
-- Only use "Computer Use" for running the modules! You will click the "Run" button in the top-right of IntelliJ to run the modules (and also select the correct run config before, obviously).
-- After the Minecraft client started, use "Computer Use" to navigate in the game and visually check your changes. Check if everything looks good and works as intended.
-- IntelliJ IDE is already open with the project active.
-- NEVER DO VISUAL TESTING WITHOUT THE USER TELLING YOU TO DO SO! Do not run the game without the user telling you to do so.
