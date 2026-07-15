@@ -69,3 +69,5 @@
 - You can add temporary testing code to the mod that executes on client launch or when it hits the Title screen or something, for getting feedback from the game process directly, for things like shader testing and other stuff you need the actual Minecraft process for. Make sure to remove that testing code after.
 - There are tools available on the system to validate GLSL shaders. Use these when working with shaders.
 - You always TRIPLE-CHECK EVERYTHING! When you are finishing a task, you triple-check everything for completeness, possible bad implementations, rushed implementations, performance, optimization, structurization, and so on.
+
+
