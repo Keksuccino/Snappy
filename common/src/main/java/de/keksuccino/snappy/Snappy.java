@@ -23,11 +23,11 @@ public class Snappy {
 
         if (Services.PLATFORM.isOnClient()) {
 
-            LOGGER.info("[SNAPPY] Starting version " + VERSION + " on " + Services.PLATFORM.getPlatformDisplayName() + "..");
+            LOGGER.info("[SNAPPY] Starting version " + VERSION + " in CLIENT-SIDE mode on " + Services.PLATFORM.getPlatformDisplayName().toUpperCase() + "..");
 
         } else {
 
-            LOGGER.warn("[SNAPPY] Disabling 'Snappy' since it's a client-side mod and current environment is server!");
+            LOGGER.info("[SNAPPY] Starting version " + VERSION + " in SERVER-SIDE mode on " + Services.PLATFORM.getPlatformDisplayName().toUpperCase() + "..");
 
         }
 
