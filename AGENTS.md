@@ -64,7 +64,7 @@
 - After making changes, always compile/build the project to identify and fix compile errors.
 - Only use the `fabric` and `neoforge` modules for compile checks. Never use the `common` module.
 - Make sure to use Java 25 for compile/run stuff, like this for example: `JAVA_HOME=$(/usr/libexec/java_home -v 25) sh gradlew :fabric:compileJava :neoforge:compileJava --stacktrace`
-- After compiling succeeded, run the client of both `fabric` and `neoforge` modules via their client launch tasks, and check the log output, to see if stuff like Mixin injects succeeded, but make sure to CLOSE THE CLIENT WINDOWS after.
+- After compiling succeeded, run the client of both `fabric` and `neoforge` modules via their client launch tasks, and check the log output, to see if stuff like Mixin injects succeeded, but make sure to CLOSE THE CLIENT WINDOWS after. Only run clients when it makes sense to run them, which means when compiling is not enough to catch all possible issues.
 - Never try to control the client, for example with "Computer Use".
 - You can add temporary testing code to the mod that executes on client launch or when it hits the Title screen or something, for getting feedback from the game process directly, for things like shader testing and other stuff you need the actual Minecraft process for. Make sure to remove that testing code after.
 - There are tools available on the system to validate GLSL shaders. Use these when working with shaders.
