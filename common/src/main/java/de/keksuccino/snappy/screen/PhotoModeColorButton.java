@@ -1,6 +1,6 @@
 package de.keksuccino.snappy.screen;
 
-import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.SnappyButton;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Supplier;
 
-public class PhotoModeColorButton extends AdvancedButton {
+public class PhotoModeColorButton extends SnappyButton {
 
     private final Supplier<@Nullable Integer> colorSupplier;
 

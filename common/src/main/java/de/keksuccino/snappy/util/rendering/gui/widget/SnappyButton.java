@@ -15,7 +15,7 @@ import javax.annotation.Nullable;
 /**
  * Reusable button base with support for independently configurable background textures in each render state.
  */
-public class AdvancedButton extends Button {
+public class SnappyButton extends Button {
 
     public static final Identifier DEFAULT_IDLE_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/buttons/advanced/normal_20x20.png");
     public static final Identifier DEFAULT_HOVER_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/buttons/advanced/hover_20x20.png");
@@ -34,7 +34,7 @@ public class AdvancedButton extends Button {
     private CreateNarration narration;
     private boolean useVanillaTextures = false;
 
-    public AdvancedButton(int x, int y, int width, int height, @NotNull Component message, @NotNull OnPress onPress) {
+    public SnappyButton(int x, int y, int width, int height, @NotNull Component message, @NotNull OnPress onPress) {
         super(x, y, width, height, message, onPress, DEFAULT_NARRATION);
     }
 
@@ -42,7 +42,7 @@ public class AdvancedButton extends Button {
      * Sets 20x20 background textures for each render state. Each custom texture is nine-sliced with a 4-pixel border on every side. A null texture keeps Vanilla's default sprite for that state. The hover texture also applies while keyboard-focused, matching Vanilla behavior.
      */
     @NotNull
-    public AdvancedButton setBackgroundTextures(@Nullable Identifier idleTexture, @Nullable Identifier hoverTexture, @Nullable Identifier disabledTexture) {
+    public SnappyButton setBackgroundTextures(@Nullable Identifier idleTexture, @Nullable Identifier hoverTexture, @Nullable Identifier disabledTexture) {
         this.idleBackgroundTexture = idleTexture;
         this.hoverBackgroundTexture = hoverTexture;
         this.disabledBackgroundTexture = disabledTexture;
@@ -53,7 +53,7 @@ public class AdvancedButton extends Button {
      * Controls whether Vanilla button sprites are rendered instead of this button's custom background textures.
      */
     @NotNull
-    public AdvancedButton useVanillaTextures(boolean useVanillaTextures) {
+    public SnappyButton useVanillaTextures(boolean useVanillaTextures) {
         this.useVanillaTextures = useVanillaTextures;
         return this;
     }
@@ -62,7 +62,7 @@ public class AdvancedButton extends Button {
      * Sets a custom narration factory, or restores the default narration when null.
      */
     @NotNull
-    public AdvancedButton setNarration(@Nullable CreateNarration narration) {
+    public SnappyButton setNarration(@Nullable CreateNarration narration) {
         this.narration = narration;
         return this;
     }

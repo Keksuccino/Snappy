@@ -1,7 +1,7 @@
 package de.keksuccino.snappy.screen;
 
 import de.keksuccino.snappy.photo.PhotoModeManager;
-import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.SnappyButton;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
@@ -61,7 +61,7 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
 
         this.addColorEffectControls(screen, width, active);
 
-        AdvancedButton gridButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton gridButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setGridEnabled(!active.gridEnabled());
             screen.updateButtonMessages();
         });
@@ -179,14 +179,14 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
         this.addColorBalanceSlider(screen, width, "snappy.photo_mode.green_balance", "snappy.photo_mode.green_balance.desc", "snappy.photo_mode.color.magenta", "snappy.photo_mode.color.green", GREEN_BALANCE_LOW_COLOR, GREEN_BALANCE_HIGH_COLOR, active.greenBalance(), active::greenBalance, value -> active.setGreenBalance((float) value));
         this.addColorBalanceSlider(screen, width, "snappy.photo_mode.blue_balance", "snappy.photo_mode.blue_balance.desc", "snappy.photo_mode.color.yellow", "snappy.photo_mode.color.blue", BLUE_BALANCE_LOW_COLOR, BLUE_BALANCE_HIGH_COLOR, active.blueBalance(), active::blueBalance, value -> active.setBlueBalance((float) value));
 
-        AdvancedButton colorizeButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton colorizeButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setColorizePreset(active.colorizePreset().next());
             screen.updateButtonMessages();
         });
         colorizeButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.colorize.desc")));
         screen.colorizeButton = screen.addTabControl(colorizeButton);
 
-        AdvancedButton stylizeButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton stylizeButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setStylizePreset(active.stylizePreset().next());
             screen.updateButtonMessages();
         });

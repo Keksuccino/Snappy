@@ -2,7 +2,7 @@ package de.keksuccino.snappy.screen;
 
 import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.photo.PhotoModeManager;
-import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.SnappyButton;
 import de.keksuccino.snappy.util.rendering.gui.widget.IconButton;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -33,8 +33,8 @@ public final class SnappyButtons {
         return button;
     }
 
-    public static AdvancedButton pauseMenuPhotoMode() {
-        return new AdvancedButton(0, 0, PAUSE_MENU_FULL_WIDTH_BUTTON_WIDTH, AdvancedButton.DEFAULT_HEIGHT, Component.translatable("snappy.photo_mode.open"), ignored -> PhotoModeManager.open(Minecraft.getInstance())).useVanillaTextures(true);
+    public static SnappyButton pauseMenuPhotoMode() {
+        return new SnappyButton(0, 0, PAUSE_MENU_FULL_WIDTH_BUTTON_WIDTH, SnappyButton.DEFAULT_HEIGHT, Component.translatable("snappy.photo_mode.open"), ignored -> PhotoModeManager.open(Minecraft.getInstance())).useVanillaTextures(true);
     }
 
 }

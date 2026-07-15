@@ -8,7 +8,7 @@ import de.keksuccino.snappy.metadata.ScreenshotMetadataManager.TimeInfo;
 import de.keksuccino.snappy.metadata.ScreenshotMetadataManager.WorldInfo;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
 import de.keksuccino.snappy.util.rendering.RenderingUtils;
-import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.SnappyButton;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
@@ -16,7 +16,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -61,7 +60,7 @@ public class ScreenshotMetadataScreen extends Screen {
 
     @Override
     protected void init() {
-        this.addRenderableWidget(new AdvancedButton(this.width / 2 - BACK_BUTTON_WIDTH / 2, this.height - 28, BACK_BUTTON_WIDTH, BUTTON_HEIGHT, CommonComponents.GUI_BACK, ignored -> this.onClose()));
+        this.addRenderableWidget(new SnappyButton(this.width / 2 - BACK_BUTTON_WIDTH / 2, this.height - 28, BACK_BUTTON_WIDTH, BUTTON_HEIGHT, CommonComponents.GUI_BACK, ignored -> this.onClose()));
     }
 
     @Override

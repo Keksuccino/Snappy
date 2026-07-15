@@ -1,7 +1,7 @@
 package de.keksuccino.snappy.screen;
 
 import de.keksuccino.snappy.photo.PhotoModeManager;
-import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.SnappyButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -19,7 +19,7 @@ final class PhotoModeLensTabPanel implements PhotoModeTabPanel {
             return;
         }
 
-        AdvancedButton depthOfFieldButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton depthOfFieldButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setDepthOfFieldEnabled(!active.depthOfFieldEnabled());
             screen.updateButtonMessages();
         });

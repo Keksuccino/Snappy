@@ -1,6 +1,7 @@
 package de.keksuccino.snappy.screen;
 
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
+import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.client.gui.GuiBackground;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
 import de.keksuccino.snappy.screen.ScreenshotThumbnailCache.Thumbnail;
@@ -14,6 +15,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
@@ -33,7 +35,9 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private static final int SCROLL_AREA_RIGHT_INSET = GuiBackground.DEFAULT.rightBorder() + SCROLL_AREA_BACKGROUND_GAP;
     private static final int SCROLL_AREA_BOTTOM_INSET = GuiBackground.DEFAULT.bottomBorder() + SCROLL_AREA_BACKGROUND_GAP;
     private static final int PADDING = 10;
-    private static final int TILE_WIDTH = GuiBackground.SCREENSHOT_PREVIEW_CARD.textureWidth();
+    private static final Identifier TILE_IDLE_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/screenshot_preview_card_idle_136x118.png");
+    private static final Identifier TILE_HOVER_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/screenshot_preview_card_hover_136x118.png");
+    private static final int TILE_WIDTH = 136;
     private static final int TILE_HEIGHT = 118;
     private static final int TILE_GAP = 8;
     private static final int THUMBNAIL_BUFFER_ROWS = 2;
@@ -244,7 +248,8 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
 
             ScreenshotEntry entry = this.entries.get(i);
             boolean selected = this.selectedEntries.contains(entry);
-            this.renderTile(graphics, entry, x, y, selected);
+            boolean highlighted = i == hoveredIndex || this.isFocused() && i == this.focusedIndex;
+            this.renderTile(graphics, entry, x, y, selected, highlighted);
         }
 
         if (hoveredIndex >= 0 || this.isOverScrollbar(mouseX, mouseY)) {
@@ -285,8 +290,9 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
         );
     }
 
-    private void renderTile(@NotNull GuiGraphicsExtractor graphics, @NotNull ScreenshotEntry entry, int x, int y, boolean selected) {
-        GuiBackground.SCREENSHOT_PREVIEW_CARD.render(graphics, x, y, TILE_WIDTH, TILE_HEIGHT);
+    private void renderTile(@NotNull GuiGraphicsExtractor graphics, @NotNull ScreenshotEntry entry, int x, int y, boolean selected, boolean highlighted) {
+        Identifier backgroundTexture = highlighted ? TILE_HOVER_BACKGROUND_TEXTURE : TILE_IDLE_BACKGROUND_TEXTURE;
+        graphics.blit(RenderPipelines.GUI_TEXTURED, backgroundTexture, x, y, 0.0F, 0.0F, TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
 
         int imageX = x + (TILE_WIDTH - IMAGE_WIDTH) / 2;
         int imageY = y + 8;

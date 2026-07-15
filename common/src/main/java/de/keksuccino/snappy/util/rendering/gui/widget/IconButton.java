@@ -8,7 +8,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import org.jetbrains.annotations.NotNull;
 
-public class IconButton extends AdvancedButton {
+public class IconButton extends SnappyButton {
 
     public static final int DEFAULT_BUTTON_SIZE = 20;
     public static final int DEFAULT_ICON_SIZE = 15;

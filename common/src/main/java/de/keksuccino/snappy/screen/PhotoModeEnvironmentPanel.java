@@ -1,7 +1,7 @@
 package de.keksuccino.snappy.screen;
 
 import de.keksuccino.snappy.photo.PhotoModeManager;
-import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.SnappyButton;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
@@ -18,42 +18,42 @@ final class PhotoModeEnvironmentPanel implements PhotoModeTabPanel {
             return;
         }
 
-        AdvancedButton pauseButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton pauseButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             PhotoModeManager.togglePaused(Minecraft.getInstance());
             screen.updateButtonMessages();
         });
         pauseButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.pause.desc")));
         screen.pauseButton = screen.addTabControl(pauseButton);
 
-        AdvancedButton timeButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton timeButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setTimePreset(active.timePreset().next());
             screen.updateButtonMessages();
         });
         timeButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.time.desc")));
         screen.timeButton = screen.addTabControl(timeButton);
 
-        AdvancedButton weatherButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton weatherButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setWeatherPreset(active.weatherPreset().next());
             screen.updateButtonMessages();
         });
         weatherButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.weather.desc")));
         screen.weatherButton = screen.addTabControl(weatherButton);
 
-        AdvancedButton forceBiomePrecipitationButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton forceBiomePrecipitationButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setForceBiomePrecipitation(!active.forceBiomePrecipitation());
             screen.updateButtonMessages();
         });
         forceBiomePrecipitationButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.force_biome_precipitation.desc")));
         screen.forceBiomePrecipitationButton = screen.addTabControl(forceBiomePrecipitationButton);
 
-        AdvancedButton seasonButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton seasonButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setSeason(active.season().next());
             screen.updateButtonMessages();
         });
         seasonButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.season.desc")));
         screen.seasonButton = screen.addTabControl(seasonButton);
 
-        AdvancedButton beaconBeamsButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton beaconBeamsButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setBeaconBeamsEnabled(!active.beaconBeamsEnabled());
             screen.updateButtonMessages();
         });
