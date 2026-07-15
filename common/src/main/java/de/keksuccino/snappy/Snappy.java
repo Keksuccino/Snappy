@@ -18,6 +18,7 @@ public class Snappy {
     public static final File SNAPSHOTS_DIR = createDirectory(new File(GameDirectoryUtils.getGameDirectory(), "/snapshots"));
 
     private static Options options;
+    private static InstanceData instanceData;
 
     public static void init() {
 
@@ -31,6 +32,16 @@ public class Snappy {
 
         }
 
+    }
+
+    public static void updateInstanceData() {
+        instanceData = new InstanceData();
+    }
+
+    @NotNull
+    public static InstanceData getInstanceData() {
+        if (instanceData == null) updateInstanceData();
+        return instanceData;
     }
 
     public static void updateOptions() {
