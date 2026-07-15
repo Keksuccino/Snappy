@@ -17,9 +17,6 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -30,8 +27,6 @@ import java.util.Set;
 public final class ScreenshotBrowserCatalog {
 
     private static final Logger LOGGER = LogManager.getLogger();
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-
     private ScreenshotBrowserCatalog() {
     }
 
@@ -140,7 +135,7 @@ public final class ScreenshotBrowserCatalog {
         if (modifiedMillis <= 0L) {
             return "";
         }
-        return DATE_FORMAT.format(Instant.ofEpochMilli(modifiedMillis).atZone(ZoneId.systemDefault()));
+        return ScreenshotTimestampFormatter.format(modifiedMillis);
     }
 
     public record DeletionResult(int deleted, int failed) {
@@ -149,13 +144,22 @@ public final class ScreenshotBrowserCatalog {
     public record ScreenshotEntry(
             @NotNull Kind kind,
             @NotNull Path path,
-            @NotNull String displayName,
+            @NotNull String fileName,
             long modifiedMillis,
             @NotNull String formattedDate
     ) {
 
         public boolean isPanorama() {
             return this.kind == Kind.PANORAMA;
+        }
+
+        @NotNull
+        public String displayName() {
+            if (this.isPanorama()) {
+                return this.fileName;
+            }
+            int extensionIndex = this.fileName.lastIndexOf('.');
+            return extensionIndex > 0 ? this.fileName.substring(0, extensionIndex) : this.fileName;
         }
 
         @NotNull
@@ -183,7 +187,7 @@ public final class ScreenshotBrowserCatalog {
 
         @NotNull
         public String lowerCaseDisplayName() {
-            return this.displayName.toLowerCase(Locale.ROOT);
+            return this.displayName().toLowerCase(Locale.ROOT);
         }
 
         private static void deleteDirectory(@NotNull Path root) throws IOException {

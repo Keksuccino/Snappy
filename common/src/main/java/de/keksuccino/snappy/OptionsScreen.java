@@ -3,12 +3,12 @@ package de.keksuccino.snappy;
 import com.mojang.blaze3d.platform.InputConstants;
 import de.keksuccino.snappy.client.gui.UIFormatting;
 import de.keksuccino.snappy.menu.PanoramaMenuManager;
+import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ScrollableLayout;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.tabs.MenuTabBar;
@@ -87,18 +87,18 @@ public class OptionsScreen extends Screen {
     private final HeaderAndFooterLayout layout = new HeaderAndFooterLayout(this);
     private final TabManager tabManager = new TabManager(this::addRenderableWidget, this::removeWidget);
     @Nullable
-    private Button cycleIntervalButton;
+    private AdvancedButton cycleIntervalButton;
     @Nullable
-    private Button screenshotBrowserButtonVisibilityButton;
+    private AdvancedButton screenshotBrowserButtonVisibilityButton;
     @Nullable
-    private Button photoModeButtonVisibilityButton;
+    private AdvancedButton photoModeButtonVisibilityButton;
     @Nullable
     private ButtonVisibilityWarningWidget buttonVisibilityWarningWidget;
     @Nullable
     private MenuTabBar tabNavigationBar;
     @Nullable
     private KeyMapping waitingForKeybind;
-    private final List<Button> fullWidthOptionButtons = new ArrayList<>();
+    private final List<AdvancedButton> fullWidthOptionButtons = new ArrayList<>();
     private final List<KeybindControl> keybindControls = new ArrayList<>();
 
     public OptionsScreen(@Nullable Screen parent) {
@@ -124,7 +124,7 @@ public class OptionsScreen extends Screen {
                 .build();
         this.addRenderableWidget(this.tabNavigationBar);
 
-        this.layout.addToFooter(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose()).width(150).build());
+        this.layout.addToFooter(new AdvancedButton(0, 0, 150, BUTTON_HEIGHT, CommonComponents.GUI_DONE, ignored -> this.onClose()));
         this.layout.visitWidgets(widget -> {
             widget.setTabOrderGroup(1);
             this.addRenderableWidget(widget);
@@ -175,139 +175,142 @@ public class OptionsScreen extends Screen {
         return tab;
     }
 
-    protected void addFullWidthOption(@NotNull OptionsTab tab, @NotNull Button button) {
+    protected void addFullWidthOption(@NotNull OptionsTab tab, @NotNull AdvancedButton button) {
         this.fullWidthOptionButtons.add(button);
         tab.addChild(button);
     }
 
-    protected void addFullWidthOption(@NotNull OptionsTab tab, @NotNull Button button, @NotNull Consumer<LayoutSettings> settings) {
+    protected void addFullWidthOption(@NotNull OptionsTab tab, @NotNull AdvancedButton button, @NotNull Consumer<LayoutSettings> settings) {
         this.fullWidthOptionButtons.add(button);
         tab.addChild(button, settings);
     }
 
     protected void addKeybindRow(@NotNull OptionsTab tab, @NotNull KeybindSetting setting) {
-        Button keybindButton = this.buildKeybindButton(setting);
-        Button keybindResetButton = this.buildKeybindResetButton(setting);
+        AdvancedButton keybindButton = this.buildKeybindButton(setting);
+        AdvancedButton keybindResetButton = this.buildKeybindResetButton(setting);
         this.keybindControls.add(new KeybindControl(setting, keybindButton, keybindResetButton));
         tab.addChild(this.buildKeybindRowLayout(keybindButton, keybindResetButton));
     }
 
     @NotNull
-    protected Button buildKeybindButton(@NotNull KeybindSetting setting) {
+    protected AdvancedButton buildKeybindButton(@NotNull KeybindSetting setting) {
         KeyMapping keyMapping = setting.keyMapping();
-        return Button.builder(Component.empty(), button -> {
-                    this.waitingForKeybind = keyMapping;
-                    this.updateKeybindButtons();
-                }).bounds(0, 0, this.getButtonWidth() - KEYBIND_RESET_BUTTON_WIDTH - KEYBIND_GAP, BUTTON_HEIGHT)
-                .createNarration(defaultNarrationSupplier -> keyMapping.isUnbound()
-                        ? Component.translatable("narrator.controls.unbound", Component.translatable(keyMapping.getName()))
-                        : Component.translatable("narrator.controls.bound", Component.translatable(keyMapping.getName()), defaultNarrationSupplier.get()))
-                .build();
+        return new AdvancedButton(0, 0, this.getButtonWidth() - KEYBIND_RESET_BUTTON_WIDTH - KEYBIND_GAP, BUTTON_HEIGHT, Component.empty(), ignored -> {
+            this.waitingForKeybind = keyMapping;
+            this.updateKeybindButtons();
+        }).setNarration(defaultNarrationSupplier -> keyMapping.isUnbound() ? Component.translatable("narrator.controls.unbound", Component.translatable(keyMapping.getName())) : Component.translatable("narrator.controls.bound", Component.translatable(keyMapping.getName()), defaultNarrationSupplier.get()));
     }
 
     @NotNull
-    protected Button buildKeybindResetButton(@NotNull KeybindSetting setting) {
+    protected AdvancedButton buildKeybindResetButton(@NotNull KeybindSetting setting) {
         KeyMapping keyMapping = setting.keyMapping();
-        return Button.builder(Component.translatable("controls.reset"), button -> {
-                    keyMapping.setKey(keyMapping.getDefaultKey());
-                    this.afterKeybindChanged();
-                }).bounds(0, 0, KEYBIND_RESET_BUTTON_WIDTH, BUTTON_HEIGHT)
-                .createNarration(defaultNarrationSupplier -> Component.translatable("narrator.controls.reset", Component.translatable(keyMapping.getName())))
-                .build();
+        return new AdvancedButton(0, 0, KEYBIND_RESET_BUTTON_WIDTH, BUTTON_HEIGHT, Component.translatable("controls.reset"), ignored -> {
+            keyMapping.setKey(keyMapping.getDefaultKey());
+            this.afterKeybindChanged();
+        }).setNarration(defaultNarrationSupplier -> Component.translatable("narrator.controls.reset", Component.translatable(keyMapping.getName())));
     }
 
     @NotNull
-    protected Button buildResolutionButton() {
-        return Button.builder(this.resolutionMessage(), button -> {
-                    Options options = Snappy.getOptions();
-                    options.setScreenshotResolution(options.getScreenshotResolution().next());
-                    button.setMessage(this.resolutionMessage());
-                    button.setTooltip(this.resolutionTooltip());
-                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
-                .tooltip(this.resolutionTooltip()).build();
+    protected AdvancedButton buildResolutionButton() {
+        AdvancedButton button = new AdvancedButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.resolutionMessage(), pressedButton -> {
+            Options options = Snappy.getOptions();
+            options.setScreenshotResolution(options.getScreenshotResolution().next());
+            pressedButton.setMessage(this.resolutionMessage());
+            pressedButton.setTooltip(this.resolutionTooltip());
+        });
+        button.setTooltip(this.resolutionTooltip());
+        return button;
     }
 
     @NotNull
-    protected Button buildMenuModeButton() {
-        return Button.builder(this.menuModeMessage(), button -> {
-                    Options options = Snappy.getOptions();
-                    options.setMenuPanoramaMode(options.getMenuPanoramaMode().next());
-                    button.setMessage(this.menuModeMessage());
-                    this.updateCycleIntervalButton();
-                    PanoramaMenuManager.invalidate();
-                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable("snappy.options.menu_mode.desc"))).build();
+    protected AdvancedButton buildMenuModeButton() {
+        AdvancedButton button = new AdvancedButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.menuModeMessage(), pressedButton -> {
+            Options options = Snappy.getOptions();
+            options.setMenuPanoramaMode(options.getMenuPanoramaMode().next());
+            pressedButton.setMessage(this.menuModeMessage());
+            this.updateCycleIntervalButton();
+            PanoramaMenuManager.invalidate();
+        });
+        button.setTooltip(Tooltip.create(Component.translatable("snappy.options.menu_mode.desc")));
+        return button;
     }
 
     @NotNull
-    protected Button buildMenuParallaxButton() {
-        return Button.builder(this.menuParallaxMessage(), button -> {
-                    Options options = Snappy.getOptions();
-                    options.setMenuPanoramaParallaxEnabled(!options.isMenuPanoramaParallaxEnabled());
-                    button.setMessage(this.menuParallaxMessage());
-                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable("snappy.options.menu_parallax.desc"))).build();
+    protected AdvancedButton buildMenuParallaxButton() {
+        AdvancedButton button = new AdvancedButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.menuParallaxMessage(), pressedButton -> {
+            Options options = Snappy.getOptions();
+            options.setMenuPanoramaParallaxEnabled(!options.isMenuPanoramaParallaxEnabled());
+            pressedButton.setMessage(this.menuParallaxMessage());
+        });
+        button.setTooltip(Tooltip.create(Component.translatable("snappy.options.menu_parallax.desc")));
+        return button;
     }
 
     @NotNull
-    protected Button buildCycleIntervalButton() {
-        return Button.builder(this.cycleIntervalMessage(), button -> {
-                    Options options = Snappy.getOptions();
-                    options.setCycleInterval(options.getCycleInterval().next());
-                    button.setMessage(this.cycleIntervalMessage());
-                    PanoramaMenuManager.invalidate();
-                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable("snappy.options.cycle_interval.desc"))).build();
+    protected AdvancedButton buildCycleIntervalButton() {
+        AdvancedButton button = new AdvancedButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.cycleIntervalMessage(), pressedButton -> {
+            Options options = Snappy.getOptions();
+            options.setCycleInterval(options.getCycleInterval().next());
+            pressedButton.setMessage(this.cycleIntervalMessage());
+            PanoramaMenuManager.invalidate();
+        });
+        button.setTooltip(Tooltip.create(Component.translatable("snappy.options.cycle_interval.desc")));
+        return button;
     }
 
     @NotNull
-    protected Button buildHideHudInNormalScreenshotsButton() {
-        return Button.builder(this.hideHudInNormalScreenshotsMessage(), button -> {
-                    Options options = Snappy.getOptions();
-                    options.setHideHudInNormalScreenshots(!options.shouldHideHudInNormalScreenshots());
-                    button.setMessage(this.hideHudInNormalScreenshotsMessage());
-                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable("snappy.options.hide_hud_normal_screenshots.desc"))).build();
+    protected AdvancedButton buildHideHudInNormalScreenshotsButton() {
+        AdvancedButton button = new AdvancedButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.hideHudInNormalScreenshotsMessage(), pressedButton -> {
+            Options options = Snappy.getOptions();
+            options.setHideHudInNormalScreenshots(!options.shouldHideHudInNormalScreenshots());
+            pressedButton.setMessage(this.hideHudInNormalScreenshotsMessage());
+        });
+        button.setTooltip(Tooltip.create(Component.translatable("snappy.options.hide_hud_normal_screenshots.desc")));
+        return button;
     }
 
     @NotNull
-    protected Button buildPreviewModeButton() {
-        return Button.builder(this.previewModeMessage(), button -> {
-                    Options options = Snappy.getOptions();
-                    options.setScreenshotPreviewMode(options.getScreenshotPreviewMode().next());
-                    button.setMessage(this.previewModeMessage());
-                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable("snappy.options.preview_mode.desc"))).build();
+    protected AdvancedButton buildPreviewModeButton() {
+        AdvancedButton button = new AdvancedButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.previewModeMessage(), pressedButton -> {
+            Options options = Snappy.getOptions();
+            options.setScreenshotPreviewMode(options.getScreenshotPreviewMode().next());
+            pressedButton.setMessage(this.previewModeMessage());
+        });
+        button.setTooltip(Tooltip.create(Component.translatable("snappy.options.preview_mode.desc")));
+        return button;
     }
 
     @NotNull
-    protected Button buildScreenshotChatMessagesButton() {
-        return Button.builder(this.screenshotChatMessagesMessage(), button -> {
-                    Options options = Snappy.getOptions();
-                    options.setScreenshotChatMessagesEnabled(!options.areScreenshotChatMessagesEnabled());
-                    button.setMessage(this.screenshotChatMessagesMessage());
-                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable("snappy.options.screenshot_chat_messages.desc"))).build();
+    protected AdvancedButton buildScreenshotChatMessagesButton() {
+        AdvancedButton button = new AdvancedButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.screenshotChatMessagesMessage(), pressedButton -> {
+            Options options = Snappy.getOptions();
+            options.setScreenshotChatMessagesEnabled(!options.areScreenshotChatMessagesEnabled());
+            pressedButton.setMessage(this.screenshotChatMessagesMessage());
+        });
+        button.setTooltip(Tooltip.create(Component.translatable("snappy.options.screenshot_chat_messages.desc")));
+        return button;
     }
 
     @NotNull
-    protected Button buildScreenshotBrowserButtonVisibilityButton() {
-        return Button.builder(this.screenshotBrowserButtonVisibilityMessage(), button -> {
-                    Options options = Snappy.getOptions();
-                    options.setScreenshotBrowserButtonEnabled(!options.isScreenshotBrowserButtonEnabled());
-                    this.updateVanillaScreenButtonVisibilityControls();
-                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable("snappy.options.screenshot_browser_button.desc"))).build();
+    protected AdvancedButton buildScreenshotBrowserButtonVisibilityButton() {
+        AdvancedButton button = new AdvancedButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.screenshotBrowserButtonVisibilityMessage(), ignored -> {
+            Options options = Snappy.getOptions();
+            options.setScreenshotBrowserButtonEnabled(!options.isScreenshotBrowserButtonEnabled());
+            this.updateVanillaScreenButtonVisibilityControls();
+        });
+        button.setTooltip(Tooltip.create(Component.translatable("snappy.options.screenshot_browser_button.desc")));
+        return button;
     }
 
     @NotNull
-    protected Button buildPhotoModeButtonVisibilityButton() {
-        return Button.builder(this.photoModeButtonVisibilityMessage(), button -> {
-                    Options options = Snappy.getOptions();
-                    options.setPhotoModeButtonEnabled(!options.isPhotoModeButtonEnabled());
-                    this.updateVanillaScreenButtonVisibilityControls();
-                }).bounds(0, 0, this.getButtonWidth(), BUTTON_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable("snappy.options.photo_mode_button.desc"))).build();
+    protected AdvancedButton buildPhotoModeButtonVisibilityButton() {
+        AdvancedButton button = new AdvancedButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.photoModeButtonVisibilityMessage(), ignored -> {
+            Options options = Snappy.getOptions();
+            options.setPhotoModeButtonEnabled(!options.isPhotoModeButtonEnabled());
+            this.updateVanillaScreenButtonVisibilityControls();
+        });
+        button.setTooltip(Tooltip.create(Component.translatable("snappy.options.photo_mode_button.desc")));
+        return button;
     }
 
     protected void updateCycleIntervalButton() {
@@ -345,7 +348,7 @@ public class OptionsScreen extends Screen {
 
     protected void updateOptionButtonWidths() {
         int rowWidth = this.getButtonWidth();
-        for (Button button : this.fullWidthOptionButtons) {
+        for (AdvancedButton button : this.fullWidthOptionButtons) {
             button.setWidth(rowWidth);
         }
         if (this.buttonVisibilityWarningWidget != null) {
@@ -475,7 +478,7 @@ public class OptionsScreen extends Screen {
     }
 
     @NotNull
-    protected LinearLayout buildKeybindRowLayout(@NotNull Button keyButton, @NotNull Button resetButton) {
+    protected LinearLayout buildKeybindRowLayout(@NotNull AdvancedButton keyButton, @NotNull AdvancedButton resetButton) {
         int rowWidth = this.getButtonWidth();
         keyButton.setWidth(rowWidth - resetButton.getWidth() - KEYBIND_GAP);
         LinearLayout row = LinearLayout.horizontal().spacing(KEYBIND_GAP);
@@ -569,7 +572,7 @@ public class OptionsScreen extends Screen {
     protected record KeybindSetting(@NotNull KeyMapping keyMapping, @NotNull String labelKey, @NotNull String descriptionKey) {
     }
 
-    private record KeybindControl(@NotNull KeybindSetting setting, @NotNull Button keybindButton, @NotNull Button resetButton) {
+    private record KeybindControl(@NotNull KeybindSetting setting, @NotNull AdvancedButton keybindButton, @NotNull AdvancedButton resetButton) {
     }
 
     protected class ButtonVisibilityWarningWidget extends AbstractWidget {

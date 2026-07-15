@@ -1,8 +1,8 @@
 package de.keksuccino.snappy.screen;
 
 import de.keksuccino.snappy.photo.PhotoModeManager;
+import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -61,10 +61,12 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
 
         this.addColorEffectControls(screen, width, active);
 
-        screen.gridButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
+        AdvancedButton gridButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setGridEnabled(!active.gridEnabled());
             screen.updateButtonMessages();
-        }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.grid.desc"))).build());
+        });
+        gridButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.grid.desc")));
+        screen.gridButton = screen.addTabControl(gridButton);
     }
 
     private void addColorEffectControls(@NotNull PhotoModeScreen screen, int width, @NotNull PhotoModeManager.Session active) {
@@ -177,15 +179,19 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
         this.addColorBalanceSlider(screen, width, "snappy.photo_mode.green_balance", "snappy.photo_mode.green_balance.desc", "snappy.photo_mode.color.magenta", "snappy.photo_mode.color.green", GREEN_BALANCE_LOW_COLOR, GREEN_BALANCE_HIGH_COLOR, active.greenBalance(), active::greenBalance, value -> active.setGreenBalance((float) value));
         this.addColorBalanceSlider(screen, width, "snappy.photo_mode.blue_balance", "snappy.photo_mode.blue_balance.desc", "snappy.photo_mode.color.yellow", "snappy.photo_mode.color.blue", BLUE_BALANCE_LOW_COLOR, BLUE_BALANCE_HIGH_COLOR, active.blueBalance(), active::blueBalance, value -> active.setBlueBalance((float) value));
 
-        screen.colorizeButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
+        AdvancedButton colorizeButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setColorizePreset(active.colorizePreset().next());
             screen.updateButtonMessages();
-        }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.colorize.desc"))).build());
+        });
+        colorizeButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.colorize.desc")));
+        screen.colorizeButton = screen.addTabControl(colorizeButton);
 
-        screen.stylizeButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
+        AdvancedButton stylizeButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setStylizePreset(active.stylizePreset().next());
             screen.updateButtonMessages();
-        }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.stylize.desc"))).build());
+        });
+        stylizeButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.stylize.desc")));
+        screen.stylizeButton = screen.addTabControl(stylizeButton);
     }
 
     private void addColorAdjustmentSlider(

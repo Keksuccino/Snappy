@@ -2,8 +2,8 @@ package de.keksuccino.snappy.screen;
 
 import de.keksuccino.snappy.photo.PhotoPose;
 import de.keksuccino.snappy.photo.PhotoPoseExporter;
+import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
@@ -62,18 +62,10 @@ final class PhotoModePoseMakerPanel {
         int buttonY = screen.poseMakerPanelY + screen.poseMakerPanelHeight - PhotoModeScreen.PANEL_PADDING - PhotoModeScreen.CONTROL_HEIGHT;
         int secondaryButtonY = buttonY - PhotoModeScreen.POSE_MAKER_BUTTON_GAP - PhotoModeScreen.CONTROL_HEIGHT;
         int buttonWidth = (contentWidth - PhotoModeScreen.POSE_MAKER_BUTTON_GAP) / 2;
-        screen.addPhotoWidget(Button.builder(Component.translatable("snappy.photo_mode.pose_maker.reset"), button -> screen.resetPoseMakerSliders())
-                .bounds(contentX, secondaryButtonY, buttonWidth, PhotoModeScreen.CONTROL_HEIGHT)
-                .build());
-        screen.addPhotoWidget(Button.builder(Component.translatable("snappy.photo_mode.pose_maker.load"), button -> screen.loadPoseMakerPose())
-                .bounds(contentX + buttonWidth + PhotoModeScreen.POSE_MAKER_BUTTON_GAP, secondaryButtonY, contentWidth - buttonWidth - PhotoModeScreen.POSE_MAKER_BUTTON_GAP, PhotoModeScreen.CONTROL_HEIGHT)
-                .build());
-        screen.addPhotoWidget(Button.builder(Component.translatable("snappy.photo_mode.pose_maker.save"), button -> PhotoPoseExporter.saveWithNativeDialog(Minecraft.getInstance(), screen.createPoseMakerPose()))
-                .bounds(contentX, buttonY, buttonWidth, PhotoModeScreen.CONTROL_HEIGHT)
-                .build());
-        screen.addPhotoWidget(Button.builder(Component.translatable("snappy.photo_mode.pose_maker.close"), button -> screen.closePoseMaker())
-                .bounds(contentX + buttonWidth + PhotoModeScreen.POSE_MAKER_BUTTON_GAP, buttonY, contentWidth - buttonWidth - PhotoModeScreen.POSE_MAKER_BUTTON_GAP, PhotoModeScreen.CONTROL_HEIGHT)
-                .build());
+        screen.addPhotoWidget(new AdvancedButton(contentX, secondaryButtonY, buttonWidth, PhotoModeScreen.CONTROL_HEIGHT, Component.translatable("snappy.photo_mode.pose_maker.reset"), ignored -> screen.resetPoseMakerSliders()));
+        screen.addPhotoWidget(new AdvancedButton(contentX + buttonWidth + PhotoModeScreen.POSE_MAKER_BUTTON_GAP, secondaryButtonY, contentWidth - buttonWidth - PhotoModeScreen.POSE_MAKER_BUTTON_GAP, PhotoModeScreen.CONTROL_HEIGHT, Component.translatable("snappy.photo_mode.pose_maker.load"), ignored -> screen.loadPoseMakerPose()));
+        screen.addPhotoWidget(new AdvancedButton(contentX, buttonY, buttonWidth, PhotoModeScreen.CONTROL_HEIGHT, Component.translatable("snappy.photo_mode.pose_maker.save"), ignored -> PhotoPoseExporter.saveWithNativeDialog(Minecraft.getInstance(), screen.createPoseMakerPose())));
+        screen.addPhotoWidget(new AdvancedButton(contentX + buttonWidth + PhotoModeScreen.POSE_MAKER_BUTTON_GAP, buttonY, contentWidth - buttonWidth - PhotoModeScreen.POSE_MAKER_BUTTON_GAP, PhotoModeScreen.CONTROL_HEIGHT, Component.translatable("snappy.photo_mode.pose_maker.close"), ignored -> screen.closePoseMaker()));
     }
 
 }

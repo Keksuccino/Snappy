@@ -1,7 +1,7 @@
 package de.keksuccino.snappy.screen;
 
 import de.keksuccino.snappy.photo.PhotoModeManager;
-import net.minecraft.client.gui.components.Button;
+import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
@@ -16,20 +16,22 @@ final class PhotoModeActorAppearancePanel implements PhotoModeTabPanel {
             return;
         }
 
-        screen.hideSelfButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
+        screen.hideSelfButton = screen.addTabControl(new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setHideSelfPlayer(!active.hideSelfPlayer());
             screen.updateButtonMessages();
-        }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).build());
+        }));
 
-        screen.hideOthersButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
+        screen.hideOthersButton = screen.addTabControl(new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setHideOtherPlayers(!active.hideOtherPlayers());
             screen.updateButtonMessages();
-        }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).build());
+        }));
 
-        screen.poseButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
+        AdvancedButton poseButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.cyclePose();
             screen.updateButtonMessages();
-        }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.pose.desc"))).build());
+        });
+        poseButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.pose.desc")));
+        screen.poseButton = screen.addTabControl(poseButton);
 
         screen.addPlayerTransformSlider(
                 width,
@@ -97,15 +99,19 @@ final class PhotoModeActorAppearancePanel implements PhotoModeTabPanel {
                 value -> PhotoModeScreen.optionMessage("snappy.photo_mode.player_rotation_z", screen.degreeValue(value))
         );
 
-        screen.armorButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
+        AdvancedButton armorButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setArmorMode(active.armorMode().next());
             screen.updateButtonMessages();
-        }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.armor.desc"))).build());
+        });
+        armorButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.armor.desc")));
+        screen.armorButton = screen.addTabControl(armorButton);
 
-        screen.heldItemsButton = screen.addTabControl(Button.builder(Component.empty(), button -> {
+        AdvancedButton heldItemsButton = new AdvancedButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
             active.setHeldItemsMode(active.heldItemsMode().next());
             screen.updateButtonMessages();
-        }).bounds(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT).tooltip(Tooltip.create(Component.translatable("snappy.photo_mode.held_items.desc"))).build());
+        });
+        heldItemsButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.held_items.desc")));
+        screen.heldItemsButton = screen.addTabControl(heldItemsButton);
     }
 
 }

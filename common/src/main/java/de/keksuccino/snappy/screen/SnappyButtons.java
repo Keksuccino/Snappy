@@ -2,9 +2,9 @@ package de.keksuccino.snappy.screen;
 
 import de.keksuccino.snappy.Snappy;
 import de.keksuccino.snappy.photo.PhotoModeManager;
+import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
 import de.keksuccino.snappy.util.rendering.gui.widget.IconButton;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -28,15 +28,13 @@ public final class SnappyButtons {
     }
 
     public static IconButton screenshotBrowser(@NotNull Screen parent) {
-        return new IconButton(
-                Component.translatable("snappy.screenshot_browser.open"),
-                button -> Minecraft.getInstance().gui.setScreen(new ScreenshotBrowserScreen(parent)),
-                SCREENSHOT_BROWSER_ICON
-        );
+        IconButton button = new IconButton(Component.translatable("snappy.screenshot_browser.open"), ignored -> Minecraft.getInstance().gui.setScreen(new ScreenshotBrowserScreen(parent)), SCREENSHOT_BROWSER_ICON);
+        button.useVanillaTextures(true);
+        return button;
     }
 
-    public static Button pauseMenuPhotoMode() {
-        return Button.builder(Component.translatable("snappy.photo_mode.open"), button -> PhotoModeManager.open(Minecraft.getInstance())).width(PAUSE_MENU_FULL_WIDTH_BUTTON_WIDTH).build();
+    public static AdvancedButton pauseMenuPhotoMode() {
+        return new AdvancedButton(0, 0, PAUSE_MENU_FULL_WIDTH_BUTTON_WIDTH, AdvancedButton.DEFAULT_HEIGHT, Component.translatable("snappy.photo_mode.open"), ignored -> PhotoModeManager.open(Minecraft.getInstance())).useVanillaTextures(true);
     }
 
 }

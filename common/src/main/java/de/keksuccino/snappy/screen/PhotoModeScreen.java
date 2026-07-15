@@ -18,6 +18,7 @@ import de.keksuccino.snappy.photo.PhotoPose;
 import de.keksuccino.snappy.photo.PhotoPoseExporter;
 import de.keksuccino.snappy.photo.PhotoPoseManager;
 import de.keksuccino.snappy.util.rendering.RenderingUtils;
+import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
 import de.keksuccino.snappy.util.rendering.gui.widget.IconButton;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -630,26 +631,16 @@ public class PhotoModeScreen extends Screen {
     ) {
         this.colorPicker = new PhotoModeColorPicker(target.title(), colorSupplier, editColorSupplier, defaultColorSupplier, colorConsumer);
         this.updateColorPickerPosition();
-        this.addRenderableWidget(Button.builder(Component.translatable("snappy.photo_mode.color_picker.reset_default"), button -> {
+        this.addRenderableWidget(new AdvancedButton(this.colorPicker.resetButtonX(), this.colorPicker.resetButtonY(), this.colorPicker.resetButtonWidth(), this.colorPicker.resetButtonHeight(), Component.translatable("snappy.photo_mode.color_picker.reset_default"), ignored -> {
             if (this.colorPicker != null) {
                 this.colorPicker.resetToDefault();
                 this.updateButtonMessages();
             }
-        }).bounds(
-                this.colorPicker.resetButtonX(),
-                this.colorPicker.resetButtonY(),
-                this.colorPicker.resetButtonWidth(),
-                this.colorPicker.resetButtonHeight()
-        ).build());
-        this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> {
+        }));
+        this.addRenderableWidget(new AdvancedButton(this.colorPicker.doneButtonX(), this.colorPicker.doneButtonY(), this.colorPicker.doneButtonWidth(), this.colorPicker.doneButtonHeight(), CommonComponents.GUI_DONE, ignored -> {
             this.closeColorPicker();
             this.rebuildPhotoWidgets();
-        }).bounds(
-                this.colorPicker.doneButtonX(),
-                this.colorPicker.doneButtonY(),
-                this.colorPicker.doneButtonWidth(),
-                this.colorPicker.doneButtonHeight()
-        ).build());
+        }));
     }
 
     void addPlayerTransformSlider(
@@ -737,10 +728,9 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void addActionButton(@NotNull Component message, int x, int y, int width, @NotNull Button.OnPress onPress, @NotNull Component tooltip) {
-        this.addRenderableWidget(Button.builder(message, onPress)
-                .bounds(x, y, width, CONTROL_HEIGHT)
-                .tooltip(Tooltip.create(tooltip))
-                .build());
+        AdvancedButton button = new AdvancedButton(x, y, width, CONTROL_HEIGHT, message, onPress);
+        button.setTooltip(Tooltip.create(tooltip));
+        this.addRenderableWidget(button);
     }
 
     private void addConfirmationWidgets() {
@@ -751,12 +741,8 @@ public class PhotoModeScreen extends Screen {
         int buttonWidth = (this.controlWidth() - CONTROL_GAP) / 2;
         int y = this.panelY + this.panelHeight - PANEL_PADDING - CONTROL_HEIGHT;
         int x = this.panelX + PANEL_PADDING;
-        this.addRenderableWidget(Button.builder(dialog.confirmMessage(), button -> this.confirmConfirmationDialog())
-                .bounds(x, y, buttonWidth, CONTROL_HEIGHT)
-                .build());
-        this.addRenderableWidget(Button.builder(CommonComponents.GUI_CANCEL, button -> this.cancelConfirmationDialog())
-                .bounds(x + buttonWidth + CONTROL_GAP, y, this.controlWidth() - buttonWidth - CONTROL_GAP, CONTROL_HEIGHT)
-                .build());
+        this.addRenderableWidget(new AdvancedButton(x, y, buttonWidth, CONTROL_HEIGHT, dialog.confirmMessage(), ignored -> this.confirmConfirmationDialog()));
+        this.addRenderableWidget(new AdvancedButton(x + buttonWidth + CONTROL_GAP, y, this.controlWidth() - buttonWidth - CONTROL_GAP, CONTROL_HEIGHT, CommonComponents.GUI_CANCEL, ignored -> this.cancelConfirmationDialog()));
     }
 
     private boolean handleConfirmationDialogKeyPressed(@NotNull KeyEvent event) {

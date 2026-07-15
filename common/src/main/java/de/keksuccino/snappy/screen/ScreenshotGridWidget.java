@@ -38,7 +38,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private static final int TILE_GAP = 8;
     private static final int THUMBNAIL_BUFFER_ROWS = 2;
     private static final int IMAGE_WIDTH = 120;
-    private static final int IMAGE_HEIGHT = 68;
+    private static final int IMAGE_HEIGHT = 64;
     private static final int CHECKBOX_SIZE = 11;
     private static final int SCROLLBAR_EDGE_INSET = 2;
     private static final int SCROLLBAR_TRACK_WIDTH = 2;

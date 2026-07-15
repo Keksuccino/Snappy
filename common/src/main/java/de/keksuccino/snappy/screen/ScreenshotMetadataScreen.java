@@ -8,8 +8,8 @@ import de.keksuccino.snappy.metadata.ScreenshotMetadataManager.TimeInfo;
 import de.keksuccino.snappy.metadata.ScreenshotMetadataManager.WorldInfo;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.ScreenshotEntry;
 import de.keksuccino.snappy.util.rendering.RenderingUtils;
+import de.keksuccino.snappy.util.rendering.gui.widget.AdvancedButton;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -19,15 +19,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public class ScreenshotMetadataScreen extends Screen {
 
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
     private static final long TICKS_PER_DAY = 24_000L;
     private static final int SIDE_MARGIN = 44;
     private static final int TOP_MARGIN = 48;
@@ -63,9 +61,7 @@ public class ScreenshotMetadataScreen extends Screen {
 
     @Override
     protected void init() {
-        this.addRenderableWidget(Button.builder(CommonComponents.GUI_BACK, button -> this.onClose())
-                .bounds(this.width / 2 - BACK_BUTTON_WIDTH / 2, this.height - 28, BACK_BUTTON_WIDTH, BUTTON_HEIGHT)
-                .build());
+        this.addRenderableWidget(new AdvancedButton(this.width / 2 - BACK_BUTTON_WIDTH / 2, this.height - 28, BACK_BUTTON_WIDTH, BUTTON_HEIGHT, CommonComponents.GUI_BACK, ignored -> this.onClose()));
     }
 
     @Override
@@ -91,7 +87,7 @@ public class ScreenshotMetadataScreen extends Screen {
 
     private void renderHeader(@NotNull GuiGraphicsExtractor graphics) {
         graphics.centeredText(this.font, this.title, this.width / 2, 14, 0xFFFFFFFF);
-        graphics.centeredText(this.font, Component.literal(this.entry.displayName()), this.width / 2, 27, 0xFFB0B0B0);
+        graphics.centeredText(this.font, Component.literal(this.entry.fileName()), this.width / 2, 27, 0xFFB0B0B0);
     }
 
     private void renderPanel(@NotNull GuiGraphicsExtractor graphics) {
@@ -229,7 +225,14 @@ public class ScreenshotMetadataScreen extends Screen {
     @NotNull
     private String formatDate(long epochMillis, @NotNull String fallbackIso) {
         if (epochMillis > 0L) {
-            return DATE_FORMAT.format(Instant.ofEpochMilli(epochMillis));
+            return ScreenshotTimestampFormatter.format(epochMillis);
+        }
+        if (!fallbackIso.isBlank()) {
+            try {
+                return ScreenshotTimestampFormatter.format(Instant.parse(fallbackIso));
+            } catch (DateTimeParseException ignored) {
+                // Keep malformed legacy values visible rather than hiding potentially useful metadata.
+            }
         }
         return this.orUnknown(fallbackIso);
     }
