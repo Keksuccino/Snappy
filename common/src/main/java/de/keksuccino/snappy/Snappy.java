@@ -15,7 +15,7 @@ public class Snappy {
     public static final String LOADER = Services.PLATFORM.getPlatformName().toUpperCase();
     public static final String MOD_ID = "snappy";
     public static final File MOD_DIR = createDirectory(new File(GameDirectoryUtils.getGameDirectory(), "/config/snappy"));
-    public static final File SNAPSHOT_DIRECTORY = createDirectory(new File(GameDirectoryUtils.getGameDirectory(), "/snapshots"));
+    public static final File SNAPSHOTS_DIR = createDirectory(new File(GameDirectoryUtils.getGameDirectory(), "/snapshots"));
 
     private static Options options;
 
