@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import de.keksuccino.snappy.Options;
 import de.keksuccino.snappy.OptionsScreen;
 import de.keksuccino.snappy.Snappy;
+import de.keksuccino.snappy.client.gui.GuiBackground;
 import de.keksuccino.snappy.menu.MenuBackgroundSelectionManager;
 import de.keksuccino.snappy.menu.PanoramaMenuManager;
 import de.keksuccino.snappy.screen.ScreenshotBrowserCatalog.DeletionResult;
@@ -48,6 +49,7 @@ public class ScreenshotBrowserScreen extends Screen {
     private static final int HEADER_CONTROL_Y = 42;
     private static final int SEARCH_WIDTH = 108;
     private static final int MIN_SEARCH_WIDTH = 80;
+    private static final int FOOTER_TOOLBAR_BUTTON_COUNT = 5;
     private static final int STATUS_MESSAGE_MARGIN = 20;
     private static final long STATUS_MESSAGE_VISIBLE_MILLIS = 10_000L;
     private static final int STATUS_SUCCESS_COLOR = 0xFF78E878;
@@ -184,10 +186,9 @@ public class ScreenshotBrowserScreen extends Screen {
         ));
         this.applyFilter();
 
-        int footerY = this.height - 30;
+        int footerY = this.footerButtonY();
         int iconButtonWidth = IconButton.DEFAULT_BUTTON_SIZE;
-        int totalFooterWidth = iconButtonWidth * 5 + BUTTON_GAP * 4;
-        int footerX = centerX - totalFooterWidth / 2;
+        int footerX = this.footerToolbarContentX();
 
         this.addFooterIconButton(footerX, footerY, CommonComponents.GUI_BACK, button -> this.onClose(), BACK_ICON);
         footerX += iconButtonWidth + BUTTON_GAP;
@@ -218,6 +219,7 @@ public class ScreenshotBrowserScreen extends Screen {
 
     @Override
     public void extractRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        this.renderFooterToolbarBackground(graphics);
         super.extractRenderState(graphics, mouseX, mouseY, a);
 
         int countY = this.searchBox == null ? HEADER_CONTROL_Y : this.searchBox.getY() + this.searchBox.getHeight() - this.font.lineHeight;
@@ -454,6 +456,23 @@ public class ScreenshotBrowserScreen extends Screen {
     @NotNull
     private Component filterModeMessage() {
         return Component.translatable("snappy.browser.filter", Component.translatable(this.filterMode.labelKey()));
+    }
+
+    private void renderFooterToolbarBackground(@NotNull GuiGraphicsExtractor graphics) {
+        int padding = GuiBackground.TOOLBAR_CONTENT_PADDING;
+        GuiBackground.TOOLBAR.render(graphics, this.footerToolbarContentX() - padding, this.footerButtonY() - padding, this.footerToolbarContentWidth() + padding * 2, IconButton.DEFAULT_BUTTON_SIZE + padding * 2);
+    }
+
+    private int footerToolbarContentX() {
+        return this.width / 2 - this.footerToolbarContentWidth() / 2;
+    }
+
+    private int footerToolbarContentWidth() {
+        return IconButton.DEFAULT_BUTTON_SIZE * FOOTER_TOOLBAR_BUTTON_COUNT + BUTTON_GAP * (FOOTER_TOOLBAR_BUTTON_COUNT - 1);
+    }
+
+    private int footerButtonY() {
+        return this.height - 30;
     }
 
     @NotNull

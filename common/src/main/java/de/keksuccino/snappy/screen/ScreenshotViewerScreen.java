@@ -45,7 +45,8 @@ public class ScreenshotViewerScreen extends Screen {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final String TEXTURE_PATH = "dynamic/screenshot_browser/viewer/";
     private static final int BUTTON_GAP = 6;
-    private static final int NAVIGATION_BUTTON_GAP = 20;
+    private static final int FOOTER_TOOLBAR_BUTTON_COUNT = 4;
+    private static final int NAVIGATION_TOOLBAR_GAP = 9;
     private static final int PANORAMA_RENDER_FALLBACK_WIDTH = 16;
     private static final int PANORAMA_RENDER_FALLBACK_HEIGHT = 9;
     private static final int PANORAMA_PROGRESS_MAX_WIDTH = 360;
@@ -131,15 +132,11 @@ public class ScreenshotViewerScreen extends Screen {
     @Override
     protected void init() {
         int bottomY = this.footerButtonY();
-        int centerX = this.width / 2;
-
         int iconButtonWidth = IconButton.DEFAULT_BUTTON_SIZE;
-        int totalWidth = iconButtonWidth * 6 + BUTTON_GAP * 3 + NAVIGATION_BUTTON_GAP * 2;
-        int x = centerX - totalWidth / 2;
 
         this.previousButton = this.addRenderableWidget(new IconButton(Component.translatable("snappy.viewer.previous"), button -> this.previous(), PREVIOUS_IMAGE_ICON));
-        this.previousButton.setPosition(x, bottomY);
-        x += iconButtonWidth + NAVIGATION_BUTTON_GAP;
+        this.previousButton.setPosition(this.footerToolbarBackgroundX() - NAVIGATION_TOOLBAR_GAP - iconButtonWidth, bottomY);
+        int x = this.footerToolbarContentX();
         Button backButton = this.addRenderableWidget(new IconButton(CommonComponents.GUI_BACK, button -> this.onClose(), BACK_ICON));
         backButton.setPosition(x, bottomY);
         x += iconButtonWidth + BUTTON_GAP;
@@ -151,9 +148,8 @@ public class ScreenshotViewerScreen extends Screen {
         x += iconButtonWidth + BUTTON_GAP;
         this.deleteButton = this.addRenderableWidget(new IconButton(this.deleteMessage(), button -> this.confirmDeleteCurrent(), DELETE_ICON));
         this.deleteButton.setPosition(x, bottomY);
-        x += iconButtonWidth + NAVIGATION_BUTTON_GAP;
         this.nextButton = this.addRenderableWidget(new IconButton(Component.translatable("snappy.viewer.next"), button -> this.next(), NEXT_IMAGE_ICON));
-        this.nextButton.setPosition(x, bottomY);
+        this.nextButton.setPosition(this.footerToolbarBackgroundX() + this.footerToolbarBackgroundWidth() + NAVIGATION_TOOLBAR_GAP, bottomY);
 
         this.menuBackgroundSelectionButton = this.addRenderableWidget(new IconButton(
                 Component.translatable("snappy.viewer.menu_background.tooltip"),
@@ -171,6 +167,7 @@ public class ScreenshotViewerScreen extends Screen {
         int hoverMouseY = this.hoverMouseY(mouseY);
         this.renderHeader(graphics);
         this.renderImage(graphics, hoverMouseX, hoverMouseY);
+        this.renderFooterToolbarBackground(graphics);
         super.extractRenderState(graphics, hoverMouseX, hoverMouseY, a);
     }
 
@@ -911,6 +908,27 @@ public class ScreenshotViewerScreen extends Screen {
 
     private int footerButtonY() {
         return this.height - 30;
+    }
+
+    private void renderFooterToolbarBackground(@NotNull GuiGraphicsExtractor graphics) {
+        int padding = GuiBackground.TOOLBAR_CONTENT_PADDING;
+        GuiBackground.TOOLBAR.render(graphics, this.footerToolbarBackgroundX(), this.footerButtonY() - padding, this.footerToolbarBackgroundWidth(), IconButton.DEFAULT_BUTTON_SIZE + padding * 2);
+    }
+
+    private int footerToolbarContentX() {
+        return this.width / 2 - this.footerToolbarContentWidth() / 2;
+    }
+
+    private int footerToolbarContentWidth() {
+        return IconButton.DEFAULT_BUTTON_SIZE * FOOTER_TOOLBAR_BUTTON_COUNT + BUTTON_GAP * (FOOTER_TOOLBAR_BUTTON_COUNT - 1);
+    }
+
+    private int footerToolbarBackgroundX() {
+        return this.footerToolbarContentX() - GuiBackground.TOOLBAR_CONTENT_PADDING;
+    }
+
+    private int footerToolbarBackgroundWidth() {
+        return this.footerToolbarContentWidth() + GuiBackground.TOOLBAR_CONTENT_PADDING * 2;
     }
 
     private int imageAreaX() {
