@@ -37,13 +37,19 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     private static final int PADDING = 10;
     private static final Identifier TILE_IDLE_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/screenshot_preview_card_idle_136x118.png");
     private static final Identifier TILE_HOVER_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/screenshot_preview_card_hover_136x118.png");
+    private static final Identifier SCREENSHOT_MEDIA_TYPE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/media_type/screenshot_icon_13x13.png");
+    private static final Identifier PANORAMA_MEDIA_TYPE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/media_type/panorama_icon_13x13.png");
     private static final int TILE_WIDTH = 136;
     private static final int TILE_HEIGHT = 118;
     private static final int TILE_GAP = 8;
     private static final int THUMBNAIL_BUFFER_ROWS = 2;
     private static final int IMAGE_WIDTH = 120;
     private static final int IMAGE_HEIGHT = 64;
+    private static final int IMAGE_TOP_INSET = 8;
+    private static final int THUMBNAIL_OVERLAY_INSET = 3;
     private static final int CHECKBOX_SIZE = 11;
+    private static final int CHECKBOX_BACKGROUND_SIZE = CHECKBOX_SIZE + 2;
+    private static final int MEDIA_TYPE_ICON_SIZE = 13;
     private static final int SCROLLBAR_EDGE_INSET = 2;
     private static final int SCROLLBAR_TRACK_WIDTH = 2;
     private static final int SCROLLBAR_THUMB_WIDTH = 4;
@@ -295,19 +301,18 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
         graphics.blit(RenderPipelines.GUI_TEXTURED, backgroundTexture, x, y, 0.0F, 0.0F, TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
 
         int imageX = x + (TILE_WIDTH - IMAGE_WIDTH) / 2;
-        int imageY = y + 8;
+        int imageY = y + IMAGE_TOP_INSET;
         graphics.fill(imageX, imageY, imageX + IMAGE_WIDTH, imageY + IMAGE_HEIGHT, 0xFF101010);
         this.renderThumbnail(graphics, entry, imageX, imageY);
-        this.renderCheckbox(graphics, imageX + 4, imageY + 4, selected);
+        this.renderCheckbox(graphics, imageX + THUMBNAIL_OVERLAY_INSET, imageY + THUMBNAIL_OVERLAY_INSET, selected);
+        this.renderMediaTypeIcon(graphics, entry, imageX + IMAGE_WIDTH - THUMBNAIL_OVERLAY_INSET - MEDIA_TYPE_ICON_SIZE, imageY + THUMBNAIL_OVERLAY_INSET);
 
         String name = this.ellipsize(entry.displayName(), TILE_WIDTH - 14);
-        graphics.text(this.font, name, x + 7, y + 82, TEXT_COLOR);
+        graphics.text(this.font, name, x + 7, y + 92, TEXT_COLOR);
 
-        Component type = Component.translatable(entry.typeLabelKey());
-        graphics.text(this.font, type, x + 7, y + 94, entry.isPanorama() ? 0xFFFFC44D : 0xFF8FD8FF);
         if (!entry.formattedDate().isEmpty()) {
             String date = this.ellipsize(entry.formattedDate(), TILE_WIDTH - 14);
-            graphics.text(this.font, date, x + 7, y + 105, SECONDARY_TEXT_COLOR);
+            graphics.text(this.font, date, x + 7, y + 103, SECONDARY_TEXT_COLOR);
         }
     }
 
@@ -336,9 +341,14 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
     }
 
     private void renderCheckbox(@NotNull GuiGraphicsExtractor graphics, int x, int y, boolean selected) {
-        graphics.fill(x - 1, y - 1, x + CHECKBOX_SIZE + 1, y + CHECKBOX_SIZE + 1, 0xCC000000);
-        graphics.fill(x, y, x + CHECKBOX_SIZE, y + CHECKBOX_SIZE, selected ? 0xFF4CAF50 : 0xFF202020);
-        graphics.outline(x, y, CHECKBOX_SIZE, CHECKBOX_SIZE, 0xFFFFFFFF);
+        graphics.fill(x, y, x + CHECKBOX_BACKGROUND_SIZE, y + CHECKBOX_BACKGROUND_SIZE, 0xCC000000);
+        graphics.fill(x + 1, y + 1, x + CHECKBOX_SIZE + 1, y + CHECKBOX_SIZE + 1, selected ? 0xFF4CAF50 : 0xFF202020);
+        graphics.outline(x + 1, y + 1, CHECKBOX_SIZE, CHECKBOX_SIZE, 0xFFFFFFFF);
+    }
+
+    private void renderMediaTypeIcon(@NotNull GuiGraphicsExtractor graphics, @NotNull ScreenshotEntry entry, int x, int y) {
+        Identifier icon = entry.isPanorama() ? PANORAMA_MEDIA_TYPE_ICON : SCREENSHOT_MEDIA_TYPE_ICON;
+        graphics.blit(RenderPipelines.GUI_TEXTURED, icon, x, y, 0.0F, 0.0F, MEDIA_TYPE_ICON_SIZE, MEDIA_TYPE_ICON_SIZE, MEDIA_TYPE_ICON_SIZE, MEDIA_TYPE_ICON_SIZE);
     }
 
     @Override
@@ -682,10 +692,10 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
         int tileX = this.gridLeft(columns) + column * (TILE_WIDTH + TILE_GAP);
         int tileY = this.getY() + PADDING - (int) this.scrollAmount() + row * (TILE_HEIGHT + TILE_GAP);
         int imageX = tileX + (TILE_WIDTH - IMAGE_WIDTH) / 2;
-        int checkboxX = imageX + 4;
-        int checkboxY = tileY + 12;
-        return mouseX >= checkboxX - 2 && mouseX < checkboxX + CHECKBOX_SIZE + 2
-                && mouseY >= checkboxY - 2 && mouseY < checkboxY + CHECKBOX_SIZE + 2;
+        int checkboxX = imageX + THUMBNAIL_OVERLAY_INSET;
+        int checkboxY = tileY + IMAGE_TOP_INSET + THUMBNAIL_OVERLAY_INSET;
+        return mouseX >= checkboxX - 1 && mouseX < checkboxX + CHECKBOX_BACKGROUND_SIZE + 1
+                && mouseY >= checkboxY - 1 && mouseY < checkboxY + CHECKBOX_BACKGROUND_SIZE + 1;
     }
 
     private boolean isOverThumbnail(int index, double mouseX, double mouseY) {
@@ -695,7 +705,7 @@ public class ScreenshotGridWidget extends AbstractScrollArea implements AutoClos
         int tileX = this.gridLeft(columns) + column * (TILE_WIDTH + TILE_GAP);
         int tileY = this.getY() + PADDING - (int) this.scrollAmount() + row * (TILE_HEIGHT + TILE_GAP);
         int imageX = tileX + (TILE_WIDTH - IMAGE_WIDTH) / 2;
-        int imageY = tileY + 8;
+        int imageY = tileY + IMAGE_TOP_INSET;
         return mouseX >= imageX && mouseX < imageX + IMAGE_WIDTH
                 && mouseY >= imageY && mouseY < imageY + IMAGE_HEIGHT;
     }

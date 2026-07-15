@@ -221,7 +221,9 @@ public class ScreenshotBrowserScreen extends Screen {
         super.extractRenderState(graphics, mouseX, mouseY, a);
 
         int countY = this.searchBox == null ? HEADER_CONTROL_Y : this.searchBox.getY() + this.searchBox.getHeight() - this.font.lineHeight;
-        Component countText = Component.translatable("snappy.browser.count", this.filteredEntries.size());
+        ScreenshotGridWidget currentGrid = this.grid;
+        int selected = currentGrid == null ? 0 : currentGrid.selectionCount();
+        Component countText = selected > 0 ? Component.translatable("snappy.browser.count_selected", this.filteredEntries.size(), selected) : Component.translatable("snappy.browser.count", this.filteredEntries.size());
         Button leftmostHeaderButton = this.settingsButton != null ? this.settingsButton : this.sortButton;
         int countMaxWidth = leftmostHeaderButton == null ? this.width - SIDE_MARGIN * 2 : Math.max(20, leftmostHeaderButton.getX() - SIDE_MARGIN - BUTTON_GAP);
         graphics.text(this.font, this.ellipsize(countText.getString(), countMaxWidth), SIDE_MARGIN, countY, 0xFFFFFFFF);

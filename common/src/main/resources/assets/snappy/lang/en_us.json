@@ -90,6 +90,7 @@
   "snappy.browser.filter.only_normal_screenshots": "Only Screenshots",
   "snappy.browser.filter.today": "Today",
   "snappy.browser.count": "%s screenshots",
+  "snappy.browser.count_selected": "%s screenshots, %s selected",
   "snappy.browser.empty": "No screenshots found.",
   "snappy.browser.loading": "Loading...",
   "snappy.browser.thumbnail_failed": "Could not load",
