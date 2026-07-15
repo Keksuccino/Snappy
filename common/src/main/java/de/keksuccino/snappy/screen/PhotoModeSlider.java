@@ -1,6 +1,6 @@
 package de.keksuccino.snappy.screen;
 
-import net.minecraft.client.gui.components.AbstractSliderButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.SnappySlider;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleFunction;
 
-public class PhotoModeSlider extends AbstractSliderButton {
+public class PhotoModeSlider extends SnappySlider {
 
     private static final double DEFAULT_EPSILON = 1.0E-7D;
 
