@@ -800,6 +800,7 @@ public final class PhotoModeManager {
             this.pitch = pitch;
             this.fieldOfView = Mth.clamp(fieldOfView, 30.0F, 110.0F);
             this.paused = paused;
+            this.gridEnabled = Snappy.getInstanceData().photoModeGridState.getValue();
             this.timePreset = timePreset;
             this.weatherPreset = weatherPreset;
             this.sampledSkyColor = ARGB.opaque(sampledSkyColor);
@@ -853,7 +854,6 @@ public final class PhotoModeManager {
             this.heldItemsMode = PhotoModeHeldItemsMode.SHOW_BOTH_HANDS;
             this.hideBeaconBeams = false;
             this.photoModeUiHidden = false;
-            this.gridEnabled = false;
             this.poseId = null;
             this.poseMakerPose = null;
             this.timePreset = PhotoEnvironmentManager.defaultTimePreset(minecraft);
@@ -1312,6 +1312,7 @@ public final class PhotoModeManager {
 
         public void setGridEnabled(boolean gridEnabled) {
             this.gridEnabled = gridEnabled;
+            Snappy.getInstanceData().photoModeGridState.setValue(gridEnabled);
         }
 
         @NotNull
