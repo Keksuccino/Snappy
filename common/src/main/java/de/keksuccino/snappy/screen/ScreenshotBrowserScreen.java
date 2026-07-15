@@ -42,7 +42,7 @@ import java.util.Set;
 public class ScreenshotBrowserScreen extends Screen {
 
     private static final int HEADER_HEIGHT = 74;
-    private static final int FOOTER_HEIGHT = 42;
+    private static final int FOOTER_HEIGHT = 44;
     private static final int BUTTON_HEIGHT = 20;
     private static final int SIDE_MARGIN = 20;
     private static final int BUTTON_GAP = 6;
@@ -472,7 +472,7 @@ public class ScreenshotBrowserScreen extends Screen {
     }
 
     private int footerButtonY() {
-        return this.height - 30;
+        return this.height - 32;
     }
 
     @NotNull

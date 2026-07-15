@@ -907,7 +907,7 @@ public class ScreenshotViewerScreen extends Screen {
     }
 
     private int footerButtonY() {
-        return this.height - 30;
+        return this.height - 32;
     }
 
     private void renderFooterToolbarBackground(@NotNull GuiGraphicsExtractor graphics) {

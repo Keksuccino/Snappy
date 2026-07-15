@@ -72,7 +72,7 @@ public class PhotoModeScreen extends Screen {
     static final int CONTROL_HEIGHT = 20;
     static final int CONTROL_GAP = 5;
     private static final int TAB_GAP = 4;
-    private static final int TAB_SCROLLBAR_SPACING = 2;
+    private static final int TAB_SCROLLBAR_SPACING = 4;
     private static final int TAB_SCROLLBAR_RESERVE = AbstractScrollArea.SCROLLBAR_WIDTH + TAB_SCROLLBAR_SPACING;
     // Decorative slices own space outside the tab body. Mirror the trailing center padding on the leading edges so the body remains evenly inset while the textured panel itself stays fixed.
     private static final int TAB_HEADER_CONTENT_HEIGHT = PANEL_PADDING + IconButton.DEFAULT_BUTTON_SIZE + CONTROL_GAP + 2;
