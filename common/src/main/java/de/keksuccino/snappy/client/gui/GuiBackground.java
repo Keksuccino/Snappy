@@ -16,6 +16,10 @@ public final class GuiBackground {
     private static final Identifier TOOLBAR_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/toolbar_32x32.png");
     private static final int TOOLBAR_TEXTURE_SIZE = 32;
     private static final int TOOLBAR_BORDER_SIZE = 4;
+    private static final Identifier SCREENSHOT_BROWSER_METADATA_PANEL_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/screenshot_browser_metadata_panel_200x450.png");
+    private static final int SCREENSHOT_BROWSER_METADATA_PANEL_TEXTURE_WIDTH = 200;
+    private static final int SCREENSHOT_BROWSER_METADATA_PANEL_TEXTURE_HEIGHT = 450;
+    private static final int SCREENSHOT_BROWSER_METADATA_PANEL_BORDER_SIZE = 20;
     private static final Identifier PHOTO_MODE_TABS_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/photo_mode_tabs_243x61.png");
     private static final Identifier PHOTO_MODE_TABS_LEFT_BODY_TOP_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/photo_mode_tabs_left_body_top_13x54.png");
     private static final Identifier PHOTO_MODE_TABS_LEFT_BODY_BOTTOM_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/photo_mode_tabs_left_body_bottom_13x54.png");
@@ -27,6 +31,7 @@ public final class GuiBackground {
     public static final int TOOLBAR_CONTENT_PADDING = 6;
     public static final GuiBackground DEFAULT = new GuiBackground(DEFAULT_TEXTURE, 20, 20, 4, 4, 4, 4);
     public static final GuiBackground TOOLBAR = new GuiBackground(TOOLBAR_TEXTURE, TOOLBAR_TEXTURE_SIZE, TOOLBAR_TEXTURE_SIZE, TOOLBAR_BORDER_SIZE, TOOLBAR_BORDER_SIZE, TOOLBAR_BORDER_SIZE, TOOLBAR_BORDER_SIZE);
+    public static final GuiBackground SCREENSHOT_BROWSER_METADATA_PANEL = new GuiBackground(SCREENSHOT_BROWSER_METADATA_PANEL_TEXTURE, SCREENSHOT_BROWSER_METADATA_PANEL_TEXTURE_WIDTH, SCREENSHOT_BROWSER_METADATA_PANEL_TEXTURE_HEIGHT, SCREENSHOT_BROWSER_METADATA_PANEL_BORDER_SIZE, SCREENSHOT_BROWSER_METADATA_PANEL_BORDER_SIZE, SCREENSHOT_BROWSER_METADATA_PANEL_BORDER_SIZE, SCREENSHOT_BROWSER_METADATA_PANEL_BORDER_SIZE);
     public static final GuiBackground PHOTO_MODE_TABS = new GuiBackground(PHOTO_MODE_TABS_TEXTURE, 243, 61, 15, PHOTO_MODE_TABS_TOP_BORDER, 4, PHOTO_MODE_TABS_BOTTOM_BORDER, new FixedOverlay(PHOTO_MODE_TABS_LEFT_BODY_TOP_TEXTURE, PHOTO_MODE_TABS_LEFT_BODY_OVERLAY_WIDTH, PHOTO_MODE_TABS_LEFT_BODY_OVERLAY_HEIGHT, 1, PHOTO_MODE_TABS_TOP_BORDER, VerticalAnchor.TOP), new FixedOverlay(PHOTO_MODE_TABS_LEFT_BODY_BOTTOM_TEXTURE, PHOTO_MODE_TABS_LEFT_BODY_OVERLAY_WIDTH, PHOTO_MODE_TABS_LEFT_BODY_OVERLAY_HEIGHT, 1, PHOTO_MODE_TABS_BOTTOM_BORDER, VerticalAnchor.BOTTOM));
 
     private final Identifier texture;

@@ -46,10 +46,11 @@ public class ScreenshotBrowserScreen extends Screen {
     private static final int BUTTON_HEIGHT = 20;
     private static final int SIDE_MARGIN = 20;
     private static final int BUTTON_GAP = 6;
+    private static final int CONTENT_PANEL_GAP = 8;
     private static final int HEADER_CONTROL_Y = 42;
     private static final int SEARCH_WIDTH = 108;
     private static final int MIN_SEARCH_WIDTH = 80;
-    private static final int FOOTER_TOOLBAR_BUTTON_COUNT = 5;
+    private static final int FOOTER_TOOLBAR_BUTTON_COUNT = 4;
     private static final int STATUS_MESSAGE_MARGIN = 20;
     private static final long STATUS_MESSAGE_VISIBLE_MILLIS = 10_000L;
     private static final int STATUS_SUCCESS_COLOR = 0xFF78E878;
@@ -61,7 +62,6 @@ public class ScreenshotBrowserScreen extends Screen {
     private static final Identifier SEARCH_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/search_icon_15x15.png");
     private static final Identifier REFRESH_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/refresh_icon_15x15.png");
     private static final Identifier SELECT_ALL_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/select_all_icon_15x15.png");
-    private static final Identifier CLEAR_SELECTION_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/clear_selection_icon_15x15.png");
     private static final Identifier DELETE_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/shared/delete_icon_15x15.png");
 
     @Nullable
@@ -82,8 +82,6 @@ public class ScreenshotBrowserScreen extends Screen {
     private EditBox searchBox;
     @Nullable
     private Button deleteSelectedButton;
-    @Nullable
-    private Button clearSelectionButton;
     private Options.BrowserSortMode sortMode = Options.BrowserSortMode.NEWEST_FIRST;
     private Options.BrowserFilterMode filterMode = Options.BrowserFilterMode.NONE;
     private boolean searchExpanded;
@@ -172,13 +170,14 @@ public class ScreenshotBrowserScreen extends Screen {
         this.updateSearchControls();
 
         int gridY = HEADER_HEIGHT;
-        int gridHeight = Math.max(80, this.height - HEADER_HEIGHT - FOOTER_HEIGHT);
+        int gridHeight = this.contentAreaHeight();
+        int gridWidth = this.screenshotGridWidth();
         this.grid = this.addRenderableWidget(new ScreenshotGridWidget(
                 this.minecraft,
                 this.font,
                 SIDE_MARGIN,
                 gridY,
-                this.width - SIDE_MARGIN * 2,
+                gridWidth,
                 gridHeight,
                 this::openEntry,
                 this::confirmDelete,
@@ -201,13 +200,6 @@ public class ScreenshotBrowserScreen extends Screen {
             }
         }, SELECT_ALL_ICON);
         footerX += iconButtonWidth + BUTTON_GAP;
-        this.clearSelectionButton = this.addFooterIconButton(footerX, footerY, Component.translatable("snappy.browser.clear_selection"), button -> {
-            ScreenshotGridWidget currentGrid = this.grid;
-            if (currentGrid != null) {
-                currentGrid.clearSelection();
-            }
-        }, CLEAR_SELECTION_ICON);
-        footerX += iconButtonWidth + BUTTON_GAP;
         this.deleteSelectedButton = this.addFooterIconButton(footerX, footerY, this.deleteSelectedMessage(0), button -> {
             ScreenshotGridWidget currentGrid = this.grid;
             if (currentGrid != null && currentGrid.hasSelection()) {
@@ -219,6 +211,7 @@ public class ScreenshotBrowserScreen extends Screen {
 
     @Override
     public void extractRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        this.renderMetadataPanelBackground(graphics);
         this.renderFooterToolbarBackground(graphics);
         super.extractRenderState(graphics, mouseX, mouseY, a);
 
@@ -238,11 +231,14 @@ public class ScreenshotBrowserScreen extends Screen {
 
     @Override
     public boolean keyPressed(@NotNull KeyEvent event) {
+        ScreenshotGridWidget currentGrid = this.grid;
+        if (currentGrid != null) {
+            currentGrid.cancelPendingDoubleClick();
+        }
         if (this.searchBox != null && this.searchBox.isFocused()) {
             return super.keyPressed(event);
         }
         if (event.isSelectAll()) {
-            ScreenshotGridWidget currentGrid = this.grid;
             if (currentGrid != null) {
                 currentGrid.selectAll();
                 return true;
@@ -253,6 +249,11 @@ public class ScreenshotBrowserScreen extends Screen {
 
     @Override
     public boolean mouseClicked(@NotNull MouseButtonEvent event, boolean doubleClick) {
+        ScreenshotGridWidget currentGrid = this.grid;
+        if (currentGrid != null && (event.button() != 0 || !currentGrid.isOverCard(event.x(), event.y()))) {
+            currentGrid.cancelPendingDoubleClick();
+        }
+
         if (event.button() == 0) {
             Button currentSearchButton = this.searchButton;
             if (!this.searchExpanded && currentSearchButton != null && currentSearchButton.isMouseOver(event.x(), event.y())) {
@@ -273,6 +274,15 @@ public class ScreenshotBrowserScreen extends Screen {
     }
 
     @Override
+    public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
+        ScreenshotGridWidget currentGrid = this.grid;
+        if (currentGrid != null) {
+            currentGrid.cancelPendingDoubleClick();
+        }
+        return super.mouseScrolled(x, y, scrollX, scrollY);
+    }
+
+    @Override
     public void removed() {
         ScreenshotGridWidget currentGrid = this.grid;
         if (currentGrid != null) {
@@ -283,10 +293,6 @@ public class ScreenshotBrowserScreen extends Screen {
 
     @Override
     public void tick() {
-        ScreenshotGridWidget currentGrid = this.grid;
-        if (currentGrid != null) {
-            currentGrid.tickDragSelection();
-        }
         if (this.searchExpanded && this.searchBox != null && !this.searchBox.isFocused()) {
             this.collapseSearch();
         }
@@ -463,6 +469,26 @@ public class ScreenshotBrowserScreen extends Screen {
         GuiBackground.TOOLBAR.render(graphics, this.footerToolbarContentX() - padding, this.footerButtonY() - padding, this.footerToolbarContentWidth() + padding * 2, IconButton.DEFAULT_BUTTON_SIZE + padding * 2);
     }
 
+    private void renderMetadataPanelBackground(@NotNull GuiGraphicsExtractor graphics) {
+        GuiBackground.SCREENSHOT_BROWSER_METADATA_PANEL.render(graphics, this.metadataPanelX(), HEADER_HEIGHT, this.metadataPanelWidth(), this.contentAreaHeight());
+    }
+
+    private int screenshotGridWidth() {
+        return Math.max(1, (this.width - SIDE_MARGIN * 2) * 3 / 4);
+    }
+
+    private int metadataPanelX() {
+        return SIDE_MARGIN + this.screenshotGridWidth() + CONTENT_PANEL_GAP;
+    }
+
+    private int metadataPanelWidth() {
+        return Math.max(0, this.width - SIDE_MARGIN - this.metadataPanelX());
+    }
+
+    private int contentAreaHeight() {
+        return Math.max(80, this.height - HEADER_HEIGHT - FOOTER_HEIGHT);
+    }
+
     private int footerToolbarContentX() {
         return this.width / 2 - this.footerToolbarContentWidth() / 2;
     }
@@ -567,9 +593,6 @@ public class ScreenshotBrowserScreen extends Screen {
             this.deleteSelectedButton.active = selected > 0;
             this.deleteSelectedButton.setMessage(message);
             this.deleteSelectedButton.setTooltip(Tooltip.create(message));
-        }
-        if (this.clearSelectionButton != null) {
-            this.clearSelectionButton.active = selected > 0;
         }
     }
 

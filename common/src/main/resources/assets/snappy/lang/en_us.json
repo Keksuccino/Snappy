@@ -99,7 +99,6 @@
   "snappy.browser.settings": "Settings",
   "snappy.browser.refresh": "Refresh",
   "snappy.browser.select_all": "Select All",
-  "snappy.browser.clear_selection": "Clear",
   "snappy.browser.delete": "Delete",
   "snappy.browser.delete_selected": "Delete Selected (%s)",
   "snappy.browser.delete_confirm.title": "Delete Screenshots",
