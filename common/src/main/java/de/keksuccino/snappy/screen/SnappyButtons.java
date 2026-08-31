@@ -34,7 +34,7 @@ public final class SnappyButtons {
     }
 
     public static SnappyButton pauseMenuPhotoMode() {
-        return new SnappyButton(0, 0, PAUSE_MENU_FULL_WIDTH_BUTTON_WIDTH, SnappyButton.DEFAULT_HEIGHT, Component.translatable("snappy.photo_mode.open"), ignored -> PhotoModeManager.open(Minecraft.getInstance())).useVanillaTextures(true);
+        return new SnappyButton(0, 0, PAUSE_MENU_FULL_WIDTH_BUTTON_WIDTH, Component.translatable("snappy.photo_mode.open"), ignored -> PhotoModeManager.open(Minecraft.getInstance())).useVanillaTextures(true);
     }
 
 }

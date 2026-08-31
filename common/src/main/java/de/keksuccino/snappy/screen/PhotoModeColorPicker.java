@@ -1,6 +1,7 @@
 package de.keksuccino.snappy.screen;
 
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
+import de.keksuccino.snappy.util.rendering.gui.widget.SnappyButton;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -17,8 +18,11 @@ import java.util.function.Supplier;
 
 public final class PhotoModeColorPicker {
 
+    // Keep the fixed track layout and spacing stable while allowing both footer buttons to follow SnappyButton's default height.
+    private static final int HEIGHT_WITHOUT_FOOTER_BUTTONS = 120;
+
     public static final int WIDTH = 176;
-    public static final int HEIGHT = 160;
+    public static final int HEIGHT = HEIGHT_WITHOUT_FOOTER_BUTTONS + SnappyButton.DEFAULT_HEIGHT * 2;
     public static final String EMPTY_HEX_COLOR = "-----";
     private static final int PADDING = 8;
     private static final int HEADER_HEIGHT = 17;
@@ -26,7 +30,7 @@ public final class PhotoModeColorPicker {
     private static final int TRACK_HEIGHT = 10;
     private static final int TRACK_GAP = 15;
     private static final int TRACK_LABEL_WIDTH = 11;
-    private static final int FOOTER_BUTTON_HEIGHT = 20;
+    private static final int FOOTER_BUTTON_HEIGHT = SnappyButton.DEFAULT_HEIGHT;
     private static final int FOOTER_BUTTON_GAP = 4;
     private static final int PANEL_BACKGROUND_COLOR = ARGB.color(184, 0, 0, 0);
     private static final int PANEL_BORDER_COLOR = ARGB.color(210, 116, 128, 142);
@@ -90,10 +94,6 @@ public final class PhotoModeColorPicker {
         return WIDTH - PADDING * 2;
     }
 
-    public int doneButtonHeight() {
-        return FOOTER_BUTTON_HEIGHT;
-    }
-
     public int resetButtonX() {
         return this.x + PADDING;
     }
@@ -104,10 +104,6 @@ public final class PhotoModeColorPicker {
 
     public int resetButtonWidth() {
         return WIDTH - PADDING * 2;
-    }
-
-    public int resetButtonHeight() {
-        return FOOTER_BUTTON_HEIGHT;
     }
 
     public boolean mouseClicked(@NotNull MouseButtonEvent event, boolean doubleClick) {

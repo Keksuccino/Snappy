@@ -28,7 +28,8 @@ public class ScreenshotMetadataScreen extends Screen {
     private static final long TICKS_PER_DAY = 24_000L;
     private static final int SIDE_MARGIN = 44;
     private static final int TOP_MARGIN = 48;
-    private static final int BOTTOM_MARGIN = 44;
+    private static final int BACK_BUTTON_MARGIN = 12;
+    private static final int BOTTOM_MARGIN = SnappyButton.DEFAULT_HEIGHT + BACK_BUTTON_MARGIN * 2;
     private static final int PANEL_PADDING = 12;
     private static final int SECTION_GAP = 8;
     private static final int SECTION_PADDING = 10;
@@ -44,7 +45,6 @@ public class ScreenshotMetadataScreen extends Screen {
     private static final int SCROLL_AREA_RIGHT_INSET = GuiBackground.DEFAULT.rightBorder() + SCROLL_AREA_BACKGROUND_GAP;
     private static final int SCROLL_AREA_BOTTOM_INSET = GuiBackground.DEFAULT.bottomBorder() + SCROLL_AREA_BACKGROUND_GAP;
     private static final int SCROLLBAR_EDGE_INSET = 2;
-    private static final int BUTTON_HEIGHT = 20;
     private static final int BACK_BUTTON_WIDTH = 150;
 
     private final Screen parent;
@@ -60,7 +60,7 @@ public class ScreenshotMetadataScreen extends Screen {
 
     @Override
     protected void init() {
-        this.addRenderableWidget(new SnappyButton(this.width / 2 - BACK_BUTTON_WIDTH / 2, this.height - 32, BACK_BUTTON_WIDTH, BUTTON_HEIGHT, CommonComponents.GUI_BACK, ignored -> this.onClose()));
+        this.addRenderableWidget(new SnappyButton(this.width / 2 - BACK_BUTTON_WIDTH / 2, this.height - BACK_BUTTON_MARGIN - SnappyButton.DEFAULT_HEIGHT, BACK_BUTTON_WIDTH, CommonComponents.GUI_BACK, ignored -> this.onClose()));
     }
 
     @Override

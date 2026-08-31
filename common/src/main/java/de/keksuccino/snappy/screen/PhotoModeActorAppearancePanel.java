@@ -16,17 +16,17 @@ final class PhotoModeActorAppearancePanel implements PhotoModeTabPanel {
             return;
         }
 
-        screen.hideSelfButton = screen.addTabControl(new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        screen.hideSelfButton = screen.addTabControl(new SnappyButton(0, 0, width, Component.empty(), ignored -> {
             active.setHideSelfPlayer(!active.hideSelfPlayer());
             screen.updateButtonMessages();
         }));
 
-        screen.hideOthersButton = screen.addTabControl(new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        screen.hideOthersButton = screen.addTabControl(new SnappyButton(0, 0, width, Component.empty(), ignored -> {
             active.setHideOtherPlayers(!active.hideOtherPlayers());
             screen.updateButtonMessages();
         }));
 
-        SnappyButton poseButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton poseButton = new SnappyButton(0, 0, width, Component.empty(), ignored -> {
             active.cyclePose();
             screen.updateButtonMessages();
         });
@@ -99,14 +99,14 @@ final class PhotoModeActorAppearancePanel implements PhotoModeTabPanel {
                 value -> PhotoModeScreen.optionMessage("snappy.photo_mode.player_rotation_z", screen.degreeValue(value))
         );
 
-        SnappyButton armorButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton armorButton = new SnappyButton(0, 0, width, Component.empty(), ignored -> {
             active.setArmorMode(active.armorMode().next());
             screen.updateButtonMessages();
         });
         armorButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.armor.desc")));
         screen.armorButton = screen.addTabControl(armorButton);
 
-        SnappyButton heldItemsButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton heldItemsButton = new SnappyButton(0, 0, width, Component.empty(), ignored -> {
             active.setHeldItemsMode(active.heldItemsMode().next());
             screen.updateButtonMessages();
         });

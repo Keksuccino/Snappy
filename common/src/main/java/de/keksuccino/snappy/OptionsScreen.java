@@ -40,12 +40,12 @@ import java.util.function.Consumer;
 
 public class OptionsScreen extends Screen {
 
-    protected static final int BUTTON_HEIGHT = 20;
+    protected static final int BUTTON_HEIGHT = SnappyButton.DEFAULT_HEIGHT;
     protected static final int BUTTON_ROW_MAX_WIDTH = 360;
     protected static final int CYCLE_VALUE_COLOR = 0xFFAA00;
     protected static final int KEYBIND_RESET_BUTTON_WIDTH = 50;
     protected static final int KEYBIND_GAP = 5;
-    protected static final int OPTION_ROW_ADVANCE = 26;
+    protected static final int OPTION_ROW_ADVANCE = BUTTON_HEIGHT + 6;
     protected static final int OPTION_SECTION_PADDING_TOP = 10;
     protected static final int BUTTONS_DISABLED_WARNING_COLOR = 0xFFFFAA00;
     protected static final Identifier TAB_HEADER_BACKGROUND = Identifier.withDefaultNamespace("textures/gui/tab_header_background.png");
@@ -124,7 +124,7 @@ public class OptionsScreen extends Screen {
                 .build();
         this.addRenderableWidget(this.tabNavigationBar);
 
-        this.layout.addToFooter(new SnappyButton(0, 0, 150, BUTTON_HEIGHT, CommonComponents.GUI_DONE, ignored -> this.onClose()));
+        this.layout.addToFooter(new SnappyButton(0, 0, 150, CommonComponents.GUI_DONE, ignored -> this.onClose()));
         this.layout.visitWidgets(widget -> {
             widget.setTabOrderGroup(1);
             this.addRenderableWidget(widget);
@@ -195,7 +195,7 @@ public class OptionsScreen extends Screen {
     @NotNull
     protected SnappyButton buildKeybindButton(@NotNull KeybindSetting setting) {
         KeyMapping keyMapping = setting.keyMapping();
-        return new SnappyButton(0, 0, this.getButtonWidth() - KEYBIND_RESET_BUTTON_WIDTH - KEYBIND_GAP, BUTTON_HEIGHT, Component.empty(), ignored -> {
+        return new SnappyButton(0, 0, this.getButtonWidth() - KEYBIND_RESET_BUTTON_WIDTH - KEYBIND_GAP, Component.empty(), ignored -> {
             this.waitingForKeybind = keyMapping;
             this.updateKeybindButtons();
         }).setNarration(defaultNarrationSupplier -> keyMapping.isUnbound() ? Component.translatable("narrator.controls.unbound", Component.translatable(keyMapping.getName())) : Component.translatable("narrator.controls.bound", Component.translatable(keyMapping.getName()), defaultNarrationSupplier.get()));
@@ -204,7 +204,7 @@ public class OptionsScreen extends Screen {
     @NotNull
     protected SnappyButton buildKeybindResetButton(@NotNull KeybindSetting setting) {
         KeyMapping keyMapping = setting.keyMapping();
-        return new SnappyButton(0, 0, KEYBIND_RESET_BUTTON_WIDTH, BUTTON_HEIGHT, Component.translatable("controls.reset"), ignored -> {
+        return new SnappyButton(0, 0, KEYBIND_RESET_BUTTON_WIDTH, Component.translatable("controls.reset"), ignored -> {
             keyMapping.setKey(keyMapping.getDefaultKey());
             this.afterKeybindChanged();
         }).setNarration(defaultNarrationSupplier -> Component.translatable("narrator.controls.reset", Component.translatable(keyMapping.getName())));
@@ -212,7 +212,7 @@ public class OptionsScreen extends Screen {
 
     @NotNull
     protected SnappyButton buildResolutionButton() {
-        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.resolutionMessage(), pressedButton -> {
+        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), this.resolutionMessage(), pressedButton -> {
             Options options = Snappy.getOptions();
             options.setScreenshotResolution(options.getScreenshotResolution().next());
             pressedButton.setMessage(this.resolutionMessage());
@@ -224,7 +224,7 @@ public class OptionsScreen extends Screen {
 
     @NotNull
     protected SnappyButton buildMenuModeButton() {
-        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.menuModeMessage(), pressedButton -> {
+        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), this.menuModeMessage(), pressedButton -> {
             Options options = Snappy.getOptions();
             options.setMenuPanoramaMode(options.getMenuPanoramaMode().next());
             pressedButton.setMessage(this.menuModeMessage());
@@ -237,7 +237,7 @@ public class OptionsScreen extends Screen {
 
     @NotNull
     protected SnappyButton buildMenuParallaxButton() {
-        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.menuParallaxMessage(), pressedButton -> {
+        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), this.menuParallaxMessage(), pressedButton -> {
             Options options = Snappy.getOptions();
             options.setMenuPanoramaParallaxEnabled(!options.isMenuPanoramaParallaxEnabled());
             pressedButton.setMessage(this.menuParallaxMessage());
@@ -248,7 +248,7 @@ public class OptionsScreen extends Screen {
 
     @NotNull
     protected SnappyButton buildCycleIntervalButton() {
-        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.cycleIntervalMessage(), pressedButton -> {
+        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), this.cycleIntervalMessage(), pressedButton -> {
             Options options = Snappy.getOptions();
             options.setCycleInterval(options.getCycleInterval().next());
             pressedButton.setMessage(this.cycleIntervalMessage());
@@ -260,7 +260,7 @@ public class OptionsScreen extends Screen {
 
     @NotNull
     protected SnappyButton buildHideHudInNormalScreenshotsButton() {
-        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.hideHudInNormalScreenshotsMessage(), pressedButton -> {
+        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), this.hideHudInNormalScreenshotsMessage(), pressedButton -> {
             Options options = Snappy.getOptions();
             options.setHideHudInNormalScreenshots(!options.shouldHideHudInNormalScreenshots());
             pressedButton.setMessage(this.hideHudInNormalScreenshotsMessage());
@@ -271,7 +271,7 @@ public class OptionsScreen extends Screen {
 
     @NotNull
     protected SnappyButton buildPreviewModeButton() {
-        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.previewModeMessage(), pressedButton -> {
+        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), this.previewModeMessage(), pressedButton -> {
             Options options = Snappy.getOptions();
             options.setScreenshotPreviewMode(options.getScreenshotPreviewMode().next());
             pressedButton.setMessage(this.previewModeMessage());
@@ -282,7 +282,7 @@ public class OptionsScreen extends Screen {
 
     @NotNull
     protected SnappyButton buildScreenshotChatMessagesButton() {
-        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.screenshotChatMessagesMessage(), pressedButton -> {
+        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), this.screenshotChatMessagesMessage(), pressedButton -> {
             Options options = Snappy.getOptions();
             options.setScreenshotChatMessagesEnabled(!options.areScreenshotChatMessagesEnabled());
             pressedButton.setMessage(this.screenshotChatMessagesMessage());
@@ -293,7 +293,7 @@ public class OptionsScreen extends Screen {
 
     @NotNull
     protected SnappyButton buildScreenshotBrowserButtonVisibilityButton() {
-        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.screenshotBrowserButtonVisibilityMessage(), ignored -> {
+        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), this.screenshotBrowserButtonVisibilityMessage(), ignored -> {
             Options options = Snappy.getOptions();
             options.setScreenshotBrowserButtonEnabled(!options.isScreenshotBrowserButtonEnabled());
             this.updateVanillaScreenButtonVisibilityControls();
@@ -304,7 +304,7 @@ public class OptionsScreen extends Screen {
 
     @NotNull
     protected SnappyButton buildPhotoModeButtonVisibilityButton() {
-        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), BUTTON_HEIGHT, this.photoModeButtonVisibilityMessage(), ignored -> {
+        SnappyButton button = new SnappyButton(0, 0, this.getButtonWidth(), this.photoModeButtonVisibilityMessage(), ignored -> {
             Options options = Snappy.getOptions();
             options.setPhotoModeButtonEnabled(!options.isPhotoModeButtonEnabled());
             this.updateVanillaScreenButtonVisibilityControls();

@@ -12,8 +12,8 @@ public class PhotoModeColorButton extends SnappyButton {
 
     private final Supplier<@Nullable Integer> colorSupplier;
 
-    public PhotoModeColorButton(int x, int y, int width, int height, @NotNull Component message, @NotNull OnPress onPress, @NotNull Supplier<@Nullable Integer> colorSupplier) {
-        super(x, y, width, height, message, onPress);
+    public PhotoModeColorButton(int x, int y, int width, @NotNull Component message, @NotNull OnPress onPress, @NotNull Supplier<@Nullable Integer> colorSupplier) {
+        super(x, y, width, message, onPress);
         this.colorSupplier = colorSupplier;
     }
 
@@ -23,7 +23,7 @@ public class PhotoModeColorButton extends SnappyButton {
         int swatchX = this.getX() + 6;
         int swatchY = this.getY() + (this.getHeight() - PhotoModeColorSwatch.SIZE) / 2;
         PhotoModeColorSwatch.render(graphics, swatchX, swatchY, this.colorSupplier.get());
-        this.extractDefaultLabel(graphics.textRendererForWidget(this, GuiGraphicsExtractor.HoveredTextEffects.NONE));
+        this.extractLabel(graphics);
     }
 
 }

@@ -17,12 +17,16 @@ import javax.annotation.Nullable;
  */
 public class SnappyButton extends Button {
 
-    public static final Identifier DEFAULT_IDLE_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/buttons/advanced/normal_20x20.png");
-    public static final Identifier DEFAULT_HOVER_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/buttons/advanced/hover_20x20.png");
-    public static final Identifier DEFAULT_DISABLED_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/buttons/advanced/disabled_20x20.png");
+    public static final int DEFAULT_HEIGHT = 25;
+    public static final Identifier DEFAULT_IDLE_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/buttons/advanced/normal_30x25.png");
+    public static final Identifier DEFAULT_HOVER_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/buttons/advanced/hover_30x25.png");
+    public static final Identifier DEFAULT_DISABLED_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/buttons/advanced/disabled_30x25.png");
 
-    private static final int BACKGROUND_TEXTURE_SIZE = 20;
-    private static final int BACKGROUND_BORDER_SIZE = 4;
+    private static final int BACKGROUND_TEXTURE_WIDTH = 30;
+    private static final int BACKGROUND_TEXTURE_HEIGHT = 25;
+    private static final int BACKGROUND_HORIZONTAL_BORDER_SIZE = 10;
+    private static final int BACKGROUND_VERTICAL_BORDER_SIZE = 5;
+    private static final int LABEL_HORIZONTAL_MARGIN = 14;
 
     @Nullable
     private Identifier idleBackgroundTexture = DEFAULT_IDLE_BACKGROUND_TEXTURE;
@@ -30,22 +34,43 @@ public class SnappyButton extends Button {
     private Identifier hoverBackgroundTexture = DEFAULT_HOVER_BACKGROUND_TEXTURE;
     @Nullable
     private Identifier disabledBackgroundTexture = DEFAULT_DISABLED_BACKGROUND_TEXTURE;
+    private int backgroundTextureWidth = BACKGROUND_TEXTURE_WIDTH;
+    private int backgroundTextureHeight = BACKGROUND_TEXTURE_HEIGHT;
+    private int backgroundHorizontalBorderSize = BACKGROUND_HORIZONTAL_BORDER_SIZE;
+    private int backgroundVerticalBorderSize = BACKGROUND_VERTICAL_BORDER_SIZE;
     @Nullable
     private CreateNarration narration;
     private boolean useVanillaTextures = false;
+
+    public SnappyButton(int x, int y, int width, @NotNull Component message, @NotNull OnPress onPress) {
+        this(x, y, width, DEFAULT_HEIGHT, message, onPress);
+    }
 
     public SnappyButton(int x, int y, int width, int height, @NotNull Component message, @NotNull OnPress onPress) {
         super(x, y, width, height, message, onPress, DEFAULT_NARRATION);
     }
 
     /**
-     * Sets 20x20 background textures for each render state. Each custom texture is nine-sliced with a 4-pixel border on every side. A null texture keeps Vanilla's default sprite for that state. The hover texture also applies while keyboard-focused, matching Vanilla behavior.
+     * Sets 30x25 background textures for each render state. Each custom texture is nine-sliced with 10-pixel borders and a 10-pixel center horizontally, plus 5-pixel borders and a 15-pixel center vertically. A null texture keeps Vanilla's default sprite for that state. The hover texture also applies while keyboard-focused, matching Vanilla behavior.
      */
     @NotNull
     public SnappyButton setBackgroundTextures(@Nullable Identifier idleTexture, @Nullable Identifier hoverTexture, @Nullable Identifier disabledTexture) {
+        return this.setBackgroundTextures(idleTexture, hoverTexture, disabledTexture, BACKGROUND_TEXTURE_WIDTH, BACKGROUND_TEXTURE_HEIGHT, BACKGROUND_HORIZONTAL_BORDER_SIZE, BACKGROUND_VERTICAL_BORDER_SIZE);
+    }
+
+    /**
+     * Sets custom background textures and their symmetric nine-slice layout. A null texture keeps Vanilla's default sprite for that state. The hover texture also applies while keyboard-focused, matching Vanilla behavior.
+     */
+    @NotNull
+    public SnappyButton setBackgroundTextures(@Nullable Identifier idleTexture, @Nullable Identifier hoverTexture, @Nullable Identifier disabledTexture, int textureWidth, int textureHeight, int horizontalBorderSize, int verticalBorderSize) {
+        validateBackgroundTextureLayout(textureWidth, textureHeight, horizontalBorderSize, verticalBorderSize);
         this.idleBackgroundTexture = idleTexture;
         this.hoverBackgroundTexture = hoverTexture;
         this.disabledBackgroundTexture = disabledTexture;
+        this.backgroundTextureWidth = textureWidth;
+        this.backgroundTextureHeight = textureHeight;
+        this.backgroundHorizontalBorderSize = horizontalBorderSize;
+        this.backgroundVerticalBorderSize = verticalBorderSize;
         return this;
     }
 
@@ -78,7 +103,7 @@ public class SnappyButton extends Button {
     @Override
     protected void extractContents(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
         this.extractBackground(graphics);
-        this.extractDefaultLabel(graphics.textRendererForWidget(this, GuiGraphicsExtractor.HoveredTextEffects.NONE));
+        this.extractLabel(graphics);
     }
 
     protected final void extractBackground(@NotNull GuiGraphicsExtractor graphics) {
@@ -91,7 +116,16 @@ public class SnappyButton extends Button {
             this.extractDefaultSprite(graphics);
             return;
         }
-        GuiBackground.render(graphics, backgroundTexture, this.getX(), this.getY(), this.getWidth(), this.getHeight(), BACKGROUND_TEXTURE_SIZE, BACKGROUND_TEXTURE_SIZE, BACKGROUND_BORDER_SIZE, BACKGROUND_BORDER_SIZE, BACKGROUND_BORDER_SIZE, BACKGROUND_BORDER_SIZE, ARGB.white(this.alpha));
+        GuiBackground.render(graphics, backgroundTexture, this.getX(), this.getY(), this.getWidth(), this.getHeight(), this.backgroundTextureWidth, this.backgroundTextureHeight, this.backgroundHorizontalBorderSize, this.backgroundVerticalBorderSize, this.backgroundHorizontalBorderSize, this.backgroundVerticalBorderSize, ARGB.white(this.alpha));
+    }
+
+    /**
+     * Extracts the centered label with 14-pixel horizontal margins while retaining Minecraft's scrolling behavior for oversized labels.
+     */
+    protected final void extractLabel(@NotNull GuiGraphicsExtractor graphics) {
+        int left = Math.min(this.getRight(), this.getX() + LABEL_HORIZONTAL_MARGIN);
+        int right = Math.max(left, this.getRight() - LABEL_HORIZONTAL_MARGIN);
+        graphics.textRendererForWidget(this, GuiGraphicsExtractor.HoveredTextEffects.NONE).acceptScrollingWithDefaultCenter(this.getMessage(), left, right, this.getY(), this.getBottom());
     }
 
     @Nullable
@@ -100,6 +134,18 @@ public class SnappyButton extends Button {
             return this.disabledBackgroundTexture;
         }
         return this.isHoveredOrFocused() ? this.hoverBackgroundTexture : this.idleBackgroundTexture;
+    }
+
+    private static void validateBackgroundTextureLayout(int textureWidth, int textureHeight, int horizontalBorderSize, int verticalBorderSize) {
+        if (textureWidth <= 0 || textureHeight <= 0) {
+            throw new IllegalArgumentException("Background texture dimensions must be positive.");
+        }
+        if (horizontalBorderSize < 0 || verticalBorderSize < 0) {
+            throw new IllegalArgumentException("Background texture borders cannot be negative.");
+        }
+        if ((long) horizontalBorderSize * 2 >= textureWidth || (long) verticalBorderSize * 2 >= textureHeight) {
+            throw new IllegalArgumentException("Background texture borders must leave a non-empty center slice.");
+        }
     }
 
 }

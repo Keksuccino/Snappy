@@ -60,9 +60,9 @@ public class PhotoModeScreen extends Screen {
     private static final Identifier PLAYER_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_player_icon_15x15.png");
     private static final Identifier LENS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_lens_icon_15x15.png");
     private static final Identifier WORLD_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_world_icon_15x15.png");
-    private static final Identifier TAB_BUTTON_NORMAL_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/backgrounds/tab_button_normal_20x20.png");
-    private static final Identifier TAB_BUTTON_HOVER_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/backgrounds/tab_button_hover_20x20.png");
-    private static final Identifier TAB_BUTTON_DISABLED_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/backgrounds/tab_button_disabled_20x20.png");
+    private static final Identifier TAB_BUTTON_NORMAL_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/backgrounds/tab_button_normal_25x25.png");
+    private static final Identifier TAB_BUTTON_HOVER_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/backgrounds/tab_button_hover_25x25.png");
+    private static final Identifier TAB_BUTTON_DISABLED_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/backgrounds/tab_button_disabled_25x25.png");
     private static final Identifier SETTINGS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/settings_icon_15x15.png");
     private static final Identifier ACTIVE_TAB_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/photo_mode_tabs_active_tab_24x45.png");
     private static final Identifier INACTIVE_TAB_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/photo_mode_tabs_inactive_tab_24x45.png");
@@ -70,14 +70,17 @@ public class PhotoModeScreen extends Screen {
     private static final int TAB_BACKGROUND_HEIGHT = GuiBackground.PHOTO_MODE_TABS.topBorder();
     private static final int PANEL_WIDTH = 236;
     static final int PANEL_PADDING = 8;
-    static final int CONTROL_HEIGHT = 20;
+    static final int CONTROL_HEIGHT = SnappyButton.DEFAULT_HEIGHT;
     static final int SLIDER_HEIGHT = SnappySlider.DEFAULT_HEIGHT;
     static final int CONTROL_GAP = 5;
+    private static final int TAB_BUTTON_SIZE = 25;
+    private static final int TAB_BUTTON_TEXTURE_SIZE = 25;
+    private static final int TAB_BUTTON_TEXTURE_BORDER_SIZE = 4;
     private static final int TAB_GAP = 4;
     private static final int TAB_SCROLLBAR_SPACING = 4;
     private static final int TAB_SCROLLBAR_RESERVE = AbstractScrollArea.SCROLLBAR_WIDTH + TAB_SCROLLBAR_SPACING;
     // Decorative slices own space outside the tab body. Mirror the trailing center padding on the leading edges so the body remains evenly inset while the textured panel itself stays fixed.
-    private static final int TAB_HEADER_CONTENT_HEIGHT = PANEL_PADDING + IconButton.DEFAULT_BUTTON_SIZE + CONTROL_GAP + 2;
+    private static final int TAB_HEADER_CONTENT_HEIGHT = PANEL_PADDING + TAB_BUTTON_SIZE + CONTROL_GAP + 2;
     private static final int TAB_PANEL_WIDTH = GuiBackground.PHOTO_MODE_TABS.textureWidth();
     private static final int TAB_BODY_RIGHT_INSET = TAB_PANEL_WIDTH - GuiBackground.PHOTO_MODE_TABS.leftBorder() - (PANEL_WIDTH - PANEL_PADDING * 2);
     private static final int TAB_BODY_BOTTOM_INSET = Math.max(PANEL_PADDING, GuiBackground.PHOTO_MODE_TABS.bottomBorder());
@@ -461,15 +464,15 @@ public class PhotoModeScreen extends Screen {
         int x = this.panelX + TAB_BODY_LEFT_OFFSET;
         int y = this.panelY + TAB_BUTTON_TOP_OFFSET;
         for (Tab tab : Tab.VALUES) {
-            IconButton button = this.addRenderableWidget(new IconButton(tab.message(), ignored -> {
+            IconButton button = this.addRenderableWidget(new IconButton(TAB_BUTTON_SIZE, IconButton.DEFAULT_ICON_SIZE, IconButton.DEFAULT_TEXTURE_SIZE, tab.message(), ignored -> {
                 this.selectedTab = tab;
                 this.closeColorPicker();
                 this.rebuildPhotoWidgets();
             }, tab.icon()));
-            button.setBackgroundTextures(TAB_BUTTON_NORMAL_BACKGROUND_TEXTURE, TAB_BUTTON_HOVER_BACKGROUND_TEXTURE, TAB_BUTTON_DISABLED_BACKGROUND_TEXTURE);
+            button.setBackgroundTextures(TAB_BUTTON_NORMAL_BACKGROUND_TEXTURE, TAB_BUTTON_HOVER_BACKGROUND_TEXTURE, TAB_BUTTON_DISABLED_BACKGROUND_TEXTURE, TAB_BUTTON_TEXTURE_SIZE, TAB_BUTTON_TEXTURE_SIZE, TAB_BUTTON_TEXTURE_BORDER_SIZE, TAB_BUTTON_TEXTURE_BORDER_SIZE);
             button.setPosition(x, y);
             button.setTooltip(Tooltip.create(tab.message()));
-            x += IconButton.DEFAULT_BUTTON_SIZE + TAB_GAP;
+            x += TAB_BUTTON_SIZE + TAB_GAP;
         }
         this.addSettingsButton(y);
 
@@ -610,7 +613,6 @@ public class PhotoModeScreen extends Screen {
                 0,
                 0,
                 width,
-                CONTROL_HEIGHT,
                 Component.empty(),
                 ignored -> {
                     this.colorPickerTarget = this.colorPickerTarget == target ? null : target;
@@ -633,13 +635,13 @@ public class PhotoModeScreen extends Screen {
     ) {
         this.colorPicker = new PhotoModeColorPicker(target.title(), colorSupplier, editColorSupplier, defaultColorSupplier, colorConsumer);
         this.updateColorPickerPosition();
-        this.addRenderableWidget(new SnappyButton(this.colorPicker.resetButtonX(), this.colorPicker.resetButtonY(), this.colorPicker.resetButtonWidth(), this.colorPicker.resetButtonHeight(), Component.translatable("snappy.photo_mode.color_picker.reset_default"), ignored -> {
+        this.addRenderableWidget(new SnappyButton(this.colorPicker.resetButtonX(), this.colorPicker.resetButtonY(), this.colorPicker.resetButtonWidth(), Component.translatable("snappy.photo_mode.color_picker.reset_default"), ignored -> {
             if (this.colorPicker != null) {
                 this.colorPicker.resetToDefault();
                 this.updateButtonMessages();
             }
         }));
-        this.addRenderableWidget(new SnappyButton(this.colorPicker.doneButtonX(), this.colorPicker.doneButtonY(), this.colorPicker.doneButtonWidth(), this.colorPicker.doneButtonHeight(), CommonComponents.GUI_DONE, ignored -> {
+        this.addRenderableWidget(new SnappyButton(this.colorPicker.doneButtonX(), this.colorPicker.doneButtonY(), this.colorPicker.doneButtonWidth(), CommonComponents.GUI_DONE, ignored -> {
             this.closeColorPicker();
             this.rebuildPhotoWidgets();
         }));
@@ -727,7 +729,7 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void addActionButton(@NotNull Component message, int x, int y, int width, @NotNull Button.OnPress onPress, @NotNull Component tooltip) {
-        SnappyButton button = new SnappyButton(x, y, width, CONTROL_HEIGHT, message, onPress);
+        SnappyButton button = new SnappyButton(x, y, width, message, onPress);
         button.setTooltip(Tooltip.create(tooltip));
         this.addRenderableWidget(button);
     }
@@ -740,8 +742,8 @@ public class PhotoModeScreen extends Screen {
         int buttonWidth = (this.controlWidth() - CONTROL_GAP) / 2;
         int y = this.panelY + this.panelHeight - PANEL_PADDING - CONTROL_HEIGHT;
         int x = this.panelX + PANEL_PADDING;
-        this.addRenderableWidget(new SnappyButton(x, y, buttonWidth, CONTROL_HEIGHT, dialog.confirmMessage(), ignored -> this.confirmConfirmationDialog()));
-        this.addRenderableWidget(new SnappyButton(x + buttonWidth + CONTROL_GAP, y, this.controlWidth() - buttonWidth - CONTROL_GAP, CONTROL_HEIGHT, CommonComponents.GUI_CANCEL, ignored -> this.cancelConfirmationDialog()));
+        this.addRenderableWidget(new SnappyButton(x, y, buttonWidth, dialog.confirmMessage(), ignored -> this.confirmConfirmationDialog()));
+        this.addRenderableWidget(new SnappyButton(x + buttonWidth + CONTROL_GAP, y, this.controlWidth() - buttonWidth - CONTROL_GAP, CommonComponents.GUI_CANCEL, ignored -> this.cancelConfirmationDialog()));
     }
 
     private boolean handleConfirmationDialogKeyPressed(@NotNull KeyEvent event) {
@@ -883,9 +885,9 @@ public class PhotoModeScreen extends Screen {
         int tabX = this.panelX + TAB_BODY_LEFT_OFFSET;
         for (Tab tab : Tab.VALUES) {
             Identifier texture = tab == this.selectedTab ? ACTIVE_TAB_BACKGROUND_TEXTURE : INACTIVE_TAB_BACKGROUND_TEXTURE;
-            int backgroundX = tabX + (IconButton.DEFAULT_BUTTON_SIZE - TAB_BACKGROUND_WIDTH) / 2;
+            int backgroundX = tabX + (TAB_BUTTON_SIZE - TAB_BACKGROUND_WIDTH) / 2;
             graphics.blit(RenderPipelines.GUI_TEXTURED, texture, backgroundX, this.panelY, 0.0F, 0.0F, TAB_BACKGROUND_WIDTH, TAB_BACKGROUND_HEIGHT, TAB_BACKGROUND_WIDTH, TAB_BACKGROUND_HEIGHT);
-            tabX += IconButton.DEFAULT_BUTTON_SIZE + TAB_GAP;
+            tabX += TAB_BUTTON_SIZE + TAB_GAP;
         }
     }
 

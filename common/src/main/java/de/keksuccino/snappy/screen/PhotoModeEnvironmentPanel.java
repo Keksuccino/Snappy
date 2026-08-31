@@ -18,42 +18,42 @@ final class PhotoModeEnvironmentPanel implements PhotoModeTabPanel {
             return;
         }
 
-        SnappyButton pauseButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton pauseButton = new SnappyButton(0, 0, width, Component.empty(), ignored -> {
             PhotoModeManager.togglePaused(Minecraft.getInstance());
             screen.updateButtonMessages();
         });
         pauseButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.pause.desc")));
         screen.pauseButton = screen.addTabControl(pauseButton);
 
-        SnappyButton timeButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton timeButton = new SnappyButton(0, 0, width, Component.empty(), ignored -> {
             active.setTimePreset(active.timePreset().next());
             screen.updateButtonMessages();
         });
         timeButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.time.desc")));
         screen.timeButton = screen.addTabControl(timeButton);
 
-        SnappyButton weatherButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton weatherButton = new SnappyButton(0, 0, width, Component.empty(), ignored -> {
             active.setWeatherPreset(active.weatherPreset().next());
             screen.updateButtonMessages();
         });
         weatherButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.weather.desc")));
         screen.weatherButton = screen.addTabControl(weatherButton);
 
-        SnappyButton forceBiomePrecipitationButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton forceBiomePrecipitationButton = new SnappyButton(0, 0, width, Component.empty(), ignored -> {
             active.setForceBiomePrecipitation(!active.forceBiomePrecipitation());
             screen.updateButtonMessages();
         });
         forceBiomePrecipitationButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.force_biome_precipitation.desc")));
         screen.forceBiomePrecipitationButton = screen.addTabControl(forceBiomePrecipitationButton);
 
-        SnappyButton seasonButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton seasonButton = new SnappyButton(0, 0, width, Component.empty(), ignored -> {
             active.setSeason(active.season().next());
             screen.updateButtonMessages();
         });
         seasonButton.setTooltip(Tooltip.create(Component.translatable("snappy.photo_mode.season.desc")));
         screen.seasonButton = screen.addTabControl(seasonButton);
 
-        SnappyButton beaconBeamsButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton beaconBeamsButton = new SnappyButton(0, 0, width, Component.empty(), ignored -> {
             active.setBeaconBeamsEnabled(!active.beaconBeamsEnabled());
             screen.updateButtonMessages();
         });

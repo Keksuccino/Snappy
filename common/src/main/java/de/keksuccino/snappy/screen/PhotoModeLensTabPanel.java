@@ -19,7 +19,7 @@ final class PhotoModeLensTabPanel implements PhotoModeTabPanel {
             return;
         }
 
-        SnappyButton depthOfFieldButton = new SnappyButton(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, Component.empty(), ignored -> {
+        SnappyButton depthOfFieldButton = new SnappyButton(0, 0, width, Component.empty(), ignored -> {
             active.setDepthOfFieldEnabled(!active.depthOfFieldEnabled());
             screen.updateButtonMessages();
         });
