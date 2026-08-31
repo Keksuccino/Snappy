@@ -18,8 +18,9 @@ import de.keksuccino.snappy.photo.PhotoPose;
 import de.keksuccino.snappy.photo.PhotoPoseExporter;
 import de.keksuccino.snappy.photo.PhotoPoseManager;
 import de.keksuccino.snappy.util.rendering.RenderingUtils;
-import de.keksuccino.snappy.util.rendering.gui.widget.SnappyButton;
 import de.keksuccino.snappy.util.rendering.gui.widget.IconButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.SnappyButton;
+import de.keksuccino.snappy.util.rendering.gui.widget.SnappySlider;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -70,6 +71,7 @@ public class PhotoModeScreen extends Screen {
     private static final int PANEL_WIDTH = 236;
     static final int PANEL_PADDING = 8;
     static final int CONTROL_HEIGHT = 20;
+    static final int SLIDER_HEIGHT = SnappySlider.DEFAULT_HEIGHT;
     static final int CONTROL_GAP = 5;
     private static final int TAB_GAP = 4;
     private static final int TAB_SCROLLBAR_SPACING = 4;
@@ -657,7 +659,6 @@ public class PhotoModeScreen extends Screen {
                 0,
                 0,
                 width,
-                CONTROL_HEIGHT,
                 minValue,
                 maxValue,
                 currentValue,
@@ -680,12 +681,11 @@ public class PhotoModeScreen extends Screen {
         int column = index % this.poseMakerColumns;
         int row = index / this.poseMakerColumns;
         int x = this.poseMakerPanelX + PANEL_PADDING + column * (columnWidth + POSE_MAKER_COLUMN_GAP);
-        int y = sliderStartY + row * (CONTROL_HEIGHT + CONTROL_GAP);
+        int y = sliderStartY + row * (SLIDER_HEIGHT + CONTROL_GAP);
         this.addRenderableWidget(new PhotoModeSlider(
                 x,
                 y,
                 columnWidth,
-                CONTROL_HEIGHT,
                 POSE_MAKER_ROTATION_MIN,
                 POSE_MAKER_ROTATION_MAX,
                 rotation.value(axis),
@@ -711,7 +711,6 @@ public class PhotoModeScreen extends Screen {
                 x,
                 y,
                 width,
-                CONTROL_HEIGHT,
                 PhotoPose.MODEL_Y_OFFSET_MIN,
                 PhotoPose.MODEL_Y_OFFSET_MAX,
                 this.poseMakerModelYOffset,
@@ -975,7 +974,7 @@ public class PhotoModeScreen extends Screen {
 
     private int poseMakerDesiredPanelHeight(int columns) {
         int rows = this.poseMakerSliderRows(columns);
-        int sliderHeight = rows * CONTROL_HEIGHT + Math.max(0, rows - 1) * CONTROL_GAP;
+        int sliderHeight = rows * SLIDER_HEIGHT + Math.max(0, rows - 1) * CONTROL_GAP;
         return PANEL_PADDING * 2
                 + POSE_MAKER_HEADER_HEIGHT
                 + CONTROL_GAP

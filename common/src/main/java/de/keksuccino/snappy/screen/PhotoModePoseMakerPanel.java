@@ -55,7 +55,7 @@ final class PhotoModePoseMakerPanel {
         }
         screen.addPoseMakerModelYOffsetSlider(
                 contentX,
-                sliderY + screen.poseMakerRotationSliderRows(screen.poseMakerColumns) * (PhotoModeScreen.CONTROL_HEIGHT + PhotoModeScreen.CONTROL_GAP),
+                sliderY + screen.poseMakerRotationSliderRows(screen.poseMakerColumns) * (PhotoModeScreen.SLIDER_HEIGHT + PhotoModeScreen.CONTROL_GAP),
                 contentWidth
         );
 

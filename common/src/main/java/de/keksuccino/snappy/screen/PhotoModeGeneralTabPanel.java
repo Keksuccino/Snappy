@@ -35,7 +35,6 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
                 0,
                 0,
                 width,
-                PhotoModeScreen.CONTROL_HEIGHT,
                 30.0D,
                 110.0D,
                 active.fieldOfView(),
@@ -49,7 +48,6 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
                 0,
                 0,
                 width,
-                PhotoModeScreen.CONTROL_HEIGHT,
                 -180.0D,
                 180.0D,
                 active.roll(),
@@ -74,7 +72,6 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
                 0,
                 0,
                 width,
-                PhotoModeScreen.CONTROL_HEIGHT,
                 0.0D,
                 1.0D,
                 active.vignette(),
@@ -209,7 +206,6 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
                 0,
                 0,
                 width,
-                PhotoModeScreen.CONTROL_HEIGHT,
                 minValue,
                 maxValue,
                 currentValue,
@@ -223,7 +219,7 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
     }
 
     private void addColorBalanceSlider(@NotNull PhotoModeScreen screen, int width, @NotNull String labelKey, @NotNull String tooltipKey, @NotNull String lowLabelKey, @NotNull String highLabelKey, int lowColor, int highColor, double currentValue, @NotNull DoubleSupplier currentValueSupplier, @NotNull DoubleConsumer valueConsumer) {
-        PhotoModeColorBalanceSlider slider = screen.addTabControl(new PhotoModeColorBalanceSlider(0, 0, width, PhotoModeScreen.CONTROL_HEIGHT, PhotoModeManager.COLOR_BALANCE_MIN, PhotoModeManager.COLOR_BALANCE_MAX, currentValue, PhotoModeManager.COLOR_BALANCE_DEFAULT, PhotoModeScreen.COLOR_ADJUSTMENT_SNAP_RADIUS, PhotoModeScreen.COLOR_ADJUSTMENT_STEP, valueConsumer, value -> PhotoModeScreen.optionMessage(labelKey, this.colorBalanceValue(value, lowLabelKey, highLabelKey)), () -> colorBalancePreview(currentValueSupplier.getAsDouble(), lowColor, highColor)));
+        PhotoModeColorBalanceSlider slider = screen.addTabControl(new PhotoModeColorBalanceSlider(0, 0, width, PhotoModeManager.COLOR_BALANCE_MIN, PhotoModeManager.COLOR_BALANCE_MAX, currentValue, PhotoModeManager.COLOR_BALANCE_DEFAULT, PhotoModeScreen.COLOR_ADJUSTMENT_SNAP_RADIUS, PhotoModeScreen.COLOR_ADJUSTMENT_STEP, valueConsumer, value -> PhotoModeScreen.optionMessage(labelKey, this.colorBalanceValue(value, lowLabelKey, highLabelKey)), () -> colorBalancePreview(currentValueSupplier.getAsDouble(), lowColor, highColor)));
         slider.setTooltip(Tooltip.create(Component.translatable(tooltipKey)));
     }
 
@@ -262,7 +258,6 @@ final class PhotoModeGeneralTabPanel implements PhotoModeTabPanel {
                 0,
                 0,
                 width,
-                PhotoModeScreen.CONTROL_HEIGHT,
                 minValue,
                 maxValue,
                 currentValue,

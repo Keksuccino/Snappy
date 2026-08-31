@@ -24,51 +24,16 @@ public class PhotoModeSlider extends SnappySlider {
     private double rawSliderValue;
     private boolean skipDefaultSnapUntilOutsideZone;
 
-    public PhotoModeSlider(
-            int x,
-            int y,
-            int width,
-            int height,
-            double minValue,
-            double maxValue,
-            double currentValue,
-            @NotNull DoubleConsumer valueConsumer,
-            @NotNull DoubleFunction<Component> messageFactory
-    ) {
-        this(x, y, width, height, minValue, maxValue, currentValue, currentValue, 0.0D, 0.0D, valueConsumer, messageFactory);
+    public PhotoModeSlider(int x, int y, int width, double minValue, double maxValue, double currentValue, @NotNull DoubleConsumer valueConsumer, @NotNull DoubleFunction<Component> messageFactory) {
+        this(x, y, width, minValue, maxValue, currentValue, currentValue, 0.0D, 0.0D, valueConsumer, messageFactory);
     }
 
-    public PhotoModeSlider(
-            int x,
-            int y,
-            int width,
-            int height,
-            double minValue,
-            double maxValue,
-            double currentValue,
-            double defaultValue,
-            double snapRadius,
-            @NotNull DoubleConsumer valueConsumer,
-            @NotNull DoubleFunction<Component> messageFactory
-    ) {
-        this(x, y, width, height, minValue, maxValue, currentValue, defaultValue, snapRadius, 0.0D, valueConsumer, messageFactory);
+    public PhotoModeSlider(int x, int y, int width, double minValue, double maxValue, double currentValue, double defaultValue, double snapRadius, @NotNull DoubleConsumer valueConsumer, @NotNull DoubleFunction<Component> messageFactory) {
+        this(x, y, width, minValue, maxValue, currentValue, defaultValue, snapRadius, 0.0D, valueConsumer, messageFactory);
     }
 
-    public PhotoModeSlider(
-            int x,
-            int y,
-            int width,
-            int height,
-            double minValue,
-            double maxValue,
-            double currentValue,
-            double defaultValue,
-            double snapRadius,
-            double actualStep,
-            @NotNull DoubleConsumer valueConsumer,
-            @NotNull DoubleFunction<Component> messageFactory
-    ) {
-        super(x, y, width, height, Component.empty(), toSliderValue(minValue, maxValue, currentValue));
+    public PhotoModeSlider(int x, int y, int width, double minValue, double maxValue, double currentValue, double defaultValue, double snapRadius, double actualStep, @NotNull DoubleConsumer valueConsumer, @NotNull DoubleFunction<Component> messageFactory) {
+        super(x, y, width, Component.empty(), toSliderValue(minValue, maxValue, currentValue));
         this.minValue = minValue;
         this.maxValue = maxValue;
         this.rawSliderValue = this.value;
