@@ -33,6 +33,8 @@ public class SnappyButton extends Button {
     @Nullable
     private Identifier hoverBackgroundTexture = DEFAULT_HOVER_BACKGROUND_TEXTURE;
     @Nullable
+    private Identifier selectedBackgroundTexture;
+    @Nullable
     private Identifier disabledBackgroundTexture = DEFAULT_DISABLED_BACKGROUND_TEXTURE;
     private int backgroundTextureWidth = BACKGROUND_TEXTURE_WIDTH;
     private int backgroundTextureHeight = BACKGROUND_TEXTURE_HEIGHT;
@@ -41,6 +43,7 @@ public class SnappyButton extends Button {
     @Nullable
     private CreateNarration narration;
     private boolean useVanillaTextures = false;
+    private boolean selected = false;
 
     public SnappyButton(int x, int y, int width, @NotNull Component message, @NotNull OnPress onPress) {
         this(x, y, width, DEFAULT_HEIGHT, message, onPress);
@@ -55,7 +58,7 @@ public class SnappyButton extends Button {
      */
     @NotNull
     public SnappyButton setBackgroundTextures(@Nullable Identifier idleTexture, @Nullable Identifier hoverTexture, @Nullable Identifier disabledTexture) {
-        return this.setBackgroundTextures(idleTexture, hoverTexture, disabledTexture, BACKGROUND_TEXTURE_WIDTH, BACKGROUND_TEXTURE_HEIGHT, BACKGROUND_HORIZONTAL_BORDER_SIZE, BACKGROUND_VERTICAL_BORDER_SIZE);
+        return this.setBackgroundTextures(idleTexture, hoverTexture, null, disabledTexture, BACKGROUND_TEXTURE_WIDTH, BACKGROUND_TEXTURE_HEIGHT, BACKGROUND_HORIZONTAL_BORDER_SIZE, BACKGROUND_VERTICAL_BORDER_SIZE);
     }
 
     /**
@@ -63,14 +66,40 @@ public class SnappyButton extends Button {
      */
     @NotNull
     public SnappyButton setBackgroundTextures(@Nullable Identifier idleTexture, @Nullable Identifier hoverTexture, @Nullable Identifier disabledTexture, int textureWidth, int textureHeight, int horizontalBorderSize, int verticalBorderSize) {
+        return this.setBackgroundTextures(idleTexture, hoverTexture, null, disabledTexture, textureWidth, textureHeight, horizontalBorderSize, verticalBorderSize);
+    }
+
+    /**
+     * Sets 30x25 background textures for each render state, including an optional selected state. The selected texture takes precedence over hover while the button is selected.
+     */
+    @NotNull
+    public SnappyButton setBackgroundTextures(@Nullable Identifier idleTexture, @Nullable Identifier hoverTexture, @Nullable Identifier selectedTexture, @Nullable Identifier disabledTexture) {
+        return this.setBackgroundTextures(idleTexture, hoverTexture, selectedTexture, disabledTexture, BACKGROUND_TEXTURE_WIDTH, BACKGROUND_TEXTURE_HEIGHT, BACKGROUND_HORIZONTAL_BORDER_SIZE, BACKGROUND_VERTICAL_BORDER_SIZE);
+    }
+
+    /**
+     * Sets custom background textures and their symmetric nine-slice layout, including an optional selected state. Disabled takes highest precedence, followed by selected, hover/focus, and idle. A null selected texture falls back to the ordinary hover or idle state.
+     */
+    @NotNull
+    public SnappyButton setBackgroundTextures(@Nullable Identifier idleTexture, @Nullable Identifier hoverTexture, @Nullable Identifier selectedTexture, @Nullable Identifier disabledTexture, int textureWidth, int textureHeight, int horizontalBorderSize, int verticalBorderSize) {
         validateBackgroundTextureLayout(textureWidth, textureHeight, horizontalBorderSize, verticalBorderSize);
         this.idleBackgroundTexture = idleTexture;
         this.hoverBackgroundTexture = hoverTexture;
+        this.selectedBackgroundTexture = selectedTexture;
         this.disabledBackgroundTexture = disabledTexture;
         this.backgroundTextureWidth = textureWidth;
         this.backgroundTextureHeight = textureHeight;
         this.backgroundHorizontalBorderSize = horizontalBorderSize;
         this.backgroundVerticalBorderSize = verticalBorderSize;
+        return this;
+    }
+
+    /**
+     * Controls whether this button uses its selected background texture.
+     */
+    @NotNull
+    public SnappyButton setSelected(boolean selected) {
+        this.selected = selected;
         return this;
     }
 
@@ -132,6 +161,9 @@ public class SnappyButton extends Button {
     private Identifier backgroundTexture() {
         if (!this.active) {
             return this.disabledBackgroundTexture;
+        }
+        if (this.selected && this.selectedBackgroundTexture != null) {
+            return this.selectedBackgroundTexture;
         }
         return this.isHoveredOrFocused() ? this.hoverBackgroundTexture : this.idleBackgroundTexture;
     }

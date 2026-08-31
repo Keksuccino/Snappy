@@ -34,7 +34,6 @@ import net.minecraft.client.gui.layouts.LinearLayout;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -62,12 +61,9 @@ public class PhotoModeScreen extends Screen {
     private static final Identifier WORLD_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/tab_world_icon_15x15.png");
     private static final Identifier TAB_BUTTON_NORMAL_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/backgrounds/tab_button_normal_25x25.png");
     private static final Identifier TAB_BUTTON_HOVER_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/backgrounds/tab_button_hover_25x25.png");
+    private static final Identifier TAB_BUTTON_SELECTED_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/backgrounds/tab_button_selected_25x25.png");
     private static final Identifier TAB_BUTTON_DISABLED_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/photo_mode/tabs/backgrounds/tab_button_disabled_25x25.png");
     private static final Identifier SETTINGS_ICON = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/screenshot_browser/browser/settings_icon_15x15.png");
-    private static final Identifier ACTIVE_TAB_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/photo_mode_tabs_active_tab_24x45.png");
-    private static final Identifier INACTIVE_TAB_BACKGROUND_TEXTURE = Identifier.fromNamespaceAndPath(Snappy.MOD_ID, "textures/gui/backgrounds/photo_mode_tabs_inactive_tab_24x45.png");
-    private static final int TAB_BACKGROUND_WIDTH = 24;
-    private static final int TAB_BACKGROUND_HEIGHT = GuiBackground.PHOTO_MODE_TABS.topBorder();
     private static final int PANEL_WIDTH = 236;
     static final int PANEL_PADDING = 8;
     static final int CONTROL_HEIGHT = SnappyButton.DEFAULT_HEIGHT;
@@ -469,7 +465,8 @@ public class PhotoModeScreen extends Screen {
                 this.closeColorPicker();
                 this.rebuildPhotoWidgets();
             }, tab.icon()));
-            button.setBackgroundTextures(TAB_BUTTON_NORMAL_BACKGROUND_TEXTURE, TAB_BUTTON_HOVER_BACKGROUND_TEXTURE, TAB_BUTTON_DISABLED_BACKGROUND_TEXTURE, TAB_BUTTON_TEXTURE_SIZE, TAB_BUTTON_TEXTURE_SIZE, TAB_BUTTON_TEXTURE_BORDER_SIZE, TAB_BUTTON_TEXTURE_BORDER_SIZE);
+            button.setBackgroundTextures(TAB_BUTTON_NORMAL_BACKGROUND_TEXTURE, TAB_BUTTON_HOVER_BACKGROUND_TEXTURE, TAB_BUTTON_SELECTED_BACKGROUND_TEXTURE, TAB_BUTTON_DISABLED_BACKGROUND_TEXTURE, TAB_BUTTON_TEXTURE_SIZE, TAB_BUTTON_TEXTURE_SIZE, TAB_BUTTON_TEXTURE_BORDER_SIZE, TAB_BUTTON_TEXTURE_BORDER_SIZE);
+            button.setSelected(tab == this.selectedTab);
             button.setPosition(x, y);
             button.setTooltip(Tooltip.create(tab.message()));
             x += TAB_BUTTON_SIZE + TAB_GAP;
@@ -532,12 +529,9 @@ public class PhotoModeScreen extends Screen {
     }
 
     private void addSettingsButton(int y) {
-        IconButton button = this.addRenderableWidget(new IconButton(
-                Component.translatable("snappy.browser.settings"),
-                ignored -> this.openOptionsScreen(),
-                SETTINGS_ICON
-        ));
-        button.setPosition(this.panelX + TAB_PANEL_WIDTH - PANEL_PADDING - IconButton.DEFAULT_BUTTON_SIZE, y);
+        IconButton button = this.addRenderableWidget(new IconButton(TAB_BUTTON_SIZE, IconButton.DEFAULT_ICON_SIZE, IconButton.DEFAULT_TEXTURE_SIZE, Component.translatable("snappy.browser.settings"), ignored -> this.openOptionsScreen(), SETTINGS_ICON));
+        button.setBackgroundTextures(TAB_BUTTON_NORMAL_BACKGROUND_TEXTURE, TAB_BUTTON_HOVER_BACKGROUND_TEXTURE, TAB_BUTTON_DISABLED_BACKGROUND_TEXTURE, TAB_BUTTON_TEXTURE_SIZE, TAB_BUTTON_TEXTURE_SIZE, TAB_BUTTON_TEXTURE_BORDER_SIZE, TAB_BUTTON_TEXTURE_BORDER_SIZE);
+        button.setPosition(this.panelX + TAB_PANEL_WIDTH - PANEL_PADDING - TAB_BUTTON_SIZE, y);
     }
 
     private void openOptionsScreen() {
@@ -878,17 +872,6 @@ public class PhotoModeScreen extends Screen {
         }
 
         GuiBackground.PHOTO_MODE_TABS.render(graphics, this.panelX, this.panelY, TAB_PANEL_WIDTH, this.panelHeight);
-        this.renderTabBackgrounds(graphics);
-    }
-
-    private void renderTabBackgrounds(@NotNull GuiGraphicsExtractor graphics) {
-        int tabX = this.panelX + TAB_BODY_LEFT_OFFSET;
-        for (Tab tab : Tab.VALUES) {
-            Identifier texture = tab == this.selectedTab ? ACTIVE_TAB_BACKGROUND_TEXTURE : INACTIVE_TAB_BACKGROUND_TEXTURE;
-            int backgroundX = tabX + (TAB_BUTTON_SIZE - TAB_BACKGROUND_WIDTH) / 2;
-            graphics.blit(RenderPipelines.GUI_TEXTURED, texture, backgroundX, this.panelY, 0.0F, 0.0F, TAB_BACKGROUND_WIDTH, TAB_BACKGROUND_HEIGHT, TAB_BACKGROUND_WIDTH, TAB_BACKGROUND_HEIGHT);
-            tabX += TAB_BUTTON_SIZE + TAB_GAP;
-        }
     }
 
     private void renderPoseMakerPanel(@NotNull GuiGraphicsExtractor graphics) {
